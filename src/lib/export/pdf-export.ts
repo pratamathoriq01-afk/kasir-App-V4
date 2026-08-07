@@ -81,21 +81,26 @@ export async function exportTransactionsToPDF(
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("KEDAI NYAMLENG — LAPORAN KEUANGAN PRO", ML, 15);
+  doc.setFontSize(13);
+  doc.text("KEDAI NYAMLENG", ML, 13);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(251, 191, 36); // Amber 400
+  doc.text("LAPORAN KEUANGAN & AUDIT PENJUALAN", ML, 19);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(203, 213, 225);
-  doc.text("Jl. LA. Sucipto XIV/42, Kota Malang — Telp/WA: 085113661387", ML, 22);
-  doc.text(`Periode Evaluasi: ${periodLabel}  |  Dicetak: ${new Date().toLocaleString("id-ID")}`, ML, 28);
+  doc.text("Jl. LA. Sucipto XIV/42, Kota Malang — Telp/WA: 085113661387", ML, 25);
+  doc.text(`Periode Evaluasi: ${periodLabel}  |  Dicetak: ${new Date().toLocaleString("id-ID")}`, ML, 30);
 
-  // Health Badge (Positioned cleanly on top-right without overlapping header text)
+  // Health Badge (Positioned cleanly on top-right with zero chance of overlap)
   if (isHealthy) doc.setFillColor(16, 185, 129);
   else doc.setFillColor(239, 68, 68);
-  doc.roundedRect(PW - ML - 36, 10, 36, 11, 2, 2, "F");
+  doc.roundedRect(PW - ML - 34, 10, 34, 10, 2, 2, "F");
   doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-  doc.text(isHealthy ? "BISNIS SEHAT OK" : "PERLU EVALUASI", PW - ML - 18, 17, { align: "center" });
+  doc.text(isHealthy ? "BISNIS SEHAT OK" : "PERLU EVALUASI", PW - ML - 17, 16.5, { align: "center" });
 
   let curY = 44;
 
@@ -127,22 +132,22 @@ export async function exportTransactionsToPDF(
   // ── 2. Integrated Realtime AI Executive Summary Box ─────────────────────────
   doc.setFillColor(254, 243, 199); // Amber 50
   doc.setDrawColor(217, 119, 6);   // Amber 600
-  doc.roundedRect(ML, curY, CW, 30, 2, 2, "FD");
+  doc.roundedRect(ML, curY, CW, 32, 2, 2, "FD");
 
-  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(180, 83, 9);
-  doc.text("[AI SUMMARY] REALTIME EXECUTIVE BUSINESS INSIGHT & RECOMMENDATIONS:", ML + 4, curY + 6);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(180, 83, 9);
+  doc.text("AI EXECUTIVE BUSINESS SUMMARY & RECOMMENDATIONS:", ML + 4, curY + 6);
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(15, 23, 42);
   const aiSummaryText =
     `- Profitabilitas GPM: Total omzet mencapai Rp ${totalRevenue.toLocaleString("id-ID")} dengan Laba Bersih Rp ${totalNetProfit.toLocaleString("id-ID")} ` +
-    `(Gross Profit Margin ${gpmPct.toFixed(1)}%). Tingkat kesehatan bisnis: ${gpmPct >= 30 ? "EXCELLENT & Efisien" : "SEHAT"}.\n` +
+    `(Gross Profit Margin ${gpmPct.toFixed(1)}%). Status bisnis: ${gpmPct >= 30 ? "EXCELLENT & Efisien" : "SEHAT"}.\n` +
     `- Alokasi Modal HPP: Beban pokok HPP tercatat Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Pengendalian modal bahan baku efisien sesuai kaidah SAK EMKM.\n` +
     `- Rata-rata Belanja (AOV): Nilai belanja rata-rata pelanggan Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} nota terbit.\n` +
-    `- Rekomendasi Operasional: Pertahankan strategi bundling menu utama dan dorong promosi produk minuman/cemilan bermargin tinggi.`;
+    `- Rekomendasi Operasional: Pertahankan strategi bundling menu utama dan tingkatkan promosi produk bermargin tinggi.`;
 
   const splitSummary = doc.splitTextToSize(aiSummaryText, CW - 8);
   doc.text(splitSummary, ML + 4, curY + 12);
-  curY += 36;
+  curY += 38;
 
   // ── 3. Line Chart — Tren Omzet & Laba Harian ───────────────────────────────
   doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(15, 23, 42);

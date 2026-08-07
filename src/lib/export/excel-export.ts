@@ -56,14 +56,14 @@ export async function exportTransactionsToExcel(
   const hppPct         = totalRevenue > 0 ? (totalHpp / totalRevenue) : 0;
 
   // ╔══════════════════════════════════════════════════════╗
-  // ║  SHEET 1 — DASHBOARD KPI & AI INSIGHT                ║
+  // ║  SHEET 1 — RINGKASAN & KPI BISNIS                   ║
   // ╚══════════════════════════════════════════════════════╝
-  const ws1 = wb.addWorksheet("Dashboard KPI & AI");
+  const ws1 = wb.addWorksheet("Ringkasan & KPI Bisnis");
   
   ws1.getRow(1).height = 36;
   ws1.mergeCells("A1:F1");
   const title1 = ws1.getCell("A1");
-  title1.value = "KEDAI NYAMLENG — DASHBOARD EXECUTIVE FINANCIAL & AI INSIGHT";
+  title1.value = "KEDAI NYAMLENG — DASHBOARD KEUNTUNGAN & KINERJA BISNIS";
   title1.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: DARK } };
   title1.font  = { name: "Arial", bold: true, size: 13, color: { argb: WHITE } };
   title1.alignment = { horizontal: "center", vertical: "middle" };
@@ -151,9 +151,9 @@ export async function exportTransactionsToExcel(
   ];
 
   // ╔══════════════════════════════════════════════════════╗
-  // ║  SHEET 2 — ANALISIS PERFORMA MENU                   ║
+  // ║  SHEET 2 — ANALISIS MENU & PRODUK                   ║
   // ╚══════════════════════════════════════════════════════╝
-  const ws2 = wb.addWorksheet("Analisis Performa Menu");
+  const ws2 = wb.addWorksheet("Analisis Menu & Produk");
   
   ws2.getRow(1).height = 32;
   ws2.mergeCells("A1:G1");
@@ -405,64 +405,13 @@ export async function exportTransactionsToExcel(
 
   ws4.columns = [{ width: 18 }, { width: 18 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 16 }];
 
-  // ╔══════════════════════════════════════════════════════╗
-  // ║  SHEET 5 — SQL & POWER BI EXPORT                    ║
-  // ╚══════════════════════════════════════════════════════╝
-  const ws5 = wb.addWorksheet("SQL & PowerBI Export");
-
-  ws5.getRow(1).height = 28;
-  ws5.mergeCells("A1:N1");
-  const title5 = ws5.getCell("A1");
-  title5.value = "FLAT LINE-ITEM DATA TABLE FOR DATABASE & POWER BI INTEGRATION";
-  title5.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: DARK } };
-  title5.font  = { name: "Arial", bold: true, size: 10, color: { argb: WHITE } };
-  title5.alignment = { horizontal: "center", vertical: "middle" };
-
-  ws5.addRow([]);
-
-  const sqlHeader = [
-    "transaction_id", "order_number", "date", "customer_name", "order_type",
-    "item_name", "qty", "unit_price", "hpp_per_unit", "item_subtotal",
-    "item_hpp", "item_profit", "payment_method", "total_transaction"
-  ];
-  const sqlHead = ws5.addRow(sqlHeader);
-  sqlHead.height = 22;
-  sqlHead.eachCell((c) => headerStyle(c, DARK, WHITE));
-
-  transactions.forEach((t, ti) => {
-    const dt = new Date(t.createdAt as string).toLocaleDateString("id-ID");
-    t.items.forEach((item) => {
-      const isZebra = ti % 2 === 1;
-      const iSub = item.priceSnapshot * item.qty;
-      const iHpp = item.hppSnapshot * item.qty;
-      const r = ws5.addRow([
-        t.id, t.orderNumber, dt,
-        t.customerName || "Pelanggan",
-        t.orderType.toUpperCase(),
-        item.nameSnapshot, item.qty,
-        item.priceSnapshot, item.hppSnapshot,
-        iSub, iHpp, iSub - iHpp,
-        "Cash", t.total,
-      ]);
-      r.height = 16;
-      r.eachCell((c, ci) => {
-        dataStyle(c, isZebra);
-        if (ci >= 8 && ci <= 12 || ci === 14) {
-          c.numFmt = '"Rp "#,##0';
-        }
-      });
-    });
-  });
-
-  ws5.columns = Array(14).fill({ width: 18 });
-
   // Download Buffer
   const buffer = await wb.xlsx.writeBuffer();
   const blob   = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url    = URL.createObjectURL(blob);
   const a      = document.createElement("a");
   a.href       = url;
-  a.download   = `Master_Laporan_Keuangan_Pro_Kedai_Nyamleng_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download   = `Laporan_Excel_Kedai_Nyamleng_${new Date().toISOString().slice(0, 10)}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }

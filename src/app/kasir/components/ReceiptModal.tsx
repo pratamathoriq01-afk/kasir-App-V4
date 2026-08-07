@@ -23,6 +23,13 @@ export default function ReceiptModal({
   const [activeTab, setActiveTab] = useState<PrintMode>("customer");
   const [isPrinting, setIsPrinting] = useState(false);
 
+  // Guarantee spinner is never stuck on open
+  useEffect(() => {
+    if (isOpen) {
+      setIsPrinting(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen || !transaction) return null;
 
   const executePrint = async (

@@ -209,64 +209,46 @@ export default function MenuFormModal({
             </select>
           </div>
 
-          {/* Flexible Pricing Mode Switcher */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="font-bold text-slate-700">Mode Perhitungan Harga & HPP</label>
-              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setCalcMode("manual")}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                    calcMode === "manual" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
-                  }`}
-                >
-                  Bebas Manual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCalcMode("target_margin")}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
-                    calcMode === "target_margin" ? "bg-amber-500 text-slate-950 shadow-xs" : "text-slate-500"
-                  }`}
-                >
-                  Target Margin %
-                </button>
+          {/* Target Margin Input Box */}
+          <div className="p-3 bg-amber-50/90 rounded-2xl border border-amber-200/90 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-bold text-amber-950 text-xs block">Target Margin Keuntungan (%)</span>
+                <span className="text-[10px] text-amber-800/80">Ketik persen margin untuk hitung otomatis</span>
+              </div>
+              <div className="relative w-24">
+                <input
+                  type="number"
+                  value={targetMargin || ""}
+                  onChange={(e) => handleTargetMarginChange(Number(e.target.value))}
+                  placeholder="45"
+                  className="w-full pl-3 pr-6 py-1.5 bg-white border-2 border-amber-400 rounded-xl text-sm font-black text-center text-slate-900 shadow-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                  min={0}
+                  max={99}
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-700">%</span>
               </div>
             </div>
 
-            {calcMode === "target_margin" && (
-              <div className="mb-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold text-amber-900">Input / Pilih Target Margin (%):</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="relative w-20">
-                    <input
-                      type="number"
-                      value={targetMargin || ""}
-                      onChange={(e) => handleTargetMarginChange(Number(e.target.value))}
-                      className="w-full pr-5 pl-2 py-1 bg-white border border-amber-300 rounded-md text-xs font-bold text-center text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
-                      min={0}
-                      max={99}
-                    />
-                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">%</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {[35, 45, 50, 60].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => handleTargetMarginChange(m)}
-                        className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                          targetMargin === m ? "bg-amber-500 text-slate-950 shadow-xs" : "bg-white text-slate-700 border border-slate-200"
-                        }`}
-                      >
-                        {m}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div className="flex items-center justify-between text-[11px] text-amber-900 font-semibold pt-1.5 border-t border-amber-200/70">
+              <span>Preset Cepat:</span>
+              <div className="flex gap-1">
+                {[25, 35, 45, 50, 60, 70].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => handleTargetMarginChange(m)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all ${
+                      targetMargin === m
+                        ? "bg-amber-500 text-slate-950 shadow-xs"
+                        : "bg-white text-slate-700 border border-slate-200 hover:bg-amber-100"
+                    }`}
+                  >
+                    {m}%
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Price & HPP Grid */}
