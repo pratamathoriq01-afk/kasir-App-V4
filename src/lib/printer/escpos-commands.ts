@@ -207,9 +207,9 @@ export async function buildCustomerReceiptESCPOS(
   parts.push(ESC_FEED_1);
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_BOLD_ON);
-  parts.push(encBytes("Matur Suwun Sanget!\n"));
+  parts.push(encBytes("Matur Nuwun Sanget !\n"));
   parts.push(ESC_BOLD_OFF);
-  parts.push(encBytes("Kedai Nyamleng — Malang\n"));
+  parts.push(encBytes("Kedai Nyamleng\n"));
   parts.push(ESC_FEED_2);
 
   // 9. Paper feed to tear-bar

@@ -185,8 +185,8 @@ export default function ReceiptModal({
                 </div>
 
                 <div className="text-center pt-3 text-[10px] text-slate-600 border-t border-dashed border-slate-300 space-y-0.5">
-                  <p className="font-bold text-slate-900">Matur Suwun Sanget!</p>
-                  <p>Kedai Nyamleng — Malang</p>
+                  <p className="font-bold text-slate-900">Matur Nuwun Sanget ! 😊</p>
+                  <p>Kedai Nyamleng ❤️</p>
                 </div>
               </div>
             ) : (
