@@ -5,7 +5,7 @@
  */
 
 import { Transaction } from "@/types";
-import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster } from "./escpos-commands";
+import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS } from "./escpos-commands";
 
 type PrintMode = "customer" | "kitchen";
 
@@ -72,17 +72,11 @@ export async function printViaWebSerial(
       return true;
     }
 
-    // Build receipt data (with 800ms fast logo timeout)
-    const logoRaster = await Promise.race([
-      loadLogoRaster(180),
-      new Promise<Uint8Array | null>((resolve) => setTimeout(() => resolve(null), 800)),
-    ]);
-
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
     } else {
-      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster || undefined);
+      escposData = await buildCustomerReceiptESCPOS(transaction);
     }
 
     const writer = port.writable.getWriter();

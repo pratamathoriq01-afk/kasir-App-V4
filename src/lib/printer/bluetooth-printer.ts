@@ -1,11 +1,10 @@
 /**
  * Web Bluetooth Thermal Printer — SharkPOS PI58BT / Generic BT 58mm
- * Uses shared ESC/POS command builder from escpos-commands.ts
- * Optimized for instant zero-delay transmission & auto-fallback.
+ * Fully Automated Bluetooth Engine with In-Memory Caching & Instant 0-Delay Printing.
  */
 
 import { Transaction } from "@/types";
-import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster } from "./escpos-commands";
+import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS } from "./escpos-commands";
 import { printViaWebSerial } from "./serial-printer";
 
 type PrintMode = "customer" | "kitchen";
@@ -22,15 +21,19 @@ const BT_SERVICE_UUIDS = [
   "00001101-0000-1000-8000-00805f9b34fb",
 ];
 
+// In-memory cache for instant automated re-use
+let cachedDevice: BTDeviceLike | null = null;
+let cachedWriteChar: BTCharacteristicLike | null = null;
+
 export async function connectBluetoothPrinter(): Promise<boolean> {
   if (typeof window === "undefined" || !("bluetooth" in navigator)) {
     return true;
   }
   try {
     const nav = navigator as unknown as {
-      bluetooth: { requestDevice: (opts: unknown) => Promise<unknown> };
+      bluetooth: { requestDevice: (opts: unknown) => Promise<BTDeviceLike> };
     };
-    await nav.bluetooth.requestDevice({
+    cachedDevice = await nav.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: BT_SERVICE_UUIDS,
     });
@@ -62,10 +65,21 @@ export async function printViaWebBluetooth(
       };
     };
 
-    let device: BTDeviceLike | null = null;
+    // 1. FAST PATH: Re-use cached active write characteristic if connected
+    if (cachedDevice && cachedDevice.gatt?.connected && cachedWriteChar) {
+      try {
+        await sendESCPOSData(cachedWriteChar, transaction, mode);
+        return true;
+      } catch (cachedErr) {
+        console.warn("Cached Bluetooth write failed, re-connecting:", cachedErr);
+        cachedDevice = null;
+        cachedWriteChar = null;
+      }
+    }
 
-    // Fast check for already paired Bluetooth device
-    if (nav.bluetooth.getDevices) {
+    // 2. AUTOMATED GET DEVICES: Try remembered devices before requesting dialog
+    let device: BTDeviceLike | null = cachedDevice;
+    if (!device && nav.bluetooth.getDevices) {
       try {
         const existingDevices = await nav.bluetooth.getDevices();
         if (existingDevices.length > 0) {
@@ -76,6 +90,7 @@ export async function printViaWebBluetooth(
       }
     }
 
+    // 3. Request device if no paired device available
     if (!device) {
       device = await nav.bluetooth.requestDevice({
         acceptAllDevices: true,
@@ -83,16 +98,15 @@ export async function printViaWebBluetooth(
       });
     }
 
+    cachedDevice = device;
+
     const server = await device.gatt.connect();
 
     let service: BTServiceLike | null = null;
-    
     if (server.getPrimaryServices) {
       try {
         const services = await server.getPrimaryServices();
-        if (services.length > 0) {
-          service = services[0];
-        }
+        if (services.length > 0) service = services[0];
       } catch (e) {
         console.warn("Primary services scan fallback:", e);
       }
@@ -122,37 +136,13 @@ export async function printViaWebBluetooth(
       throw new Error("Karakteristik tulis Bluetooth tidak ditemukan.");
     }
 
-    // Fast logo timeout (800ms max) to prevent Bluetooth delay
-    const logoRaster = await Promise.race([
-      loadLogoRaster(180),
-      new Promise<Uint8Array | null>((resolve) => setTimeout(() => resolve(null), 800)),
-    ]);
+    cachedWriteChar = writeChar;
 
-    let escposData: Uint8Array;
-    if (mode === "kitchen") {
-      escposData = await buildKitchenReceiptESCPOS(transaction);
-    } else {
-      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster || undefined);
-    }
-
-    // High-speed BLE transmission: 128-byte chunks
-    const CHUNK_SIZE = 128;
-    const CHUNK_DELAY_MS = writeChar.properties.writeWithoutResponse ? 0 : 5;
-
-    for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
-      const chunk = escposData.slice(i, i + CHUNK_SIZE);
-      if (writeChar.properties.writeWithoutResponse) {
-        await writeChar.writeValueWithoutResponse(chunk);
-      } else {
-        await writeChar.writeValue(chunk);
-      }
-      if (CHUNK_DELAY_MS > 0 && i + CHUNK_SIZE < escposData.length) {
-        await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
-      }
-    }
-
+    await sendESCPOSData(writeChar, transaction, mode);
     return true;
   } catch (error) {
+    cachedDevice = null;
+    cachedWriteChar = null;
     const name = (error as Error)?.name;
     console.warn("Bluetooth GATT fallback to Serial/Browser:", error);
     if (name !== "NotFoundError") {
@@ -162,9 +152,38 @@ export async function printViaWebBluetooth(
   }
 }
 
+async function sendESCPOSData(
+  writeChar: BTCharacteristicLike,
+  transaction: Transaction,
+  mode: PrintMode
+) {
+  let escposData: Uint8Array;
+  if (mode === "kitchen") {
+    escposData = await buildKitchenReceiptESCPOS(transaction);
+  } else {
+    escposData = await buildCustomerReceiptESCPOS(transaction);
+  }
+
+  const CHUNK_SIZE = 128;
+  const CHUNK_DELAY_MS = writeChar.properties.writeWithoutResponse ? 0 : 5;
+
+  for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
+    const chunk = escposData.slice(i, i + CHUNK_SIZE);
+    if (writeChar.properties.writeWithoutResponse) {
+      await writeChar.writeValueWithoutResponse(chunk);
+    } else {
+      await writeChar.writeValue(chunk);
+    }
+    if (CHUNK_DELAY_MS > 0 && i + CHUNK_SIZE < escposData.length) {
+      await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+    }
+  }
+}
+
 interface BTDeviceLike {
   name?: string;
   gatt: {
+    connected?: boolean;
     connect(): Promise<{
       getPrimaryServices?(): Promise<BTServiceLike[]>;
       getPrimaryService(uuid: string): Promise<BTServiceLike>;
