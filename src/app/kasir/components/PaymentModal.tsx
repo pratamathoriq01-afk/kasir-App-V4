@@ -27,12 +27,13 @@ export default function PaymentModal({
 
   const handleCashShortcut = (amount: number) => {
     setCashReceived(amount);
-    setCustomInput(String(amount));
+    setCustomInput(amount ? amount.toLocaleString("id-ID") : "");
   };
 
   const handleInputChange = (val: string) => {
-    const num = Number(val.replace(/\D/g, ""));
-    setCustomInput(val);
+    const raw = val.replace(/\D/g, "");
+    const num = Number(raw);
+    setCustomInput(num ? num.toLocaleString("id-ID") : "");
     setCashReceived(num);
   };
 
@@ -94,7 +95,8 @@ export default function PaymentModal({
               Nominal Tunai Diterima (Rp)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="0"
               value={customInput}
               onChange={(e) => handleInputChange(e.target.value)}

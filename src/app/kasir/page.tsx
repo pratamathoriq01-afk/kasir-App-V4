@@ -8,13 +8,16 @@ import MenuGrid from "./components/MenuGrid";
 import CartSection from "./components/CartSection";
 import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
-import { ArrowRight, ShoppingCart } from "lucide-react";
+import { ArrowRight, ShoppingCart, Utensils } from "lucide-react";
 
 export default function KasirPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
+
+  // Mobile active tab ("menu" | "cart")
+  const [mobileTab, setMobileTab] = useState<"menu" | "cart">("menu");
 
   const {
     items,
@@ -37,6 +40,8 @@ export default function KasirPage() {
   useEffect(() => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
   }, []);
+
+  const totalItemsCount = items.reduce((s, i) => s + i.qty, 0);
 
   const handleConfirmPayment = async () => {
     const orderNumber = getNextOrderNumber();
@@ -85,30 +90,75 @@ export default function KasirPage() {
     setIsReceiptModalOpen(false);
     setCompletedTransaction(null);
     clearCart();
+    setMobileTab("menu");
   };
 
   return (
-    <div className="min-h-[calc(100vh-6.5rem)] lg:h-[calc(100vh-6.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-5 pb-20 lg:pb-0">
-      {/* Left Column: Menu Items & Filter (7 cols) */}
-      <div className="lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col min-h-[450px]">
-        <MenuGrid items={menuItems} />
+    <div className="flex flex-col h-full space-y-3">
+      {/* Mobile Top View Switcher (Visible on < lg screens) */}
+      <div className="lg:hidden bg-slate-900 p-1.5 rounded-2xl flex gap-1 shadow-md">
+        <button
+          type="button"
+          onClick={() => setMobileTab("menu")}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "menu"
+              ? "bg-amber-500 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Utensils className="w-4 h-4" />
+          <span>Daftar Menu</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("cart")}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 relative ${
+            mobileTab === "cart"
+              ? "bg-amber-500 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          <span>Keranjang</span>
+          {totalItemsCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-slate-950 text-amber-400">
+              {totalItemsCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Right Column: Cart & Summary (5 cols) */}
-      <div className="lg:col-span-5 xl:col-span-4 lg:h-full lg:overflow-hidden flex flex-col">
-        <CartSection onOpenPaymentModal={() => setIsPaymentModalOpen(true)} />
+      {/* Grid Container */}
+      <div className="min-h-[calc(100vh-8.5rem)] lg:h-[calc(100vh-6.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0">
+        {/* Left Column: Menu Grid (7 cols desktop) */}
+        <div className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
+          mobileTab === "menu" ? "block" : "hidden lg:flex"
+        }`}>
+          <MenuGrid items={menuItems} />
+        </div>
+
+        {/* Right Column: Cart Section (5 cols desktop) */}
+        <div className={`lg:col-span-5 xl:col-span-4 lg:h-full lg:overflow-hidden flex flex-col ${
+          mobileTab === "cart" ? "block" : "hidden lg:flex"
+        }`}>
+          <CartSection onOpenPaymentModal={() => setIsPaymentModalOpen(true)} />
+        </div>
       </div>
 
-      {/* Mobile Floating Sticky Bottom Checkout Bar */}
+      {/* Mobile Floating Sticky Bottom Bar */}
       {items.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3.5 border-t border-slate-800 shadow-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-200">
-          <div className="flex items-center gap-2.5">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 border-t border-slate-800 shadow-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-200">
+          <div
+            onClick={() => setMobileTab("cart")}
+            className="flex items-center gap-2.5 cursor-pointer"
+          >
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
               <span className="text-[11px] text-slate-400 font-medium block">
-                {items.reduce((s, i) => s + i.qty, 0)} item pesanan
+                {totalItemsCount} item pesanan
               </span>
               <span className="text-base font-black text-amber-400 font-mono">
                 Rp {getTotal().toLocaleString("id-ID")}

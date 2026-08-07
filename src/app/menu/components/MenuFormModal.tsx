@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MenuItem } from "@/types";
-import { X, Save, Upload, ImageIcon } from "lucide-react";
+import { X, Save, Upload, ImageIcon, Calculator, CheckCircle2 } from "lucide-react";
 
 interface MenuFormModalProps {
   isOpen: boolean;
@@ -19,12 +19,17 @@ export default function MenuFormModal({
 }: MenuFormModalProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Makanan");
-  const [price, setPrice] = useState<number>(0);
-  const [hpp, setHpp] = useState<number>(0);
+  const [price, setPrice] = useState<number>(15000);
+  const [hpp, setHpp] = useState<number>(8000);
   const [taxPercent, setTaxPercent] = useState<number>(10);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Flexible Margin Mode ("manual" | "target_margin")
+  const [calcMode, setCalcMode] = useState<"manual" | "target_margin">("manual");
+  const [targetMargin, setTargetMargin] = useState<number>(45);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,6 +72,15 @@ export default function MenuFormModal({
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) handleImageFile(file);
+  };
+
+  // Recalculate price when target margin is used
+  const handleTargetMarginChange = (marginVal: number) => {
+    setTargetMargin(marginVal);
+    if (marginVal < 100 && hpp > 0) {
+      const calculatedPrice = Math.round(hpp / (1 - marginVal / 100));
+      setPrice(calculatedPrice);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -117,7 +131,6 @@ export default function MenuFormModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-
           {/* Image Upload Area */}
           <div>
             <label className="block font-bold text-slate-700 mb-2">
@@ -141,23 +154,21 @@ export default function MenuFormModal({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
-                    alt="Preview menu"
-                    className="w-full h-48 object-cover"
+                    alt="Preview"
+                    className="w-full h-36 object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="text-white text-center">
-                      <Upload className="w-6 h-6 mx-auto mb-1" />
-                      <span className="text-xs font-bold">Ganti Gambar</span>
-                    </div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-1 text-xs">
+                    <Upload className="w-4 h-4" />
+                    <span>Ganti Gambar</span>
                   </div>
                 </div>
               ) : (
-                <div className="p-8 flex flex-col items-center justify-center text-slate-400 min-h-[160px]">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                    <ImageIcon className="w-7 h-7 text-slate-300" />
+                <div className="p-6 text-center text-slate-500">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                    <Upload className="w-6 h-6" />
                   </div>
-                  <p className="font-semibold text-slate-600 text-sm">Klik atau seret gambar ke sini</p>
-                  <p className="text-[11px] text-slate-400 mt-1">JPG, PNG, WebP — Semua ukuran diterima</p>
+                  <p className="font-bold text-slate-700 text-xs">Klik atau seret gambar ke sini</p>
+                  <p className="text-[10.5px] text-slate-400 mt-0.5">JPG, PNG, WebP — Semua ukuran diterima</p>
                 </div>
               )}
             </div>
@@ -169,19 +180,9 @@ export default function MenuFormModal({
               onChange={handleFileChange}
               className="hidden"
             />
-
-            {imageUrl && (
-              <button
-                type="button"
-                onClick={() => setImageUrl(null)}
-                className="mt-2 text-[11px] text-rose-500 hover:text-rose-700 font-semibold transition-colors"
-              >
-                Hapus Gambar
-              </button>
-            )}
           </div>
 
-          {/* Nama Menu */}
+          {/* Menu Name */}
           <div>
             <label className="block font-bold text-slate-700 mb-1">Nama Menu Produk</label>
             <input
@@ -189,12 +190,12 @@ export default function MenuFormModal({
               placeholder="misal: Ayam Bakar Bumbu Rujak"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-medium outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
               required
             />
           </div>
 
-          {/* Category Selector */}
+          {/* Category */}
           <div>
             <label className="block font-bold text-slate-700 mb-1">Kategori Menu</label>
             <select
@@ -208,27 +209,83 @@ export default function MenuFormModal({
             </select>
           </div>
 
-          {/* Price, HPP, Tax Grid */}
+          {/* Flexible Pricing Mode Switcher */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-700">Mode Perhitungan Harga & HPP</label>
+              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setCalcMode("manual")}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    calcMode === "manual" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                  }`}
+                >
+                  Bebas Manual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalcMode("target_margin")}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                    calcMode === "target_margin" ? "bg-amber-500 text-slate-950 shadow-xs" : "text-slate-500"
+                  }`}
+                >
+                  Target Margin %
+                </button>
+              </div>
+            </div>
+
+            {calcMode === "target_margin" && (
+              <div className="mb-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-amber-900">Tetapkan Target Margin Keuntungan:</span>
+                <div className="flex items-center gap-1">
+                  {[35, 45, 50, 60].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => handleTargetMarginChange(m)}
+                      className={`px-2 py-1 rounded-md text-[10px] font-bold ${
+                        targetMargin === m ? "bg-amber-500 text-slate-950" : "bg-white text-slate-700 border border-slate-200"
+                      }`}
+                    >
+                      {m}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Price & HPP Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Harga Jual (Rp)</label>
               <input
-                type="number"
-                value={price || ""}
-                onChange={(e) => setPrice(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                value={price ? price.toLocaleString("id-ID") : ""}
+                onChange={(e) => {
+                  const num = Number(e.target.value.replace(/\D/g, ""));
+                  setPrice(num);
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                min={0}
                 required
               />
             </div>
             <div>
               <label className="block font-bold text-slate-700 mb-1">HPP / Modal (Rp)</label>
               <input
-                type="number"
-                value={hpp || ""}
-                onChange={(e) => setHpp(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                value={hpp ? hpp.toLocaleString("id-ID") : ""}
+                onChange={(e) => {
+                  const num = Number(e.target.value.replace(/\D/g, ""));
+                  setHpp(num);
+                  if (calcMode === "target_margin") {
+                    setPrice(Math.round(num / (1 - targetMargin / 100)));
+                  }
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                min={0}
                 required
               />
             </div>
@@ -269,24 +326,24 @@ export default function MenuFormModal({
             </div>
           </div>
 
-          {/* Margin Banner */}
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-3 rounded-xl border border-slate-200 grid grid-cols-3 gap-2 text-center">
+          {/* Flexible Margin Summary Banner */}
+          <div className="bg-slate-100 p-3 rounded-2xl border border-slate-200 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Laba per Porsi</div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Laba per Porsi</div>
               <div className={`text-sm font-black font-mono mt-0.5 ${marginPercent >= 30 ? "text-emerald-600" : marginPercent >= 15 ? "text-amber-600" : "text-rose-600"}`}>
                 Rp {(price - hpp).toLocaleString("id-ID")}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Margin (%)</div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Margin Bersih</div>
               <div className={`text-sm font-black font-mono mt-0.5 ${marginPercent >= 30 ? "text-emerald-600" : marginPercent >= 15 ? "text-amber-600" : "text-rose-600"}`}>
                 {marginPercent}%
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Pajak/Porsi</div>
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Pajak/Porsi</div>
               <div className="text-sm font-black font-mono mt-0.5 text-blue-600">
-                Rp {Math.round(price * taxPercent / 100).toLocaleString("id-ID")}
+                Rp {Math.round((price * taxPercent) / 100).toLocaleString("id-ID")}
               </div>
             </div>
           </div>
