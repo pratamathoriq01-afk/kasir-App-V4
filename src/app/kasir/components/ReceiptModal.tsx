@@ -123,6 +123,7 @@ export default function ReceiptModal({
                   />
                   <p className="font-black text-sm tracking-tight">KEDAI NYAMLENG</p>
                   <p className="text-[10px] text-slate-600">Jl. LA. Sucipto XIV/42 Malang</p>
+                  <p className="text-[10px] font-bold text-slate-700">Telp/WA: 085113661387</p>
                 </div>
 
                 {/* Order Info */}
@@ -183,9 +184,9 @@ export default function ReceiptModal({
                   </div>
                 </div>
 
-                <div className="text-center pt-3 text-[10px] text-slate-500 border-t border-dashed border-slate-300">
-                  <p className="font-bold">Matur Nuwun Sampun Mampir!</p>
-                  <p>Terimakasih — Kedai Nyamleng</p>
+                <div className="text-center pt-3 text-[10px] text-slate-600 border-t border-dashed border-slate-300 space-y-0.5">
+                  <p className="font-bold text-slate-900">Matur Suwun Sanget!</p>
+                  <p>Kedai Nyamleng — Malang</p>
                 </div>
               </div>
             ) : (

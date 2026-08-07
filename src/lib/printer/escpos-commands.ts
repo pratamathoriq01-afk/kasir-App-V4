@@ -1,16 +1,6 @@
 /**
  * ESC/POS Command Builder — Kedai Nyamleng POS
- * Compatible with: SharkPOS PI58BT, POS-58mm, XP-58, Epson TM-T20
- *
- * ESC/POS Reference:
- *  ESC @         — Initialize printer
- *  ESC ! n       — Select print mode (0=normal, 8=double height, 16=double width, 56=double both)
- *  ESC a n       — Justify (0=left, 1=center, 2=right)
- *  ESC E n       — Bold on/off
- *  GS ! n        — Character size (0x00=1x1, 0x11=2x2)
- *  GS v 0        — Print raster bitmap
- *  GS V          — Paper cut
- *  ESC 3 n       — Set line spacing (24=default, 0=none)
+ * Compatible with: SharkPOS PI58BT, POS-58mm, XP-58, ZJ-5805, MP-58II
  */
 
 import { Transaction } from "@/types";
@@ -34,12 +24,12 @@ export const ESC_FONT_BOLD   = new Uint8Array([0x1b, 0x21, 0x08]);
 export const ESC_FONT_DOUBLE_H = new Uint8Array([0x1b, 0x21, 0x10]);
 export const ESC_SIZE_2X     = new Uint8Array([0x1d, 0x21, 0x11]); // 2x width + height
 export const ESC_SIZE_NORMAL = new Uint8Array([0x1d, 0x21, 0x00]);
-export const ESC_LINE_SPACE_24= new Uint8Array([0x1b, 0x33, 24]);
-export const ESC_LINE_SPACE_0 = new Uint8Array([0x1b, 0x33, 0]);
+export const ESC_LINE_SPACE_DEFAULT = new Uint8Array([0x1b, 0x32]); // Standard 30-dot spacing (breathable text)
+export const ESC_LINE_SPACE_WIDE    = new Uint8Array([0x1b, 0x33, 34]); // 34-dot wide spacing
 export const ESC_FEED_1      = new Uint8Array([0x0a]);
 export const ESC_FEED_2      = new Uint8Array([0x0a, 0x0a]);
 export const ESC_FEED_3      = new Uint8Array([0x0a, 0x0a, 0x0a]);
-export const ESC_FEED_PAPER = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]); // Feed 4 lines to tear-bar for ZJ-5805 / ZJ-5809 / MP-58II
+export const ESC_FEED_PAPER = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]); // Feed 4 lines to tear-bar
 export const ESC_CUT_PARTIAL = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]);
 
 // ─── 58mm paper constants ─────────────────────────────────────────────────────
@@ -58,124 +48,98 @@ function centerText(s: string, len: number): string {
   const pad = Math.floor((len - s.length) / 2);
   return " ".repeat(pad) + s + " ".repeat(len - s.length - pad);
 }
-function divider(ch = "-", len = CHARS_PER_LINE): string {
-  return ch.repeat(len) + "\n";
+function divider(char = "-", len = CHARS_PER_LINE): string {
+  return char.repeat(len) + "\n";
 }
-
-// ─── Logo Raster Bitmap (GS v 0) ─────────────────────────────────────────────
-/**
- * Convert an HTMLImageElement to a 1-bit ESC/POS raster bitmap.
- * @param imgEl - Already-loaded HTMLImageElement
- * @param targetWidth - Width in dots (must be multiple of 8). Default: 200 for logo
- */
-function imgToESCPOSRaster(imgEl: HTMLImageElement, targetWidth = 200): Uint8Array {
-  // Draw to offscreen canvas at target size
-  const aspect = imgEl.naturalHeight / imgEl.naturalWidth;
-  const h = Math.round(targetWidth * aspect);
-
-  const canvas = document.createElement("canvas");
-  canvas.width  = targetWidth;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, targetWidth, h);
-  ctx.drawImage(imgEl, 0, 0, targetWidth, h);
-
-  const imageData = ctx.getImageData(0, 0, targetWidth, h);
-  const { data } = imageData;
-
-  // Ensure width is a multiple of 8
-  const byteWidth = Math.ceil(targetWidth / 8);
-  const rasterBytes: number[] = [];
-
-  for (let row = 0; row < h; row++) {
-    for (let byteIdx = 0; byteIdx < byteWidth; byteIdx++) {
-      let byte = 0;
-      for (let bit = 0; bit < 8; bit++) {
-        const x = byteIdx * 8 + bit;
-        if (x < targetWidth) {
-          const pixelIdx = (row * targetWidth + x) * 4;
-          const r = data[pixelIdx];
-          const g = data[pixelIdx + 1];
-          const b = data[pixelIdx + 2];
-          // Luminance threshold — pixels darker than 128 = black dot
-          const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (luminance < 128) {
-            byte |= (0x80 >> bit);
-          }
-        }
-      }
-      rasterBytes.push(byte);
-    }
+function concat(...arrays: Uint8Array[]): Uint8Array {
+  const total = arrays.reduce((acc, a) => acc + a.length, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
   }
-
-  // GS v 0 header: [0x1d, 0x76, 0x30, mode, xL, xH, yL, yH]
-  const xL = byteWidth & 0xff;
-  const xH = (byteWidth >> 8) & 0xff;
-  const yL = h & 0xff;
-  const yH = (h >> 8) & 0xff;
-
-  const header = new Uint8Array([0x1d, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
-  const result  = new Uint8Array(header.length + rasterBytes.length);
-  result.set(header, 0);
-  result.set(new Uint8Array(rasterBytes), header.length);
   return result;
 }
 
-// ─── Logo loader ──────────────────────────────────────────────────────────────
-/**
- * Load /public/logo.png and convert to ESC/POS raster bitmap.
- * Returns null if loading fails (print without logo).
- */
-export async function loadLogoRaster(logoWidth = 200): Promise<Uint8Array | null> {
+// ─── Logo raster loader ───────────────────────────────────────────────────────
+export async function loadLogoRaster(maxWidth = 200): Promise<Uint8Array | null> {
+  if (typeof window === "undefined") return null;
   try {
     const img = new Image();
     img.crossOrigin = "anonymous";
-
-    await new Promise<void>((resolve, reject) => {
-      img.onload  = () => resolve();
-      img.onerror = () => reject(new Error("Logo load failed"));
-      img.src = `/logo.png?v=${Date.now()}`;
+    img.src = "/logo.png";
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
     });
 
-    return imgToESCPOSRaster(img, logoWidth);
-  } catch (e) {
-    console.warn("Logo raster skipped:", e);
+    const aspect = img.height / img.width;
+    const targetWidth = Math.min(maxWidth, PAPER_WIDTH_DOTS);
+    const targetHeight = Math.round(targetWidth * aspect);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+    const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+    const pixels = imgData.data;
+
+    const widthBytes = Math.ceil(targetWidth / 8);
+    const bitmap = new Uint8Array(widthBytes * targetHeight);
+
+    for (let y = 0; y < targetHeight; y++) {
+      for (let x = 0; x < targetWidth; x++) {
+        const idx = (y * targetWidth + x) * 4;
+        const r = pixels[idx];
+        const g = pixels[idx + 1];
+        const b = pixels[idx + 2];
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        if (luminance < 140) {
+          const byteIdx = y * widthBytes + Math.floor(x / 8);
+          const bitPos = 7 - (x % 8);
+          bitmap[byteIdx] |= 1 << bitPos;
+        }
+      }
+    }
+
+    const xL = widthBytes & 0xff;
+    const xH = (widthBytes >> 8) & 0xff;
+    const yL = targetHeight & 0xff;
+    const yH = (targetHeight >> 8) & 0xff;
+
+    const header = new Uint8Array([0x1d, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+    return concat(ESC_ALIGN_CENTER, header, bitmap, ESC_FEED_1);
+  } catch (err) {
+    console.warn("Could not load logo raster:", err);
     return null;
   }
 }
 
-// ─── Concat helper ────────────────────────────────────────────────────────────
-function concat(...parts: Uint8Array[]): Uint8Array {
-  const total = parts.reduce((sum, p) => sum + p.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    result.set(part, offset);
-    offset += part.length;
-  }
-  return result;
-}
-
-// ─── Main receipt builder ─────────────────────────────────────────────────────
+// ─── Customer Receipt Builder ─────────────────────────────────────────────────
 export async function buildCustomerReceiptESCPOS(
   transaction: Transaction,
-  logoRaster?: Uint8Array | null
+  logoRaster: Uint8Array | null = null
 ): Promise<Uint8Array> {
   const parts: Uint8Array[] = [];
 
-  // 1. Init printer
+  // 1. Init & set standard breathable line spacing
   parts.push(ESC_INIT);
-  parts.push(ESC_LINE_SPACE_24);
+  parts.push(ESC_LINE_SPACE_DEFAULT);
 
-  // 2. Logo (centered)
-  if (logoRaster && logoRaster.length > 0) {
-    parts.push(ESC_ALIGN_CENTER);
+  // 2. Logo
+  if (logoRaster) {
     parts.push(logoRaster);
-    parts.push(ESC_FEED_1);
   }
 
-  // 3. Store header
+  // 3. Header
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_BOLD_ON);
   parts.push(ESC_SIZE_2X);
@@ -183,7 +147,7 @@ export async function buildCustomerReceiptESCPOS(
   parts.push(ESC_SIZE_NORMAL);
   parts.push(ESC_BOLD_OFF);
   parts.push(encBytes("Jl. LA. Sucipto XIV/42 Malang\n"));
-  parts.push(encBytes("Telp: 0341-XXXXXXX\n"));
+  parts.push(encBytes("Telp/WA: 085113661387\n"));
 
   // 4. Divider
   parts.push(ESC_ALIGN_LEFT);
@@ -197,7 +161,6 @@ export async function buildCustomerReceiptESCPOS(
 
   parts.push(encBytes(`Nota  : ${transaction.orderNumber}\n`));
   parts.push(encBytes(`Tgl   : ${dateStr} ${timeStr}\n`));
-  parts.push(encBytes(`Kasir : Kedai Nyamleng POS\n`));
   parts.push(encBytes(`Cust  : ${transaction.customerName || "Pelanggan"}\n`));
   parts.push(encBytes(`Order : ${transaction.orderType === "dine-in" ? `Dine-In (Meja ${transaction.tableNumber || "-"})` : "Takeaway / Bungkus"}\n`));
   parts.push(encBytes(divider("-", CHARS_PER_LINE)));
@@ -205,11 +168,9 @@ export async function buildCustomerReceiptESCPOS(
   // 6. Items
   transaction.items.forEach((item) => {
     const itemTotal = item.priceSnapshot * item.qty;
-    // Line 1: item name
     parts.push(ESC_BOLD_ON);
     parts.push(encBytes(`${item.nameSnapshot.slice(0, CHARS_PER_LINE)}\n`));
     parts.push(ESC_BOLD_OFF);
-    // Line 2: qty x price = total
     const qtyLine = `  ${item.qty}x @${item.priceSnapshot.toLocaleString("id-ID")}`;
     const totalRight = `Rp ${itemTotal.toLocaleString("id-ID")}`;
     const spacer = " ".repeat(Math.max(1, CHARS_PER_LINE - qtyLine.length - totalRight.length));
@@ -242,29 +203,29 @@ export async function buildCustomerReceiptESCPOS(
   addRow("Kembali:", `Rp ${transaction.change.toLocaleString("id-ID")}`);
   parts.push(encBytes(divider("=", CHARS_PER_LINE)));
 
-  // 8. Footer
+  // 8. Footer (Optimized clean text)
+  parts.push(ESC_FEED_1);
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_BOLD_ON);
-  parts.push(encBytes("Matur Nuwun Sampun Mampir!\n"));
+  parts.push(encBytes("Matur Suwun Sanget!\n"));
   parts.push(ESC_BOLD_OFF);
-  parts.push(encBytes("Terimakasih sudah mampir di\n"));
   parts.push(encBytes("Kedai Nyamleng — Malang\n"));
-  parts.push(ESC_FEED_3);
+  parts.push(ESC_FEED_2);
 
-  // 9. Paper cut
-  parts.push(ESC_CUT_PARTIAL);
+  // 9. Paper feed to tear-bar
+  parts.push(ESC_FEED_PAPER);
 
   return concat(...parts);
 }
 
-// ─── Kitchen note builder ─────────────────────────────────────────────────────
+// ─── Kitchen Note Builder ─────────────────────────────────────────────────────
 export async function buildKitchenReceiptESCPOS(
   transaction: Transaction,
 ): Promise<Uint8Array> {
   const parts: Uint8Array[] = [];
 
   parts.push(ESC_INIT);
-  parts.push(ESC_LINE_SPACE_24);
+  parts.push(ESC_LINE_SPACE_DEFAULT);
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_BOLD_ON);
   parts.push(ESC_SIZE_2X);
@@ -294,8 +255,8 @@ export async function buildKitchenReceiptESCPOS(
   });
 
   parts.push(encBytes(divider("=", CHARS_PER_LINE)));
-  parts.push(ESC_FEED_3);
-  parts.push(ESC_CUT_PARTIAL);
+  parts.push(ESC_FEED_2);
+  parts.push(ESC_FEED_PAPER);
 
   return concat(...parts);
 }

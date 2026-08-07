@@ -1,10 +1,12 @@
 /**
- * WebUSB Thermal Printer — SharkPOS / POS-58 / PI58BT profile
- * Uses shared ESC/POS command builder from escpos-commands.ts
+ * WebUSB Thermal Printer — SharkPOS / POS-58 / ZJ-5805 profile
+ * Directly streams ESC/POS raw bytes over WebUSB or Web Serial (COM)
+ * DOES NOT launch laptop browser print dialogs.
  */
 
 import { Transaction } from "@/types";
 import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster } from "./escpos-commands";
+import { printViaWebSerial } from "./serial-printer";
 
 type PrintMode = "customer" | "kitchen";
 
@@ -16,8 +18,8 @@ export async function printViaWebUSB(
     typeof window === "undefined" ||
     !("usb" in (navigator as unknown as { usb: unknown }))
   ) {
-    window.print();
-    return true;
+    // If WebUSB unavailable, fallback directly to Web Serial COM raw stream
+    return await printViaWebSerial(transaction, mode);
   }
 
   try {
@@ -52,13 +54,12 @@ export async function printViaWebUSB(
     try {
       await device.claimInterface(ifaceNumber);
     } catch (claimErr) {
-      console.warn("Chrome WebUSB Protected Class / Driver active, auto-switching to System Print:", claimErr);
-      // Windows driver owns USB printing support (USB_CLASS_PRINTER). Trigger System Print automatically!
-      window.print();
-      return true;
+      console.warn("Chrome WebUSB Protected Class / Driver active, switching to Web Serial COM raw stream:", claimErr);
+      // Fallback directly to Web Serial COM raw stream for USB printer
+      return await printViaWebSerial(transaction, mode);
     }
 
-    // Dynamic BULK OUT endpoint discovery across all interfaces
+    // Dynamic BULK OUT endpoint discovery
     let endpointNumber = 1;
     const iface = device.configuration?.interfaces?.[0];
     const alternates = iface?.alternates ?? (iface?.alternate ? [iface.alternate] : []);
@@ -71,7 +72,7 @@ export async function printViaWebUSB(
       }
     }
 
-    // Load logo and build receipt ESC/POS data
+    // Build ESC/POS receipt data
     const logoRaster = await loadLogoRaster(200);
     let escposData: Uint8Array;
     if (mode === "kitchen") {
@@ -80,7 +81,7 @@ export async function printViaWebUSB(
       escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
     }
 
-    // Send in 128-byte chunks for SharkPOS / POS-58 USB bulk transfer
+    // Send in 128-byte chunks for USB bulk transfer
     const CHUNK_SIZE = 128;
     for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
       const chunk = escposData.slice(i, i + CHUNK_SIZE);
@@ -95,11 +96,9 @@ export async function printViaWebUSB(
 
     return true;
   } catch (error) {
-    console.warn("WebUSB fallback triggered:", error);
+    console.warn("WebUSB fallback to Serial COM:", error);
     if ((error as Error)?.name !== "NotFoundError") {
-      // Auto fallback to browser system print for Windows SharkPOS driver
-      window.print();
-      return true;
+      return await printViaWebSerial(transaction, mode);
     }
     return false;
   }

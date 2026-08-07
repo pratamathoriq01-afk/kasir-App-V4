@@ -1,6 +1,7 @@
 /**
  * Web Bluetooth Thermal Printer — SharkPOS PI58BT / Generic BT 58mm
  * Uses shared ESC/POS command builder from escpos-commands.ts
+ * Optimized for high-speed streaming without motor stutter delay.
  */
 
 import { Transaction } from "@/types";
@@ -10,15 +11,15 @@ import { printViaWebSerial } from "./serial-printer";
 type PrintMode = "customer" | "kitchen";
 
 const BT_SERVICE_UUIDS = [
-  "000018f0-0000-1000-8000-00805f9b34fb", // Primary SharkPOS PI58BT
-  "000018f1-0000-1000-8000-00805f9b34fb",
-  "0000ff00-0000-1000-8000-00805f9b34fb", // Rongta / ZJ-58
-  "0000ffe0-0000-1000-8000-00805f9b34fb", // HM-10 / BLE SPP
+  "0000ffe0-0000-1000-8000-00805f9b34fb", // ZJiang ZJ-5805 / ZJ-5809 / MP-58II
   "0000ffe1-0000-1000-8000-00805f9b34fb",
-  "e7810a71-73ae-499d-8c15-faa9aef0c3f2", // Generic Thermal
-  "49535343-fe7d-4ae5-8fa9-9fafd205e455", // Hoin
-  "0000af00-0000-1000-8000-00805f9b34fb", // MPT-II
-  "00001101-0000-1000-8000-00805f9b34fb", // SPP 16-bit
+  "0000e7e0-0000-1000-8000-00805f9b34fb",
+  "0000ff00-0000-1000-8000-00805f9b34fb", // POS-58
+  "000018f0-0000-1000-8000-00805f9b34fb", // SharkPOS PI58BT
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+  "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+  "0000af00-0000-1000-8000-00805f9b34fb",
+  "00001101-0000-1000-8000-00805f9b34fb",
 ];
 
 export async function printViaWebBluetooth(
@@ -29,7 +30,6 @@ export async function printViaWebBluetooth(
     typeof window === "undefined" ||
     !("bluetooth" in navigator)
   ) {
-    // If Web Bluetooth is unavailable, try Web Serial fallback
     return await printViaWebSerial(transaction, mode);
   }
 
@@ -96,9 +96,9 @@ export async function printViaWebBluetooth(
       escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
     }
 
-    // Send in 64-byte chunks with 25ms delay
-    const CHUNK_SIZE = 64;
-    const CHUNK_DELAY_MS = 25;
+    // High-speed BLE transmission: 128-byte chunks, 0ms delay for writeWithoutResponse
+    const CHUNK_SIZE = 128;
+    const CHUNK_DELAY_MS = writeChar.properties.writeWithoutResponse ? 0 : 5;
 
     for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
       const chunk = escposData.slice(i, i + CHUNK_SIZE);
@@ -107,7 +107,7 @@ export async function printViaWebBluetooth(
       } else {
         await writeChar.writeValue(chunk);
       }
-      if (i + CHUNK_SIZE < escposData.length) {
+      if (CHUNK_DELAY_MS > 0 && i + CHUNK_SIZE < escposData.length) {
         await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
       }
     }
@@ -117,14 +117,12 @@ export async function printViaWebBluetooth(
     const name = (error as Error)?.name;
     console.warn("Bluetooth GATT failed, switching to Serial COM fallback:", error);
     if (name !== "NotFoundError") {
-      // Windows Classic BT SPP printer (SharkPOS PI58BT) requires Web Serial COM port fallback!
       return await printViaWebSerial(transaction, mode);
     }
     return false;
   }
 }
 
-// ─── Type shims ───────────────────────────────────────────────────────────────
 interface BTServiceLike {
   getCharacteristics(): Promise<BTCharLike[]>;
 }

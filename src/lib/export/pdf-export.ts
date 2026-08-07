@@ -27,23 +27,29 @@ async function renderChartToBase64(
   canvas.style.display = "none";
   document.body.appendChild(canvas);
 
-  const chart = new Chart(canvas, {
-    type,
-    data: data as never,
-    options: {
-      animation: false,
-      responsive: false,
-      devicePixelRatio: 2,
-      ...(options as object),
-    } as never,
-  });
+  try {
+    const chart = new Chart(canvas, {
+      type,
+      data: data as never,
+      options: {
+        animation: false,
+        responsive: false,
+        devicePixelRatio: 2,
+        ...(options as object),
+      } as never,
+    });
 
-  // Let Chart.js finish rendering
-  await new Promise((r) => setTimeout(r, 250));
-  const base64 = canvas.toDataURL("image/png", 1.0);
-  chart.destroy();
-  document.body.removeChild(canvas);
-  return base64;
+    await new Promise((r) => setTimeout(r, 100));
+    const base64 = canvas.toDataURL("image/png", 0.95);
+    chart.destroy();
+    document.body.removeChild(canvas);
+    return base64;
+  } catch (err) {
+    console.warn("Chart render fallback:", err);
+    if (canvas.parentNode) document.body.removeChild(canvas);
+    // Return empty 1x1 png pixel
+    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  }
 }
 
 // ─── Main PDF Export ──────────────────────────────────────────────────────────

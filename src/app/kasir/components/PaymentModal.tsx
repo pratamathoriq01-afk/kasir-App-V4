@@ -15,7 +15,7 @@ export default function PaymentModal({
   onClose,
   onConfirmPayment,
 }: PaymentModalProps) {
-  const { getTotal, cashReceived, setCashReceived, getChange } = useCartStore();
+  const { getTotal, cashReceived, setCashReceived, getChange, customerName, setCustomerName } = useCartStore();
 
   const total = getTotal();
   const change = getChange();
@@ -64,7 +64,20 @@ export default function PaymentModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-4">
+          {/* Customer Name Input */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Nama Pemesan / Pelanggan
+            </label>
+            <input
+              type="text"
+              placeholder="misal: Mas Budi / Pelanggan 1"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+            />
+          </div>
           {/* Total Tagihan Box */}
           <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200/80 text-center">
             <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider block">

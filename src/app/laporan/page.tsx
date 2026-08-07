@@ -11,11 +11,24 @@ import CategoryPieChart from "./components/CategoryPieChart";
 import AiInsightCard from "./components/AiInsightCard";
 import MenuPerformanceTable from "./components/MenuPerformanceTable";
 import HistoryTable from "./components/HistoryTable";
-import { FileText, FileSpreadsheet, RotateCcw, Calendar } from "lucide-react";
+import { FileText, FileSpreadsheet, RotateCcw, Calendar, Loader2 } from "lucide-react";
 
 export default function LaporanPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [periodFilter, setPeriodFilter] = useState<"today" | "7days" | "month" | "all">("all");
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const handleExportPDF = async () => {
+    setIsExportingPdf(true);
+    try {
+      await exportTransactionsToPDF(filteredTransactions, getPeriodLabel());
+    } catch (err) {
+      console.error("PDF export error:", err);
+      alert("Gagal mengunduh PDF: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   useEffect(() => {
     fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
@@ -141,11 +154,16 @@ export default function LaporanPage() {
           </button>
 
           <button
-            onClick={() => exportTransactionsToPDF(filteredTransactions, getPeriodLabel())}
-            className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            onClick={handleExportPDF}
+            disabled={isExportingPdf}
+            className="py-2 px-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
           >
-            <FileText className="w-4 h-4" />
-            <span>Export PDF</span>
+            {isExportingPdf ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileText className="w-4 h-4" />
+            )}
+            <span>{isExportingPdf ? "Mengunduh PDF..." : "Export PDF"}</span>
           </button>
 
           <button

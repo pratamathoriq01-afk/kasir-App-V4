@@ -3,8 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ShoppingCart, ClipboardList, BarChart3, Usb, Bluetooth, Cpu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, ClipboardList, BarChart3, Usb, Bluetooth, Cpu, Clock } from "lucide-react";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
 import { printViaWebSerial } from "@/lib/printer/serial-printer";
@@ -16,6 +16,30 @@ export default function Navbar() {
   const [btConnected, setBtConnected] = useState<boolean>(false);
   const [serialConnected, setSerialConnected] = useState<boolean>(false);
   const [printerMsg, setPrinterMsg] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<string>("");
+
+  // Live Realtime Clock Effect
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("id-ID", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      setCurrentTime(`${dateStr} • ${timeStr} WIB`);
+    };
+
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Minimal test transaction for printer connectivity check
   const TEST_TRANSACTION: Transaction = {
@@ -43,7 +67,8 @@ export default function Navbar() {
       const success = await printViaWebUSB(TEST_TRANSACTION, "customer");
       if (success) {
         setUsbConnected(true);
-        setPrinterMsg("USB Terhubung & Tes Cetak OK!");
+        localStorage.setItem("preferred_printer_method", "usb");
+        setPrinterMsg("USB Terhubung & Tersimpan!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -56,7 +81,8 @@ export default function Navbar() {
       const success = await printViaWebSerial(TEST_TRANSACTION, "customer");
       if (success) {
         setSerialConnected(true);
-        setPrinterMsg("Serial COM Terhubung & Tes Cetak OK!");
+        localStorage.setItem("preferred_printer_method", "serial");
+        setPrinterMsg("COM Port Terhubung & Tersimpan!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -69,7 +95,8 @@ export default function Navbar() {
       const success = await printViaWebBluetooth(TEST_TRANSACTION, "customer");
       if (success) {
         setBtConnected(true);
-        setPrinterMsg("Bluetooth Terhubung & Tes Cetak OK!");
+        localStorage.setItem("preferred_printer_method", "bluetooth");
+        setPrinterMsg("Bluetooth Terhubung & Tersimpan!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -118,9 +145,12 @@ export default function Navbar() {
                   POS v4
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Jl. LA. Sucipto XIV/42, Kota Malang
-              </p>
+              {currentTime && (
+                <div className="flex items-center gap-1.5 text-[11px] text-amber-400 font-mono font-medium">
+                  <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
+                  <span>{currentTime}</span>
+                </div>
+              )}
             </div>
           </div>
 
