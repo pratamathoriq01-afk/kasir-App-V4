@@ -5,7 +5,7 @@ import { Transaction } from "@/types";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
 import { printViaWebSerial } from "@/lib/printer/serial-printer";
-import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2, Cpu } from "lucide-react";
+import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2, Cpu, Zap } from "lucide-react";
 
 interface ReceiptModalProps {
   transaction: Transaction | null;
@@ -84,10 +84,11 @@ export default function ReceiptModal({
           <button
             type="button"
             onClick={() => setActiveTab("customer")}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === "customer"
-              ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-              : "text-slate-600 hover:bg-slate-200/60"
-              }`}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "customer"
+                ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                : "text-slate-600 hover:bg-slate-200/60"
+            }`}
           >
             <FileText className="w-3.5 h-3.5 text-amber-500" />
             <span>Struk Customer</span>
@@ -95,10 +96,11 @@ export default function ReceiptModal({
           <button
             type="button"
             onClick={() => setActiveTab("kitchen")}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === "kitchen"
-              ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-              : "text-slate-600 hover:bg-slate-200/60"
-              }`}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "kitchen"
+                ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                : "text-slate-600 hover:bg-slate-200/60"
+            }`}
           >
             <Printer className="w-3.5 h-3.5 text-indigo-500" />
             <span>Nota Dapur</span>
@@ -106,7 +108,7 @@ export default function ReceiptModal({
         </div>
 
         {/* Receipt Preview */}
-        <div className="p-6 bg-slate-200 flex justify-center overflow-y-auto max-h-[55vh]">
+        <div className="p-6 bg-slate-200 flex justify-center overflow-y-auto max-h-[50vh]">
           <div
             id="printable-receipt"
             className="bg-white h-full p-5 rounded-lg shadow-md border border-slate-300 w-[280px] font-mono text-xs text-slate-900 leading-tight select-none"
@@ -178,25 +180,27 @@ export default function ReceiptModal({
                     <span>Tunai:</span>
                     <span>Rp {transaction.cashReceived.toLocaleString("id-ID")}</span>
                   </div>
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between">
                     <span>Kembali:</span>
-                    <span>Rp {transaction.change.toLocaleString("id-ID")}</span>
+                    <span>Rp {(transaction.cashReceived - transaction.total).toLocaleString("id-ID")}</span>
                   </div>
                 </div>
 
-                <div className="text-center pt-3 text-[10px] text-slate-600 border-t border-dashed border-slate-300 space-y-0.5">
-                  <p className="font-bold text-slate-900">Matur Nuwun Sanget ! 😊</p>
-                  <p>Kedai Nyamleng ❤️</p>
+                {/* Footer Message */}
+                <div className="text-center pt-3 border-t border-dashed border-slate-300 text-[10px]">
+                  <p className="font-bold">Matur Nuwun Sanget ! 😊</p>
+                  <p className="text-slate-600">Kedai Nyamleng 💖</p>
                 </div>
               </div>
             ) : (
-              /* Kitchen Note */
-              <div className="space-y-2">
-                <div className="text-center pb-2 border-b border-slate-400">
-                  <p className="font-black text-sm">NOTA DAPUR / BAR</p>
-                  <p className="text-[11px] font-bold mt-1">
-                    {transaction.orderNumber} — {transaction.orderType === "dine-in" ? `MEJA ${transaction.tableNumber}` : "TAKEAWAY"}
-                  </p>
+              /* Kitchen Receipt */
+              <div className="space-y-3">
+                <div className="text-center pb-2 border-b border-slate-800">
+                  <h4 className="font-black text-sm uppercase">NOTA DAPUR</h4>
+                  <p className="text-xs font-bold text-slate-700"># {transaction.orderNumber}</p>
+                </div>
+                <div className="text-[11px] space-y-1">
+                  <p>Tipe: <strong className="uppercase">{transaction.orderType}</strong></p>
                   <p className="text-[10px] text-slate-500">{new Date(transaction.createdAt as string).toLocaleTimeString("id-ID")}</p>
                 </div>
                 <div className="space-y-2 py-2 border-b border-slate-300">
@@ -219,54 +223,55 @@ export default function ReceiptModal({
         {/* Print Action Buttons */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2.5">
           {/* Helper Guidance Banner */}
-          <div className="p-2.5 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 leading-normal space-y-1">
-            <p className="font-bold text-slate-900 flex items-center gap-1">
-              <span>💡</span> Panduan Cetak Laptop Windows (SharkPOS / ZJ-5805 / MP-58II):
+          <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-950 leading-normal space-y-1">
+            <p className="font-bold text-emerald-900 flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-emerald-600 fill-emerald-500" />
+              <span>Panduan Cetak Instan Laptop Windows:</span>
             </p>
-            <ul className="list-disc list-inside space-y-0.5 text-[10.5px] text-slate-600">
-              <li><strong className="text-emerald-700">Kabel USB Laptop:</strong> Gunakan <strong>Browser Print</strong> (menggunakan Driver Windows SharkPOS).</li>
-              <li><strong className="text-teal-700">Bluetooth Laptop:</strong> Pair Bluetooth di Windows $\rightarrow$ Gunakan <strong>Serial COM</strong> (pilih Port COM).</li>
-              <li><strong className="text-indigo-700">Bluetooth HP / Mac:</strong> Gunakan <strong>Bluetooth</strong>.</li>
-            </ul>
+            <p className="text-[10.5px] text-emerald-800">
+              Gunakan <strong>Cetak Instan (Driver Windows)</strong> di bawah. Komputer akan mencetak langsung ke printer RPP02N / POS-58 tanpa perlu dialog <em>Add Device</em> atau pairing ulang!
+            </p>
           </div>
 
           {isPrinting && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs font-semibold text-amber-600 bg-amber-50 rounded-xl border border-amber-200">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Mencetak & Memuat Logo... Mohon tunggu</span>
+              <span>Mencetak Struk... Mohon tunggu</span>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              type="button"
-              onClick={handleBrowserPrint}
-              disabled={isPrinting}
-              className="py-2 px-2 bg-white border border-slate-300 hover:bg-slate-100 disabled:opacity-50 text-slate-800 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="Cetak via Driver Windows SharkPOS"
-            >
-              <Printer className="w-4 h-4 text-emerald-600" />
-              <span>Browser Print</span>
-            </button>
 
+          {/* Primary Instant Print Button */}
+          <button
+            type="button"
+            onClick={handleBrowserPrint}
+            disabled={isPrinting}
+            className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>🖨️ CETAK INSTAN (Driver Windows / RPP02N / POS-58)</span>
+          </button>
+
+          {/* Alternative Hardware Stream Options */}
+          <div className="grid grid-cols-3 gap-2 pt-1">
             <button
               type="button"
               onClick={handleUsbPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="Cetak Langsung via WebUSB Bulk Transfer"
+              className="py-2 px-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak Langsung via WebUSB Raw Stream"
             >
-              <Usb className="w-4 h-4" />
-              <span>USB Thermal</span>
+              <Usb className="w-3.5 h-3.5" />
+              <span>USB Raw</span>
             </button>
 
             <button
               type="button"
               onClick={handleSerialPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="Cetak via Web Serial COM Port (Windows Serial/BT Adapter)"
+              className="py-2 px-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak via Web Serial COM Port"
             >
-              <Cpu className="w-4 h-4" />
+              <Cpu className="w-3.5 h-3.5" />
               <span>Serial COM</span>
             </button>
 
@@ -274,10 +279,10 @@ export default function ReceiptModal({
               type="button"
               onClick={handleBluetoothPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              className="py-2 px-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
               title="Cetak via Web Bluetooth BLE"
             >
-              <Bluetooth className="w-4 h-4" />
+              <Bluetooth className="w-3.5 h-3.5" />
               <span>Bluetooth</span>
             </button>
           </div>
@@ -285,7 +290,7 @@ export default function ReceiptModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 bg-slate-900 hover:bg-slate-950 text-white font-bold rounded-xl text-xs transition-all shadow-md mt-2 active:scale-[0.99]"
+            className="w-full py-2.5 bg-slate-900 hover:bg-slate-950 text-white font-bold rounded-xl text-xs transition-all shadow-md mt-1 active:scale-[0.99]"
           >
             Selesai & Pesanan Baru
           </button>
