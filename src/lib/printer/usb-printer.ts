@@ -90,13 +90,11 @@ export async function printViaWebUSB(
       }
     }
 
-    // Build ESC/POS receipt data
-    const logoRaster = await loadLogoRaster(200);
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
     } else {
-      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
+      escposData = await buildCustomerReceiptESCPOS(transaction);
     }
 
     // Send in 128-byte chunks for USB bulk transfer
