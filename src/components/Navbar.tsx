@@ -4,15 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ShoppingCart, ClipboardList, BarChart3, Usb, Bluetooth } from "lucide-react";
+import { ShoppingCart, ClipboardList, BarChart3, Usb, Bluetooth, Cpu } from "lucide-react";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
+import { printViaWebSerial } from "@/lib/printer/serial-printer";
 import { Transaction } from "@/types";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [usbConnected, setUsbConnected] = useState<boolean>(false);
   const [btConnected, setBtConnected] = useState<boolean>(false);
+  const [serialConnected, setSerialConnected] = useState<boolean>(false);
   const [printerMsg, setPrinterMsg] = useState<string>("");
 
   // Minimal test transaction for printer connectivity check
@@ -42,6 +44,19 @@ export default function Navbar() {
       if (success) {
         setUsbConnected(true);
         setPrinterMsg("USB Terhubung & Tes Cetak OK!");
+        setTimeout(() => setPrinterMsg(""), 4000);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleConnectSerial = async () => {
+    try {
+      const success = await printViaWebSerial(TEST_TRANSACTION, "customer");
+      if (success) {
+        setSerialConnected(true);
+        setPrinterMsg("Serial COM Terhubung & Tes Cetak OK!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -121,10 +136,24 @@ export default function Navbar() {
                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                   : "bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600"
               }`}
-              title="Hubungkan Printer Thermal via USB"
+              title="Hubungkan Printer Thermal via WebUSB"
             >
               <Usb className="w-3.5 h-3.5" />
               <span>{usbConnected ? "USB Aktif" : "Tes USB"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConnectSerial}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                serialConnected
+                  ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+                  : "bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600"
+              }`}
+              title="Hubungkan Printer Thermal via Web Serial (COM Port)"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>{serialConnected ? "COM Aktif" : "Tes COM"}</span>
             </button>
 
             <button

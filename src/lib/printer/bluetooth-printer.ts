@@ -1,22 +1,24 @@
 /**
  * Web Bluetooth Thermal Printer — SharkPOS PI58BT / Generic BT 58mm
  * Uses shared ESC/POS command builder from escpos-commands.ts
- *
- * Supported Bluetooth service UUIDs (SharkPOS PI58BT + common BT thermal):
- *   Primary:   000018f0-0000-1000-8000-00805f9b34fb  (BT serial port)
- *   Fallback:  e7810a71-73ae-499d-8c15-faa9aef0c3f2  (common thermal)
- *   Fallback2: 49535343-fe7d-4ae5-8fa9-9fafd205e455  (Hoin / Rongta)
  */
 
 import { Transaction } from "@/types";
 import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster } from "./escpos-commands";
+import { printViaWebSerial } from "./serial-printer";
 
 type PrintMode = "customer" | "kitchen";
 
 const BT_SERVICE_UUIDS = [
-  "000018f0-0000-1000-8000-00805f9b34fb",
-  "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-  "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+  "000018f0-0000-1000-8000-00805f9b34fb", // Primary SharkPOS PI58BT
+  "000018f1-0000-1000-8000-00805f9b34fb",
+  "0000ff00-0000-1000-8000-00805f9b34fb", // Rongta / ZJ-58
+  "0000ffe0-0000-1000-8000-00805f9b34fb", // HM-10 / BLE SPP
+  "0000ffe1-0000-1000-8000-00805f9b34fb",
+  "e7810a71-73ae-499d-8c15-faa9aef0c3f2", // Generic Thermal
+  "49535343-fe7d-4ae5-8fa9-9fafd205e455", // Hoin
+  "0000af00-0000-1000-8000-00805f9b34fb", // MPT-II
+  "00001101-0000-1000-8000-00805f9b34fb", // SPP 16-bit
 ];
 
 export async function printViaWebBluetooth(
@@ -27,10 +29,8 @@ export async function printViaWebBluetooth(
     typeof window === "undefined" ||
     !("bluetooth" in navigator)
   ) {
-    alert(
-      "Browser ini tidak mendukung Web Bluetooth API.\nGunakan Google Chrome di PC / Android (bukan iOS)."
-    );
-    return false;
+    // If Web Bluetooth is unavailable, try Web Serial fallback
+    return await printViaWebSerial(transaction, mode);
   }
 
   try {
@@ -43,7 +43,6 @@ export async function printViaWebBluetooth(
       };
     };
 
-    // Show BT device picker
     const device = await nav.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: BT_SERVICE_UUIDS,
@@ -51,22 +50,32 @@ export async function printViaWebBluetooth(
 
     const server = await device.gatt.connect();
 
-    // Try each service UUID until one works
     let service: BTServiceLike | null = null;
-    for (const uuid of BT_SERVICE_UUIDS) {
+    
+    if (server.getPrimaryServices) {
       try {
-        service = await server.getPrimaryService(uuid);
-        break;
-      } catch {
-        continue;
+        const services = await server.getPrimaryServices();
+        if (services.length > 0) {
+          service = services[0];
+        }
+      } catch (e) {
+        console.warn("Primary services scan fallback:", e);
       }
     }
 
     if (!service) {
-      throw new Error(
-        "Tidak dapat menemukan layanan cetak Bluetooth yang kompatibel.\n" +
-        "Pastikan ini adalah printer thermal SharkPOS / BT-58."
-      );
+      for (const uuid of BT_SERVICE_UUIDS) {
+        try {
+          service = await server.getPrimaryService(uuid);
+          break;
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    if (!service) {
+      throw new Error("Service GATT Bluetooth tidak ditemukan.");
     }
 
     const characteristics = await service.getCharacteristics();
@@ -75,11 +84,11 @@ export async function printViaWebBluetooth(
     );
 
     if (!writeChar) {
-      throw new Error("Karakteristik tulis Bluetooth tidak ditemukan pada printer ini.");
+      throw new Error("Karakteristik tulis Bluetooth tidak ditemukan.");
     }
 
-    // Build ESC/POS receipt data with logo
-    const logoRaster = await loadLogoRaster(180); // Slightly smaller for BT (bandwidth)
+    // Build ESC/POS receipt data
+    const logoRaster = await loadLogoRaster(180);
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
@@ -87,10 +96,9 @@ export async function printViaWebBluetooth(
       escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
     }
 
-    // Send in 512-byte chunks with 30ms delay between chunks
-    // (Optimal for SharkPOS PI58BT BLE MTU = 512 bytes)
-    const CHUNK_SIZE = 512;
-    const CHUNK_DELAY_MS = 30;
+    // Send in 64-byte chunks with 25ms delay
+    const CHUNK_SIZE = 64;
+    const CHUNK_DELAY_MS = 25;
 
     for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
       const chunk = escposData.slice(i, i + CHUNK_SIZE);
@@ -99,7 +107,6 @@ export async function printViaWebBluetooth(
       } else {
         await writeChar.writeValue(chunk);
       }
-      // Delay between chunks to prevent BLE congestion/data loss
       if (i + CHUNK_SIZE < escposData.length) {
         await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
       }
@@ -108,10 +115,10 @@ export async function printViaWebBluetooth(
     return true;
   } catch (error) {
     const name = (error as Error)?.name;
-    const msg  = error instanceof Error ? error.message : "Tidak dapat terhubung";
-    // NotFoundError = user cancelled picker, NotSupportedError = BT off
+    console.warn("Bluetooth GATT failed, switching to Serial COM fallback:", error);
     if (name !== "NotFoundError") {
-      alert(`Gagal mencetak via Bluetooth:\n${msg}`);
+      // Windows Classic BT SPP printer (SharkPOS PI58BT) requires Web Serial COM port fallback!
+      return await printViaWebSerial(transaction, mode);
     }
     return false;
   }
@@ -130,6 +137,7 @@ interface BTDeviceLike {
   gatt: {
     connect(): Promise<{
       getPrimaryService(uuid: string): Promise<BTServiceLike>;
+      getPrimaryServices?(): Promise<BTServiceLike[]>;
     }>;
   };
 }

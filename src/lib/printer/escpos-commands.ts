@@ -39,7 +39,8 @@ export const ESC_LINE_SPACE_0 = new Uint8Array([0x1b, 0x33, 0]);
 export const ESC_FEED_1      = new Uint8Array([0x0a]);
 export const ESC_FEED_2      = new Uint8Array([0x0a, 0x0a]);
 export const ESC_FEED_3      = new Uint8Array([0x0a, 0x0a, 0x0a]);
-export const ESC_CUT_PARTIAL = new Uint8Array([0x1d, 0x56, 0x41, 0x05]); // partial cut with feed
+export const ESC_FEED_PAPER = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]); // Feed 4 lines to tear-bar for ZJ-5805 / ZJ-5809 / MP-58II
+export const ESC_CUT_PARTIAL = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]);
 
 // ─── 58mm paper constants ─────────────────────────────────────────────────────
 const PAPER_WIDTH_DOTS = 384; // 58mm paper @ 8 dots/mm

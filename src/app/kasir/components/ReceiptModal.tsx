@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Transaction } from "@/types";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
-import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2 } from "lucide-react";
+import { printViaWebSerial } from "@/lib/printer/serial-printer";
+import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2, Cpu } from "lucide-react";
 
 interface ReceiptModalProps {
   transaction: Transaction | null;
@@ -32,6 +33,15 @@ export default function ReceiptModal({
     setIsPrinting(true);
     try {
       await printViaWebUSB(transaction, activeTab);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handleSerialPrint = async () => {
+    setIsPrinting(true);
+    try {
+      await printViaWebSerial(transaction, activeTab);
     } finally {
       setIsPrinting(false);
     }
@@ -206,21 +216,34 @@ export default function ReceiptModal({
         </div>
 
         {/* Print Action Buttons */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2.5">
+          {/* Helper Guidance Banner */}
+          <div className="p-2.5 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 leading-normal space-y-1">
+            <p className="font-bold text-slate-900 flex items-center gap-1">
+              <span>💡</span> Panduan Cetak Laptop Windows (SharkPOS / ZJ-5805 / MP-58II):
+            </p>
+            <ul className="list-disc list-inside space-y-0.5 text-[10.5px] text-slate-600">
+              <li><strong className="text-emerald-700">Kabel USB Laptop:</strong> Gunakan <strong>Browser Print</strong> (menggunakan Driver Windows SharkPOS).</li>
+              <li><strong className="text-teal-700">Bluetooth Laptop:</strong> Pair Bluetooth di Windows $\rightarrow$ Gunakan <strong>Serial COM</strong> (pilih Port COM).</li>
+              <li><strong className="text-indigo-700">Bluetooth HP / Mac:</strong> Gunakan <strong>Bluetooth</strong>.</li>
+            </ul>
+          </div>
+
           {isPrinting && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs font-semibold text-amber-600 bg-amber-50 rounded-xl border border-amber-200">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Mencetak & Memuat Logo... Mohon tunggu</span>
             </div>
           )}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               type="button"
               onClick={handleBrowserPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-white border border-slate-300 hover:bg-slate-100 disabled:opacity-50 text-slate-800 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95"
+              className="py-2 px-2 bg-white border border-slate-300 hover:bg-slate-100 disabled:opacity-50 text-slate-800 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak via Driver Windows SharkPOS"
             >
-              <Printer className="w-4 h-4 text-slate-600" />
+              <Printer className="w-4 h-4 text-emerald-600" />
               <span>Browser Print</span>
             </button>
 
@@ -228,7 +251,8 @@ export default function ReceiptModal({
               type="button"
               onClick={handleUsbPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95"
+              className="py-2 px-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak Langsung via WebUSB Bulk Transfer"
             >
               <Usb className="w-4 h-4" />
               <span>USB Thermal</span>
@@ -236,9 +260,21 @@ export default function ReceiptModal({
 
             <button
               type="button"
+              onClick={handleSerialPrint}
+              disabled={isPrinting}
+              className="py-2 px-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak via Web Serial COM Port (Windows Serial/BT Adapter)"
+            >
+              <Cpu className="w-4 h-4" />
+              <span>Serial COM</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleBluetoothPrint}
               disabled={isPrinting}
-              className="py-2 px-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95"
+              className="py-2 px-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
+              title="Cetak via Web Bluetooth BLE"
             >
               <Bluetooth className="w-4 h-4" />
               <span>Bluetooth</span>
