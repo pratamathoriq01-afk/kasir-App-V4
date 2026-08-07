@@ -5,7 +5,7 @@ import { Transaction } from "@/types";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
 import { printViaWebSerial } from "@/lib/printer/serial-printer";
-import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2, Cpu } from "lucide-react";
+import { Printer, X, Check, Usb, Bluetooth, FileText, Loader2, Cpu, Info } from "lucide-react";
 
 interface ReceiptModalProps {
   transaction: Transaction | null;
@@ -220,8 +220,16 @@ export default function ReceiptModal({
           </div>
         </div>
 
-        {/* Print Action Buttons (Restored Clean 4-Button Layout) */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2.5">
+        {/* Print Action Buttons */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+          {/* First Time Setup Tip */}
+          <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 text-[10.5px] text-amber-900 leading-tight flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>
+              <strong>Tips Setup Awal:</strong> Pilih port <em>RPP02N / COM3</em> 1x di dialog awal. Setelahnya, USB &amp; Serial COM akan mencetak <strong>otomatis 100% tanpa dialog</strong>!
+            </span>
+          </div>
+
           {isPrinting && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs font-semibold text-amber-600 bg-amber-50 rounded-xl border border-amber-200">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -246,7 +254,7 @@ export default function ReceiptModal({
               onClick={handleUsbPrint}
               disabled={isPrinting}
               className="py-2.5 px-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="Cetak Langsung via WebUSB Raw Stream"
+              title="Cetak Langsung via WebUSB / USB Serial Bridge"
             >
               <Usb className="w-4 h-4" />
               <span>USB Thermal</span>

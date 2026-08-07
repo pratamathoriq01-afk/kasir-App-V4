@@ -36,7 +36,7 @@ export async function printViaWebUSB(
     typeof window === "undefined" ||
     !("usb" in (navigator as unknown as { usb: unknown }))
   ) {
-    return await printViaWebSerial(transaction, mode, false);
+    return await printViaWebSerial(transaction, mode, true);
   }
 
   try {
@@ -71,8 +71,8 @@ export async function printViaWebUSB(
     try {
       await device.claimInterface(ifaceNumber);
     } catch (claimErr) {
-      console.warn("Chrome WebUSB Protected Class / Driver active, checking Serial COM silently:", claimErr);
-      return await printViaWebSerial(transaction, mode, false);
+      console.warn("Chrome WebUSB Protected Class / Driver active, connecting via Serial COM bridge:", claimErr);
+      return await printViaWebSerial(transaction, mode, true);
     }
 
     // Dynamic BULK OUT endpoint discovery
@@ -112,7 +112,7 @@ export async function printViaWebUSB(
   } catch (error) {
     console.warn("WebUSB stream notice:", error);
     if ((error as Error)?.name !== "NotFoundError") {
-      return await printViaWebSerial(transaction, mode, false);
+      return await printViaWebSerial(transaction, mode, true);
     }
     return false;
   }
