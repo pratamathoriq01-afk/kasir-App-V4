@@ -1,11 +1,11 @@
 /**
  * WebUSB Thermal Printer — SharkPOS / POS-58 / ZJ-5805 profile
  * Directly streams ESC/POS raw bytes over WebUSB or Web Serial (COM)
- * DOES NOT launch laptop browser print dialogs.
+ * NEVER launches laptop browser print dialogs.
  */
 
 import { Transaction } from "@/types";
-import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster } from "./escpos-commands";
+import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS } from "./escpos-commands";
 import { printViaWebSerial } from "./serial-printer";
 
 type PrintMode = "customer" | "kitchen";
@@ -36,7 +36,6 @@ export async function printViaWebUSB(
     typeof window === "undefined" ||
     !("usb" in (navigator as unknown as { usb: unknown }))
   ) {
-    // If WebUSB unavailable, fallback directly to Web Serial COM raw stream
     return await printViaWebSerial(transaction, mode);
   }
 
@@ -73,7 +72,6 @@ export async function printViaWebUSB(
       await device.claimInterface(ifaceNumber);
     } catch (claimErr) {
       console.warn("Chrome WebUSB Protected Class / Driver active, switching to Web Serial COM raw stream:", claimErr);
-      // Fallback directly to Web Serial COM raw stream for USB printer
       return await printViaWebSerial(transaction, mode);
     }
 
@@ -112,7 +110,7 @@ export async function printViaWebUSB(
 
     return true;
   } catch (error) {
-    console.warn("WebUSB fallback to Serial COM:", error);
+    console.warn("WebUSB stream notice:", error);
     if ((error as Error)?.name !== "NotFoundError") {
       return await printViaWebSerial(transaction, mode);
     }

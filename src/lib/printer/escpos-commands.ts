@@ -1,7 +1,7 @@
 /**
  * ESC/POS Command Builder — Kedai Nyamleng POS
  * Compatible with: SharkPOS PI58BT, RPP02N, POS-58mm, XP-58, ZJ-5805, MP-58II
- * Hardware-native text encoding: 100% Crisp, 0 Noise/Garbage Characters, 0 Delay.
+ * Standard ESC/POS Column Mode (ESC * 33) Logo Printing — 100% Compatible with 58mm Thermal Printers.
  */
 
 import { Transaction } from "@/types";
@@ -22,13 +22,8 @@ export const ESC_BOLD_ON     = new Uint8Array([0x1b, 0x45, 0x01]);
 export const ESC_BOLD_OFF    = new Uint8Array([0x1b, 0x45, 0x00]);
 export const ESC_FONT_NORMAL = new Uint8Array([0x1b, 0x21, 0x00]);
 export const ESC_FONT_BOLD   = new Uint8Array([0x1b, 0x21, 0x08]);
-export const ESC_FONT_DOUBLE_H = new Uint8Array([0x1b, 0x21, 0x10]);
-export const ESC_SIZE_2X     = new Uint8Array([0x1d, 0x21, 0x11]); // 2x width + height
 export const ESC_SIZE_NORMAL = new Uint8Array([0x1d, 0x21, 0x00]);
 export const ESC_LINE_SPACE_DEFAULT = new Uint8Array([0x1b, 0x32]); // Standard breathable line spacing
-export const ESC_FEED_1      = new Uint8Array([0x0a]);
-export const ESC_FEED_2      = new Uint8Array([0x0a, 0x0a]);
-export const ESC_FEED_3      = new Uint8Array([0x0a, 0x0a, 0x0a]);
 export const ESC_FEED_PAPER  = new Uint8Array([0x1b, 0x64, 0x04, 0x0a, 0x0a]); // Feed 4 lines to tear-bar
 
 // ─── 58mm paper constants ─────────────────────────────────────────────────────
@@ -55,9 +50,78 @@ function concat(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
+// ─── Standard ESC/POS Column Mode (ESC * 33) Logo Generator ─────────────────
+export async function loadLogoESCPOS(maxWidth = 160): Promise<Uint8Array | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "/logo.png";
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+
+    const aspect = img.height / img.width;
+    const width = Math.min(maxWidth, 160); // 160 dots wide centered on 58mm paper
+    const height = Math.round(width * aspect);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
+
+    const parts: Uint8Array[] = [];
+    parts.push(ESC_ALIGN_CENTER);
+    parts.push(new Uint8Array([0x1b, 0x33, 24])); // Set line spacing to 24 dots for 24-dot bit image band
+
+    // Slice image into 24-dot high horizontal bands (ESC * 33 column mode)
+    for (let y = 0; y < height; y += 24) {
+      const nL = width & 0xff;
+      const nH = (width >> 8) & 0xff;
+      parts.push(new Uint8Array([0x1b, 0x2a, 33, nL, nH]));
+
+      const bandBytes = new Uint8Array(width * 3);
+      for (let x = 0; x < width; x++) {
+        for (let b = 0; b < 24; b++) {
+          const py = y + b;
+          if (py < height) {
+            const idx = (py * width + x) * 4;
+            const r = pixels[idx];
+            const g = pixels[idx + 1];
+            const bVal = pixels[idx + 2];
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * bVal;
+
+            if (luminance < 150) { // Black pixel threshold
+              const byteIdx = x * 3 + Math.floor(b / 8);
+              const bitPos = 7 - (b % 8);
+              bandBytes[byteIdx] |= (1 << bitPos);
+            }
+          }
+        }
+      }
+      parts.push(bandBytes);
+      parts.push(new Uint8Array([0x1b, 0x4a, 24])); // Feed 24 dots line spacing to next band
+    }
+
+    parts.push(ESC_LINE_SPACE_DEFAULT); // Reset line spacing
+    return concat(...parts);
+  } catch (err) {
+    console.warn("Could not load ESC/POS logo:", err);
+    return null;
+  }
+}
+
 export async function loadLogoRaster(): Promise<Uint8Array | null> {
-  // Always return null to prevent corrupted bitmap noise characters on 58mm thermal paper
-  return null;
+  return await loadLogoESCPOS(160);
 }
 
 // ─── Customer Receipt Builder ─────────────────────────────────────────────────
@@ -66,25 +130,27 @@ export async function buildCustomerReceiptESCPOS(
 ): Promise<Uint8Array> {
   const parts: Uint8Array[] = [];
 
-  // 1. Init & set standard breathable line spacing
+  // 1. Init & set standard line spacing
   parts.push(ESC_INIT);
   parts.push(ESC_LINE_SPACE_DEFAULT);
 
-  // 2. Hardware Native Clean Header (0-Delay, 0 Noise)
+  // 2. Logo Image ONLY (rendered via standard ESC * 33 column mode)
+  const logoBytes = await loadLogoESCPOS(160);
+  if (logoBytes) {
+    parts.push(logoBytes);
+  }
+
+  // 3. Store Address & Telp ONLY (NO big bold text "Kedai Nyamleng", ONLY logo above address!)
   parts.push(ESC_ALIGN_CENTER);
-  parts.push(ESC_SIZE_2X);
-  parts.push(ESC_BOLD_ON);
-  parts.push(encBytes("KEDAI NYAMLENG\n"));
-  parts.push(ESC_SIZE_NORMAL);
-  parts.push(ESC_BOLD_OFF);
+  parts.push(ESC_FONT_NORMAL);
   parts.push(encBytes("Jl. LA. Sucipto XIV/42 Malang\n"));
   parts.push(encBytes("Telp/WA: 085113661387\n"));
 
-  // 3. Divider
+  // 4. Divider
   parts.push(ESC_ALIGN_LEFT);
   parts.push(encBytes(divider("=", CHARS_PER_LINE)));
 
-  // 4. Order info
+  // 5. Order info
   const createdAt = new Date(transaction.createdAt as string);
   const dateStr   = createdAt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr   = createdAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -95,7 +161,7 @@ export async function buildCustomerReceiptESCPOS(
   parts.push(encBytes(`Order : ${transaction.orderType === "dine-in" ? `Dine-In (Meja ${transaction.tableNumber})` : "Takeaway"}\n`));
   parts.push(encBytes(divider("-", CHARS_PER_LINE)));
 
-  // 5. Item list
+  // 6. Item list
   for (const item of transaction.items) {
     parts.push(ESC_BOLD_ON);
     parts.push(encBytes(`${item.nameSnapshot}\n`));
@@ -111,7 +177,7 @@ export async function buildCustomerReceiptESCPOS(
 
   parts.push(encBytes(divider("-", CHARS_PER_LINE)));
 
-  // 6. Totals
+  // 7. Totals
   const fmtRow = (label: string, value: string) => {
     const l = padRight(label, 18);
     const r = padLeft(value, 14);
@@ -134,7 +200,7 @@ export async function buildCustomerReceiptESCPOS(
 
   parts.push(encBytes(divider("-", CHARS_PER_LINE)));
 
-  // 7. Footer
+  // 8. Footer
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_BOLD_ON);
   parts.push(encBytes("Matur Nuwun Sanget !\n"));
@@ -156,10 +222,8 @@ export async function buildKitchenReceiptESCPOS(
   parts.push(ESC_LINE_SPACE_DEFAULT);
 
   parts.push(ESC_ALIGN_CENTER);
-  parts.push(ESC_SIZE_2X);
   parts.push(ESC_BOLD_ON);
   parts.push(encBytes("NOTA DAPUR\n"));
-  parts.push(ESC_SIZE_NORMAL);
   parts.push(ESC_BOLD_OFF);
 
   parts.push(encBytes(`Nota: #${transaction.orderNumber}\n`));
@@ -169,10 +233,8 @@ export async function buildKitchenReceiptESCPOS(
   parts.push(ESC_ALIGN_LEFT);
 
   for (const item of transaction.items) {
-    parts.push(ESC_SIZE_2X);
     parts.push(ESC_BOLD_ON);
     parts.push(encBytes(`${item.qty}x `));
-    parts.push(ESC_SIZE_NORMAL);
     parts.push(encBytes(`${item.nameSnapshot.toUpperCase()}\n`));
     parts.push(ESC_BOLD_OFF);
   }

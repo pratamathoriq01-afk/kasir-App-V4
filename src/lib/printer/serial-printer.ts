@@ -1,7 +1,7 @@
 /**
  * Web Serial Thermal Printer — SharkPOS / USB Serial / Bluetooth COM Port
- * Auto-reconnects to authorized ports without re-prompting browser picker.
- * Fallbacks to window.print() if COM port is busy or unavailable.
+ * Directly streams ESC/POS raw bytes over Serial COM.
+ * NEVER launches Chrome print dialogs on error.
  */
 
 import { Transaction } from "@/types";
@@ -30,8 +30,8 @@ export async function printViaWebSerial(
   mode: PrintMode = "customer"
 ): Promise<boolean> {
   if (typeof window === "undefined" || !("serial" in navigator)) {
-    window.print();
-    return true;
+    console.warn("Web Serial API unavailable in this browser.");
+    return false;
   }
 
   try {
@@ -65,11 +65,10 @@ export async function printViaWebSerial(
       }
     }
 
-    // If port is still not writable (e.g. busy or claimed by Windows driver), fallback to Browser Print
+    // If port is still not writable, exit gracefully WITHOUT opening Chrome print dialog
     if (!port || !port.writable) {
-      console.warn("Serial COM port not writable, falling back to Browser Print.");
-      window.print();
-      return true;
+      console.warn("Serial COM port not writable or user cancelled.");
+      return false;
     }
 
     let escposData: Uint8Array;
@@ -97,9 +96,8 @@ export async function printViaWebSerial(
 
     return true;
   } catch (error) {
-    console.warn("Web Serial error, executing Browser Print fallback:", error);
-    window.print();
-    return true;
+    console.warn("Web Serial stream notice:", error);
+    return false;
   }
 }
 
