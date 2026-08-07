@@ -8,6 +8,22 @@ import { buildCustomerReceiptESCPOS, buildKitchenReceiptESCPOS, loadLogoRaster }
 
 type PrintMode = "customer" | "kitchen";
 
+export async function connectSerialPrinter(): Promise<boolean> {
+  if (typeof window === "undefined" || !("serial" in navigator)) {
+    return true;
+  }
+  try {
+    const navSerial = (navigator as unknown as { serial: { requestPort: () => Promise<unknown> } }).serial;
+    await navSerial.requestPort();
+    return true;
+  } catch (err) {
+    if ((err as Error)?.name !== "NotFoundError") {
+      console.warn("Connect Serial notice:", err);
+    }
+    return false;
+  }
+}
+
 export async function printViaWebSerial(
   transaction: Transaction,
   mode: PrintMode = "customer"

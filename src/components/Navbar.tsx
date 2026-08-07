@@ -5,9 +5,9 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ShoppingCart, ClipboardList, BarChart3, Usb, Bluetooth, Cpu, Clock } from "lucide-react";
-import { printViaWebUSB } from "@/lib/printer/usb-printer";
-import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
-import { printViaWebSerial } from "@/lib/printer/serial-printer";
+import { connectUSBPrinter, printViaWebUSB } from "@/lib/printer/usb-printer";
+import { connectBluetoothPrinter, printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
+import { connectSerialPrinter, printViaWebSerial } from "@/lib/printer/serial-printer";
 import { Transaction } from "@/types";
 
 export default function Navbar() {
@@ -41,34 +41,13 @@ export default function Navbar() {
     return () => clearInterval(timer);
   }, []);
 
-  // Minimal test transaction for printer connectivity check
-  const TEST_TRANSACTION: Transaction = {
-    id: "test-001",
-    orderNumber: "TES-001",
-    customerName: "Test Print",
-    orderType: "dine-in",
-    tableNumber: "-",
-    subtotal: 15000,
-    discountType: null,
-    discountValue: 0,
-    discountAmount: 0,
-    tax: 1500,
-    total: 16500,
-    hppTotal: 7000,
-    netProfit: 8000,
-    cashReceived: 20000,
-    change: 3500,
-    createdAt: new Date().toISOString(),
-    items: [{ nameSnapshot: "TES PRINT — KEDAI NYAMLENG", priceSnapshot: 15000, hppSnapshot: 7000, qty: 1 }],
-  };
-
   const handleConnectUsb = async () => {
     try {
-      const success = await printViaWebUSB(TEST_TRANSACTION, "customer");
+      const success = await connectUSBPrinter();
       if (success) {
         setUsbConnected(true);
         localStorage.setItem("preferred_printer_method", "usb");
-        setPrinterMsg("USB Terhubung & Tersimpan!");
+        setPrinterMsg("USB Terhubung!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -78,11 +57,11 @@ export default function Navbar() {
 
   const handleConnectSerial = async () => {
     try {
-      const success = await printViaWebSerial(TEST_TRANSACTION, "customer");
+      const success = await connectSerialPrinter();
       if (success) {
         setSerialConnected(true);
         localStorage.setItem("preferred_printer_method", "serial");
-        setPrinterMsg("COM Port Terhubung & Tersimpan!");
+        setPrinterMsg("Port COM Terhubung!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {
@@ -92,11 +71,11 @@ export default function Navbar() {
 
   const handleConnectBt = async () => {
     try {
-      const success = await printViaWebBluetooth(TEST_TRANSACTION, "customer");
+      const success = await connectBluetoothPrinter();
       if (success) {
         setBtConnected(true);
         localStorage.setItem("preferred_printer_method", "bluetooth");
-        setPrinterMsg("Bluetooth Terhubung & Tersimpan!");
+        setPrinterMsg("Bluetooth Terhubung!");
         setTimeout(() => setPrinterMsg(""), 4000);
       }
     } catch (e) {

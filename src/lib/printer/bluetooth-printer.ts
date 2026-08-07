@@ -22,6 +22,27 @@ const BT_SERVICE_UUIDS = [
   "00001101-0000-1000-8000-00805f9b34fb",
 ];
 
+export async function connectBluetoothPrinter(): Promise<boolean> {
+  if (typeof window === "undefined" || !("bluetooth" in navigator)) {
+    return true;
+  }
+  try {
+    const nav = navigator as unknown as {
+      bluetooth: { requestDevice: (opts: unknown) => Promise<unknown> };
+    };
+    await nav.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: BT_SERVICE_UUIDS,
+    });
+    return true;
+  } catch (err) {
+    if ((err as Error)?.name !== "NotFoundError") {
+      console.warn("Connect BT notice:", err);
+    }
+    return false;
+  }
+}
+
 export async function printViaWebBluetooth(
   transaction: Transaction,
   mode: PrintMode = "customer"

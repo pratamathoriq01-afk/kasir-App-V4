@@ -10,6 +10,24 @@ import { printViaWebSerial } from "./serial-printer";
 
 type PrintMode = "customer" | "kitchen";
 
+export async function connectUSBPrinter(): Promise<boolean> {
+  if (typeof window === "undefined" || !("usb" in (navigator as unknown as { usb: unknown }))) {
+    return true;
+  }
+  try {
+    const nav = navigator as unknown as {
+      usb: { requestDevice: (opts: { filters: unknown[] }) => Promise<unknown> };
+    };
+    await nav.usb.requestDevice({ filters: [] });
+    return true;
+  } catch (err) {
+    if ((err as Error)?.name !== "NotFoundError") {
+      console.warn("Connect USB notice:", err);
+    }
+    return false;
+  }
+}
+
 export async function printViaWebUSB(
   transaction: Transaction,
   mode: PrintMode = "customer"
