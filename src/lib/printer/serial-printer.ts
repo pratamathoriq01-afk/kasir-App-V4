@@ -1,6 +1,7 @@
 /**
  * Web Serial Thermal Printer — SharkPOS / USB Serial / Bluetooth COM Port
- * Auto-reconnects to authorized ports without re-prompting browser picker
+ * Auto-reconnects to authorized ports without re-prompting browser picker.
+ * Fallbacks to window.print() if COM port is busy or unavailable.
  */
 
 import { Transaction } from "@/types";
@@ -29,10 +30,8 @@ export async function printViaWebSerial(
   mode: PrintMode = "customer"
 ): Promise<boolean> {
   if (typeof window === "undefined" || !("serial" in navigator)) {
-    alert(
-      "Browser ini tidak mendukung Web Serial API.\nGunakan Google Chrome atau Microsoft Edge versi terbaru di Laptop / PC."
-    );
-    return false;
+    window.print();
+    return true;
   }
 
   try {
@@ -43,29 +42,47 @@ export async function printViaWebSerial(
       };
     }).serial;
 
-    // Check for previously authorized port first (AUTO RE-CONNECT)
     let port: SerialPortLike | null = null;
     const existingPorts = await navSerial.getPorts();
+    
+    // Try existing port first
     if (existingPorts.length > 0) {
       port = existingPorts[0];
-    } else {
-      // Prompt user once if no port authorized yet
-      port = await navSerial.requestPort();
+      try {
+        await port.open({ baudRate: 9600 });
+      } catch (openErr) {
+        console.warn("Serial existing port open notice:", openErr);
+      }
     }
 
-    try {
-      await port.open({ baudRate: 9600 });
-    } catch (openErr) {
-      console.warn("Serial port already open or re-opening:", openErr);
+    // If existing port has no writable stream, request user selection
+    if (!port || !port.writable) {
+      try {
+        port = await navSerial.requestPort();
+        await port.open({ baudRate: 9600 });
+      } catch (reqErr) {
+        console.warn("Serial requestPort notice:", reqErr);
+      }
     }
 
-    // Build receipt data
-    const logoRaster = await loadLogoRaster(180);
+    // If port is still not writable (e.g. busy or claimed by Windows driver), fallback to Browser Print
+    if (!port || !port.writable) {
+      console.warn("Serial COM port not writable, falling back to Browser Print.");
+      window.print();
+      return true;
+    }
+
+    // Build receipt data (with 800ms fast logo timeout)
+    const logoRaster = await Promise.race([
+      loadLogoRaster(180),
+      new Promise<Uint8Array | null>((resolve) => setTimeout(() => resolve(null), 800)),
+    ]);
+
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
     } else {
-      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
+      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster || undefined);
     }
 
     const writer = port.writable.getWriter();
@@ -86,11 +103,9 @@ export async function printViaWebSerial(
 
     return true;
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Gagal terhubung";
-    if ((error as Error)?.name !== "NotFoundError") {
-      alert(`Gagal mencetak via Web Serial (COM Port):\n${msg}\n\nPastikan port COM SharkPOS terhubung.`);
-    }
-    return false;
+    console.warn("Web Serial error, executing Browser Print fallback:", error);
+    window.print();
+    return true;
   }
 }
 
@@ -102,5 +117,5 @@ interface SerialPortLike {
       write(data: Uint8Array): Promise<void>;
       releaseLock(): void;
     };
-  };
+  } | null;
 }

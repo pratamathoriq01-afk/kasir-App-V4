@@ -1,7 +1,7 @@
 /**
  * Web Bluetooth Thermal Printer — SharkPOS PI58BT / Generic BT 58mm
  * Uses shared ESC/POS command builder from escpos-commands.ts
- * Optimized for high-speed streaming without motor stutter delay.
+ * Optimized for instant zero-delay transmission & auto-fallback.
  */
 
 import { Transaction } from "@/types";
@@ -47,16 +47,14 @@ export async function printViaWebBluetooth(
   transaction: Transaction,
   mode: PrintMode = "customer"
 ): Promise<boolean> {
-  if (
-    typeof window === "undefined" ||
-    !("bluetooth" in navigator)
-  ) {
+  if (typeof window === "undefined" || !("bluetooth" in navigator)) {
     return await printViaWebSerial(transaction, mode);
   }
 
   try {
     const nav = navigator as unknown as {
       bluetooth: {
+        getDevices?: () => Promise<BTDeviceLike[]>;
         requestDevice: (opts: {
           acceptAllDevices?: boolean;
           optionalServices?: string[];
@@ -64,10 +62,26 @@ export async function printViaWebBluetooth(
       };
     };
 
-    const device = await nav.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: BT_SERVICE_UUIDS,
-    });
+    let device: BTDeviceLike | null = null;
+
+    // Fast check for already paired Bluetooth device
+    if (nav.bluetooth.getDevices) {
+      try {
+        const existingDevices = await nav.bluetooth.getDevices();
+        if (existingDevices.length > 0) {
+          device = existingDevices[0];
+        }
+      } catch (getErr) {
+        console.warn("getDevices notice:", getErr);
+      }
+    }
+
+    if (!device) {
+      device = await nav.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: BT_SERVICE_UUIDS,
+      });
+    }
 
     const server = await device.gatt.connect();
 
@@ -108,16 +122,20 @@ export async function printViaWebBluetooth(
       throw new Error("Karakteristik tulis Bluetooth tidak ditemukan.");
     }
 
-    // Build ESC/POS receipt data
-    const logoRaster = await loadLogoRaster(180);
+    // Fast logo timeout (800ms max) to prevent Bluetooth delay
+    const logoRaster = await Promise.race([
+      loadLogoRaster(180),
+      new Promise<Uint8Array | null>((resolve) => setTimeout(() => resolve(null), 800)),
+    ]);
+
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
     } else {
-      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster);
+      escposData = await buildCustomerReceiptESCPOS(transaction, logoRaster || undefined);
     }
 
-    // High-speed BLE transmission: 128-byte chunks, 0ms delay for writeWithoutResponse
+    // High-speed BLE transmission: 128-byte chunks
     const CHUNK_SIZE = 128;
     const CHUNK_DELAY_MS = writeChar.properties.writeWithoutResponse ? 0 : 5;
 
@@ -136,7 +154,7 @@ export async function printViaWebBluetooth(
     return true;
   } catch (error) {
     const name = (error as Error)?.name;
-    console.warn("Bluetooth GATT failed, switching to Serial COM fallback:", error);
+    console.warn("Bluetooth GATT fallback to Serial/Browser:", error);
     if (name !== "NotFoundError") {
       return await printViaWebSerial(transaction, mode);
     }
@@ -144,19 +162,26 @@ export async function printViaWebBluetooth(
   }
 }
 
-interface BTServiceLike {
-  getCharacteristics(): Promise<BTCharLike[]>;
-}
-interface BTCharLike {
-  properties: { write: boolean; writeWithoutResponse: boolean };
-  writeValue(value: Uint8Array): Promise<void>;
-  writeValueWithoutResponse(value: Uint8Array): Promise<void>;
-}
 interface BTDeviceLike {
+  name?: string;
   gatt: {
     connect(): Promise<{
-      getPrimaryService(uuid: string): Promise<BTServiceLike>;
       getPrimaryServices?(): Promise<BTServiceLike[]>;
+      getPrimaryService(uuid: string): Promise<BTServiceLike>;
     }>;
   };
+}
+
+interface BTServiceLike {
+  getCharacteristics(): Promise<BTCharacteristicLike[]>;
+}
+
+interface BTCharacteristicLike {
+  uuid: string;
+  properties: {
+    write: boolean;
+    writeWithoutResponse: boolean;
+  };
+  writeValue(data: Uint8Array): Promise<void>;
+  writeValueWithoutResponse(data: Uint8Array): Promise<void>;
 }
