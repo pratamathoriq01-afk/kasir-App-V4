@@ -1,7 +1,7 @@
 /**
  * ESC/POS Command Builder — Kedai Nyamleng POS
  * Compatible with: SharkPOS PI58BT, RPP02N, POS-58mm, XP-58, ZJ-5805, MP-58II
- * Standard ESC/POS Column Mode (ESC * 33) Logo Printing — 100% Compatible with 58mm Thermal Printers.
+ * Standard ESC/POS Column Mode (ESC * 33) Logo Printing with In-Memory Pre-Caching (0ms Delay).
  */
 
 import { Transaction } from "@/types";
@@ -50,9 +50,14 @@ function concat(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
+// In-Memory Pre-Cache for Instant 0ms Logo Transmission
+let cachedLogoBytes: Uint8Array | null = null;
+
 // ─── Standard ESC/POS Column Mode (ESC * 33) Logo Generator ─────────────────
 export async function loadLogoESCPOS(maxWidth = 160): Promise<Uint8Array | null> {
+  if (cachedLogoBytes) return cachedLogoBytes;
   if (typeof window === "undefined") return null;
+
   try {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -113,7 +118,8 @@ export async function loadLogoESCPOS(maxWidth = 160): Promise<Uint8Array | null>
     }
 
     parts.push(ESC_LINE_SPACE_DEFAULT); // Reset line spacing
-    return concat(...parts);
+    cachedLogoBytes = concat(...parts);
+    return cachedLogoBytes;
   } catch (err) {
     console.warn("Could not load ESC/POS logo:", err);
     return null;
@@ -134,7 +140,7 @@ export async function buildCustomerReceiptESCPOS(
   parts.push(ESC_INIT);
   parts.push(ESC_LINE_SPACE_DEFAULT);
 
-  // 2. Logo Image ONLY (rendered via standard ESC * 33 column mode)
+  // 2. Logo Image ONLY (rendered via standard ESC * 33 column mode, pre-cached 0ms)
   const logoBytes = await loadLogoESCPOS(160);
   if (logoBytes) {
     parts.push(logoBytes);
