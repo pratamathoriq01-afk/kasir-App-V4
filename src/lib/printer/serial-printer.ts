@@ -1,6 +1,6 @@
 /**
  * Web Serial Thermal Printer — SharkPOS / USB Serial / Bluetooth COM Port
- * Compatible with Chrome & Edge on Windows / Laptop
+ * Auto-reconnects to authorized ports without re-prompting browser picker
  */
 
 import { Transaction } from "@/types";
@@ -20,14 +20,31 @@ export async function printViaWebSerial(
   }
 
   try {
-    const navSerial = (navigator as unknown as { serial: { requestPort: (opts?: unknown) => Promise<SerialPortLike> } }).serial;
-    
-    // Prompt user to select Serial COM port (Virtual COM port from USB / Bluetooth driver)
-    const port = await navSerial.requestPort();
-    await port.open({ baudRate: 9600 }); // Standard baud rate for SharkPOS & 58mm POS printers
+    const navSerial = (navigator as unknown as {
+      serial: {
+        getPorts: () => Promise<SerialPortLike[]>;
+        requestPort: (opts?: unknown) => Promise<SerialPortLike>;
+      };
+    }).serial;
 
-    // Build receipt data with raster logo
-    const logoRaster = await loadLogoRaster(200);
+    // Check for previously authorized port first (AUTO RE-CONNECT)
+    let port: SerialPortLike | null = null;
+    const existingPorts = await navSerial.getPorts();
+    if (existingPorts.length > 0) {
+      port = existingPorts[0];
+    } else {
+      // Prompt user once if no port authorized yet
+      port = await navSerial.requestPort();
+    }
+
+    try {
+      await port.open({ baudRate: 9600 });
+    } catch (openErr) {
+      console.warn("Serial port already open or re-opening:", openErr);
+    }
+
+    // Build receipt data
+    const logoRaster = await loadLogoRaster(180);
     let escposData: Uint8Array;
     if (mode === "kitchen") {
       escposData = await buildKitchenReceiptESCPOS(transaction);
@@ -36,8 +53,8 @@ export async function printViaWebSerial(
     }
 
     const writer = port.writable.getWriter();
-    
-    // Write data in 128-byte chunks to avoid buffer overflow on serial bridge
+
+    // Stream chunks efficiently over serial bridge
     const CHUNK_SIZE = 128;
     for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
       const chunk = escposData.slice(i, i + CHUNK_SIZE);
@@ -45,13 +62,17 @@ export async function printViaWebSerial(
     }
 
     writer.releaseLock();
-    await port.close();
+    try {
+      await port.close();
+    } catch (closeErr) {
+      console.warn("Serial port close notice:", closeErr);
+    }
 
     return true;
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Gagal terhubung";
     if ((error as Error)?.name !== "NotFoundError") {
-      alert(`Gagal mencetak via Web Serial (COM Port):\n${msg}\n\nPastikan port COM SharkPOS sudah dipilih.`);
+      alert(`Gagal mencetak via Web Serial (COM Port):\n${msg}\n\nPastikan port COM SharkPOS terhubung.`);
     }
     return false;
   }

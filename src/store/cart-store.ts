@@ -33,8 +33,8 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   customerName: "",
-  orderType: "dine-in",
-  tableNumber: "01",
+  orderType: "takeaway",
+  tableNumber: "-",
   discountType: null,
   discountValue: 0,
   cashReceived: 0,

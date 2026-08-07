@@ -141,11 +141,7 @@ export async function buildCustomerReceiptESCPOS(
 
   // 3. Header
   parts.push(ESC_ALIGN_CENTER);
-  parts.push(ESC_BOLD_ON);
-  parts.push(ESC_SIZE_2X);
-  parts.push(encBytes("KEDAI NYAMLENG\n"));
-  parts.push(ESC_SIZE_NORMAL);
-  parts.push(ESC_BOLD_OFF);
+  parts.push(ESC_FONT_NORMAL);
   parts.push(encBytes("Jl. LA. Sucipto XIV/42 Malang\n"));
   parts.push(encBytes("Telp/WA: 085113661387\n"));
 
