@@ -25,36 +25,30 @@ export default function ReceiptModal({
 
   if (!isOpen || !transaction) return null;
 
+  const executePrint = async (
+    printFn: (trx: Transaction, mode: PrintMode) => Promise<boolean>,
+    label: string
+  ) => {
+    setIsPrinting(true);
+    try {
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout (3s)")), 3500)
+      );
+      await Promise.race([printFn(transaction, activeTab), timeoutPromise]);
+    } catch (err) {
+      console.warn(`Cetak ${label} notice:`, err);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   const handleBrowserPrint = () => {
     window.print();
   };
 
-  const handleUsbPrint = async () => {
-    setIsPrinting(true);
-    try {
-      await printViaWebUSB(transaction, activeTab);
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
-  const handleSerialPrint = async () => {
-    setIsPrinting(true);
-    try {
-      await printViaWebSerial(transaction, activeTab);
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
-  const handleBluetoothPrint = async () => {
-    setIsPrinting(true);
-    try {
-      await printViaWebBluetooth(transaction, activeTab);
-    } finally {
-      setIsPrinting(false);
-    }
-  };
+  const handleUsbPrint = () => executePrint(printViaWebUSB, "USB");
+  const handleSerialPrint = () => executePrint(printViaWebSerial, "Serial COM");
+  const handleBluetoothPrint = () => executePrint(printViaWebBluetooth, "Bluetooth");
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">

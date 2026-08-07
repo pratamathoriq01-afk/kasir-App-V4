@@ -124,17 +124,17 @@ export async function exportTransactionsToExcel(
   // AI Executive Insight Table
   ws1.mergeCells("A12:F12");
   const aiTitle = ws1.getCell("A12");
-  aiTitle.value = "🤖 REALTIME AI BUSINESS INSIGHT & EXECUTIVE SUMMARY";
+  aiTitle.value = "REALTIME AI BUSINESS INSIGHT & EXECUTIVE SUMMARY";
   aiTitle.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: AMBER_50 } };
   aiTitle.font  = { name: "Arial", bold: true, size: 10, color: { argb: AMBER } };
   aiTitle.alignment = { horizontal: "left", vertical: "middle" };
   ws1.getRow(12).height = 24;
 
   const aiNotes = [
-    `• Profitabilitas GPM: Gross Profit Margin berada pada level ${(gpmPct * 100).toFixed(1)}% dengan total laba bersih Rp ${totalNetProfit.toLocaleString("id-ID")}.`,
-    `• Efisiensi Modal HPP: Beban modal HPP tercatat sebesar ${(hppPct * 100).toFixed(1)}% dari total omzet (${hppPct < 0.5 ? "EFISIEN & Terkendali" : "Tinggi, perlu optimasi bahan"}).`,
-    `• Average Order Value (AOV): Rp ${avgOrderValue.toLocaleString("id-ID")} per transaksi dari total ${txCount} nota terbit.`,
-    `• Rekomendasi AI: Lanjutkan program bundling menu terlaris dan pertahankan pencatatan HPP berbasis SAK EMKM.`
+    `- Profitabilitas GPM: Gross Profit Margin berada pada level ${(gpmPct * 100).toFixed(1)}% dengan total laba bersih Rp ${totalNetProfit.toLocaleString("id-ID")}.`,
+    `- Efisiensi Modal HPP: Beban modal HPP tercatat sebesar ${(hppPct * 100).toFixed(1)}% dari total omzet (${hppPct < 0.5 ? "EFISIEN & Terkendali" : "Tinggi, perlu optimasi bahan"}).`,
+    `- Average Order Value (AOV): Rp ${avgOrderValue.toLocaleString("id-ID")} per transaksi dari total ${txCount} nota terbit.`,
+    `- Rekomendasi AI: Lanjutkan program bundling menu terlaris dan pertahankan pencatatan HPP berbasis SAK EMKM.`
   ];
 
   aiNotes.forEach((note) => {
@@ -246,7 +246,7 @@ export async function exportTransactionsToExcel(
   ];
 
   // ╔══════════════════════════════════════════════════════╗
-  // ║  SHEET 3 — AUDIT TRANSAKSI LENGKAP (WITH COLOR SCALE)║
+  // ║  SHEET 3 — AUDIT TRANSAKSI LENGKAP                  ║
   // ╚══════════════════════════════════════════════════════╝
   const ws3 = wb.addWorksheet("Audit Transaksi Lengkap");
 
@@ -276,9 +276,9 @@ export async function exportTransactionsToExcel(
     else if (t.total >= 100000) status = "HIGH VALUE";
 
     const displayStatus =
-      status === "HIGH VALUE" ? "💎 HIGH VALUE" :
-      status === "DISKON" ? "🏷️ DISKON" :
-      status === "FLAGGED" ? "⚠️ FLAGGED" : "☑️ PASSED";
+      status === "HIGH VALUE" ? "HIGH VALUE" :
+      status === "DISKON" ? "DISKON" :
+      status === "FLAGGED" ? "FLAGGED" : "PASSED";
 
     const r = ws3.addRow([
       t.orderNumber,
@@ -304,20 +304,20 @@ export async function exportTransactionsToExcel(
         c.numFmt = '"Rp "#,##0';
         c.alignment = { horizontal: "right", vertical: "middle" };
       }
-      // COLOR SCALE FORMATTING ON STATUS COLUMN (Column 11 / K)
+      // COLOR SCALE CELL FILL (Explicit ARGB colors without corruption)
       if (ci === 11) {
         c.alignment = { horizontal: "center", vertical: "middle" };
         if (status === "HIGH VALUE") {
-          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FEF3C7" } }; // Light Amber/Gold
+          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FEF3C7" } };
           c.font = { name: "Arial", bold: true, color: { argb: "92400E" }, size: 9 };
         } else if (status === "PASSED") {
-          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "D1FAE5" } }; // Light Emerald
+          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "D1FAE5" } };
           c.font = { name: "Arial", bold: true, color: { argb: "065F46" }, size: 9 };
         } else if (status === "DISKON") {
-          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "DBEAFE" } }; // Light Blue
+          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "DBEAFE" } };
           c.font = { name: "Arial", bold: true, color: { argb: "1E40AF" }, size: 9 };
         } else {
-          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4E6" } }; // Light Rose
+          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4E6" } };
           c.font = { name: "Arial", bold: true, color: { argb: "9F1239" }, size: 9 };
         }
       }
@@ -325,33 +325,6 @@ export async function exportTransactionsToExcel(
   });
 
   const lastAuditRow = 3 + transactions.length;
-
-  // Add Excel Conditional Formatting rules to Column K
-  ws3.addConditionalFormatting({
-    ref: `K4:K${lastAuditRow}`,
-    rules: [
-      {
-        priority: 1,
-        type: "cellIs",
-        operator: "equal",
-        formulae: ['"💎 HIGH VALUE"'],
-        style: {
-          fill: { type: "pattern", pattern: "solid", bgColor: { argb: "FEF3C7" }, fgColor: { argb: "FEF3C7" } },
-          font: { color: { argb: "92400E" }, bold: true },
-        },
-      },
-      {
-        priority: 2,
-        type: "cellIs",
-        operator: "equal",
-        formulae: ['"☑️ PASSED"'],
-        style: {
-          fill: { type: "pattern", pattern: "solid", bgColor: { argb: "D1FAE5" }, fgColor: { argb: "D1FAE5" } },
-          font: { color: { argb: "065F46" }, bold: true },
-        },
-      },
-    ],
-  });
 
   const auditSummary = ws3.addRow([
     "TOTAL",
@@ -416,7 +389,7 @@ export async function exportTransactionsToExcel(
   let prevOmzet = 0;
   Object.entries(dailyMap).forEach(([date, v], i) => {
     const isZebra = i % 2 === 1;
-    const trend  = i === 0 ? "— Baseline" : v.omzet >= prevOmzet ? "📈 NAIK" : "📉 TURUN";
+    const trend  = i === 0 ? "Baseline" : v.omzet >= prevOmzet ? "NAIK" : "TURUN";
     const r = ws4.addRow([date, v.txCount, v.omzet, v.hpp, v.laba, trend]);
     r.height = 18;
     r.eachCell((c, ci) => {

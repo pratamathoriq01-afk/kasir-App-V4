@@ -236,21 +236,34 @@ export default function MenuFormModal({
             </div>
 
             {calcMode === "target_margin" && (
-              <div className="mb-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-amber-900">Tetapkan Target Margin Keuntungan:</span>
-                <div className="flex items-center gap-1">
-                  {[35, 45, 50, 60].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => handleTargetMarginChange(m)}
-                      className={`px-2 py-1 rounded-md text-[10px] font-bold ${
-                        targetMargin === m ? "bg-amber-500 text-slate-950" : "bg-white text-slate-700 border border-slate-200"
-                      }`}
-                    >
-                      {m}%
-                    </button>
-                  ))}
+              <div className="mb-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold text-amber-900">Input / Pilih Target Margin (%):</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative w-20">
+                    <input
+                      type="number"
+                      value={targetMargin || ""}
+                      onChange={(e) => handleTargetMarginChange(Number(e.target.value))}
+                      className="w-full pr-5 pl-2 py-1 bg-white border border-amber-300 rounded-md text-xs font-bold text-center text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                      min={0}
+                      max={99}
+                    />
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">%</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[35, 45, 50, 60].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => handleTargetMarginChange(m)}
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                          targetMargin === m ? "bg-amber-500 text-slate-950 shadow-xs" : "bg-white text-slate-700 border border-slate-200"
+                        }`}
+                      >
+                        {m}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
