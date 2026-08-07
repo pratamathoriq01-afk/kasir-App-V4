@@ -73,12 +73,12 @@ export default function MenuPage() {
   const countCemilan = menuItems.filter((m) => m.category === "Cemilan").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kelola Menu & Produk</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Kelola Menu &amp; Produk</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
             Atur daftar makanan, minuman, HPP/modal, serta harga jual Kedai Nyamleng.
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function MenuPage() {
             setEditingItem(null);
             setIsModalOpen(true);
           }}
-          className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2"
+          className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>Tambah Menu Baru</span>
@@ -96,50 +96,50 @@ export default function MenuPage() {
       </div>
 
       {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-amber-100 text-amber-700 font-bold text-lg">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 font-bold text-base">
             📋
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-medium">Total Menu</span>
-            <h3 className="text-lg font-bold text-slate-900 font-mono">{menuItems.length} Item</h3>
+            <span className="text-[11px] text-slate-500 font-medium block">Total Menu</span>
+            <h3 className="text-base font-bold text-slate-900 font-mono">{menuItems.length} Item</h3>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-orange-100 text-orange-700">
-            <Utensils className="w-5 h-5" />
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-orange-100 text-orange-700">
+            <Utensils className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-medium">Makanan</span>
-            <h3 className="text-lg font-bold text-slate-900 font-mono">{countMakanan} Item</h3>
+            <span className="text-[11px] text-slate-500 font-medium block">Makanan</span>
+            <h3 className="text-base font-bold text-slate-900 font-mono">{countMakanan} Item</h3>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-blue-100 text-blue-700">
-            <Coffee className="w-5 h-5" />
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-100 text-blue-700">
+            <Coffee className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-medium">Minuman</span>
-            <h3 className="text-lg font-bold text-slate-900 font-mono">{countMinuman} Item</h3>
+            <span className="text-[11px] text-slate-500 font-medium block">Minuman</span>
+            <h3 className="text-base font-bold text-slate-900 font-mono">{countMinuman} Item</h3>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-emerald-100 text-emerald-700">
-            <Cookie className="w-5 h-5" />
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700">
+            <Cookie className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-medium">Cemilan</span>
-            <h3 className="text-lg font-bold text-slate-900 font-mono">{countCemilan} Item</h3>
+            <span className="text-[11px] text-slate-500 font-medium block">Cemilan</span>
+            <h3 className="text-base font-bold text-slate-900 font-mono">{countCemilan} Item</h3>
           </div>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -151,12 +151,12 @@ export default function MenuPage() {
           />
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {["Semua", "Makanan", "Minuman", "Cemilan"].map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 activeCategory === cat
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -174,13 +174,13 @@ export default function MenuPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4">Product / Item</th>
-                <th className="py-3.5 px-4">Kategori</th>
-                <th className="py-3.5 px-4">Harga Jual</th>
-                <th className="py-3.5 px-4">HPP / Modal</th>
-                <th className="py-3.5 px-4">Margin Laba</th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-right">Aksi</th>
+                <th className="py-3 px-4">Product / Item</th>
+                <th className="py-3 px-4">Kategori</th>
+                <th className="py-3 px-4">Harga Jual</th>
+                <th className="py-3 px-4">HPP / Modal</th>
+                <th className="py-3 px-4">Margin Laba</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -197,18 +197,18 @@ export default function MenuPage() {
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-lg overflow-hidden shrink-0">
                             {item.imageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={item.imageUrl}
                                 alt={item.name}
-                                className="w-12 h-12 object-cover rounded-xl"
+                                className="w-10 h-10 object-cover rounded-xl"
                               />
                             ) : (
-                              <span className="text-xl">
+                              <span className="text-lg">
                                 {item.category === "Makanan" ? "🍽️" : item.category === "Minuman" ? "🥤" : "🍟"}
                               </span>
                             )}
@@ -220,30 +220,30 @@ export default function MenuPage() {
                         </div>
                       </td>
 
-                      <td className="py-3 px-4">
-                        <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-lg text-[11px]">
+                      <td className="py-2.5 px-4">
+                        <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-lg text-[11px]">
                           {item.category}
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 font-bold font-mono text-slate-900">
+                      <td className="py-2.5 px-4 font-bold font-mono text-slate-900">
                         Rp {item.price.toLocaleString("id-ID")}
                       </td>
 
-                      <td className="py-3 px-4 font-mono text-slate-600">
+                      <td className="py-2.5 px-4 font-mono text-slate-600">
                         Rp {item.hpp.toLocaleString("id-ID")}
                       </td>
 
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-4">
                         <span className="font-bold font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                           {marginPct}% (+Rp {profit.toLocaleString("id-ID")})
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-4 text-center">
                         <button
                           onClick={() => handleToggleStatus(item.id)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
                             item.isActive
                               ? "bg-emerald-100 text-emerald-700"
                               : "bg-slate-100 text-slate-500"
@@ -261,20 +261,22 @@ export default function MenuPage() {
                         </button>
                       </td>
 
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => {
                               setEditingItem(item);
                               setIsModalOpen(true);
                             }}
                             className="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                            title="Edit Menu"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Hapus Menu"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
