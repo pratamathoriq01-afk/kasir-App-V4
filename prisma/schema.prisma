@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // "Makanan" | "Minuman" | "Cemilan"
+  price       Int      // harga jual, Rupiah
+  hpp         Int      // harga pokok / modal
+  taxPercent  Int      @default(10)
+  icon        String?  // emoji
+  imageUrl    String?  // Supabase Storage URL
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       TransactionItem[]
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique   // #001, #002, ...
+  customerName  String?
+  orderType     String   // "dine-in" | "takeaway"
+  tableNumber   String?
+  subtotal      Int
+  discountType  String?  // "percent" | "fixed"
+  discountValue Int      @default(0)
+  discountAmount Int     @default(0)
+  tax           Int
+  total         Int
+  hppTotal      Int      // total modal, untuk hitung laba
+  netProfit     Int
+  cashReceived  Int
+  change        Int
+  createdAt     DateTime @default(now())
+  items         TransactionItem[]
+}
+
+model TransactionItem {
+  id            String       @id @default(cuid())
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+  transactionId String
+  menuItem      MenuItem?    @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  menuItemId    String?
+  nameSnapshot  String       // nama menu saat transaksi
+  priceSnapshot Int
+  hppSnapshot   Int
+  qty           Int
+}
+
+model MonthlyArchive {
+  id           String   @id @default(cuid())
+  month        Int
+  year         Int
+  totalRevenue Int
+  totalHpp     Int
+  netProfit    Int
+  totalTax     Int
+  createdAt    DateTime @default(now())
+}
