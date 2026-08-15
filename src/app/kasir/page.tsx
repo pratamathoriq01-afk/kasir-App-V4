@@ -52,7 +52,13 @@ export default function KasirPage() {
 
   const loadDigitalOrders = async () => {
     try {
-      const res = await fetch("/api/transactions");
+      const res = await fetch(`/api/transactions?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      });
       if (!res.ok) return;
 
       const transactions: Transaction[] = await res.json();
@@ -66,16 +72,24 @@ export default function KasirPage() {
       setNewOrdersCount(pendingCount);
 
       if (isFirstLoadRef.current) {
-        transactions.forEach((t) => knownTxIdsRef.current.add(t.id));
+        transactions.forEach((t) => {
+          if (t.id) knownTxIdsRef.current.add(t.id);
+          if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
+        });
         isFirstLoadRef.current = false;
         return;
       }
 
       // Check if new orders arrived that were not in knownTxIds
-      const brandNew = transactions.filter((t) => !knownTxIdsRef.current.has(t.id));
+      const brandNew = transactions.filter(
+        (t) => !knownTxIdsRef.current.has(t.id) && !knownTxIdsRef.current.has(t.orderNumber)
+      );
       if (brandNew.length > 0) {
-        brandNew.forEach((t) => knownTxIdsRef.current.add(t.id));
-        // Play notification chime without interrupting cashier screen!
+        brandNew.forEach((t) => {
+          if (t.id) knownTxIdsRef.current.add(t.id);
+          if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
+        });
+        // Play instant notification chime!
         playNotificationChime();
       }
     } catch (err) {
@@ -83,10 +97,10 @@ export default function KasirPage() {
     }
   };
 
-  // Real-time Poller for incoming orders from Menu Digital v2 (every 2s)
+  // Real-time Poller for incoming orders from Menu Digital v2 (every 1s)
   useEffect(() => {
     loadDigitalOrders();
-    const interval = setInterval(loadDigitalOrders, 2000);
+    const interval = setInterval(loadDigitalOrders, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -112,7 +126,7 @@ export default function KasirPage() {
       cashReceived,
       change: getChange(),
       createdAt: new Date().toISOString(),
-      orderStatus: "COMPLETED",
+      orderStatus: "ORDER_FINISH",
       items: items.map((i) => ({
         id: `ti-${Date.now()}-${Math.random()}`,
         menuItemId: i.menuItem.id,
@@ -126,6 +140,7 @@ export default function KasirPage() {
     addTransaction(transaction);
     setCompletedTransaction(transaction);
     knownTxIdsRef.current.add(transaction.id);
+    knownTxIdsRef.current.add(transaction.orderNumber);
 
     fetch("/api/transactions", {
       method: "POST",
@@ -142,7 +157,10 @@ export default function KasirPage() {
     setIsReceiptModalOpen(true);
   };
 
-  const handleUpdateOrderStatus = async (trxId: string, status: "PROCESSED" | "COMPLETED" | "CANCELLED") => {
+  const handleUpdateOrderStatus = async (
+    trxId: string,
+    status: "ORDER_ACCEPTED" | "IN_PROCESSED" | "ORDER_FINISH" | "CANCELLED" | string
+  ) => {
     // Optimistic UI update
     setDigitalOrders((prev) =>
       prev.map((t) => (t.id === trxId || t.orderNumber === trxId ? { ...t, orderStatus: status } : t))

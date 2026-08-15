@@ -71,25 +71,29 @@ export async function GET(request: Request) {
       });
     }
 
-    // Determine status human label for buyer UI
-    let statusLabel = "Pesanan Diterima Penjual";
+    // Determine status human label for buyer UI (4 Official Steps)
+    let statusLabel = "Menunggu Diterima Kasir";
     let statusBadgeColor = "amber";
     let step = 1;
 
     const rawStatus = (transaction.orderStatus || "NEW_ORDER").toUpperCase();
 
     if (rawStatus === "NEW_ORDER" || rawStatus === "PENDING") {
-      statusLabel = "Menunggu Diterima Kasir";
+      statusLabel = "1. Pesanan Baru Masuk - Menunggu Diterima Kasir";
       statusBadgeColor = "amber";
       step = 1;
-    } else if (rawStatus === "PROCESSED" || rawStatus === "COOKING") {
-      statusLabel = "Pesanan Diterima & Sedang Diproses Dapur";
-      statusBadgeColor = "indigo";
+    } else if (rawStatus === "ORDER_ACCEPTED") {
+      statusLabel = "2. Pesanan Diterima Kasir - Diteruskan ke Dapur";
+      statusBadgeColor = "blue";
       step = 2;
-    } else if (rawStatus === "COMPLETED" || rawStatus === "PAID" || rawStatus === "DONE") {
-      statusLabel = "Pesanan Selesai / Siap Diambil";
-      statusBadgeColor = "emerald";
+    } else if (rawStatus === "IN_PROCESSED" || rawStatus === "PROCESSED" || rawStatus === "COOKING") {
+      statusLabel = "3. Pesanan Sedang Diproses / Dimasak Dapur";
+      statusBadgeColor = "indigo";
       step = 3;
+    } else if (rawStatus === "ORDER_FINISH" || rawStatus === "COMPLETED" || rawStatus === "PAID" || rawStatus === "DONE") {
+      statusLabel = "4. Pesanan Selesai! Silakan Ambil / Diantar";
+      statusBadgeColor = "emerald";
+      step = 4;
     } else if (rawStatus === "CANCELLED") {
       statusLabel = "Pesanan Dibatalkan";
       statusBadgeColor = "rose";
