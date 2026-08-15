@@ -54,11 +54,10 @@ export default function MenuGrid({ items }: MenuGridProps) {
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer ${
-                activeCategory === cat
-                  ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-              }`}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 active:scale-95 cursor-pointer ${activeCategory === cat
+                ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                }`}
             >
               {cat}
             </button>

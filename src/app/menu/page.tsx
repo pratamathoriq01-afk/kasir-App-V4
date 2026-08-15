@@ -4,13 +4,15 @@ import { useState, useEffect } from "react";
 import { MenuItem } from "@/types";
 import { fetchMenuItemsFromDB, saveMenuItems } from "@/lib/data-service";
 import MenuFormModal from "./components/MenuFormModal";
-import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie } from "lucide-react";
+import VoucherManagementModal from "./components/VoucherManagementModal";
+import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket } from "lucide-react";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
@@ -18,22 +20,16 @@ export default function MenuPage() {
   }, []);
 
   const handleSaveItem = async (item: MenuItem) => {
-    let updated: MenuItem[];
-    const exists = menuItems.some((m) => m.id === item.id);
-    if (exists) {
-      updated = menuItems.map((m) => (m.id === item.id ? item : m));
-    } else {
-      updated = [item, ...menuItems];
-    }
-    setMenuItems(updated);
-    saveMenuItems(updated);
-
     try {
+      const isExisting = Boolean(item.id && !item.id.startsWith("mock-"));
+      const method = isExisting ? "PUT" : "POST";
+
       const res = await fetch("/api/menu", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
       });
+
       if (res.ok) {
         const freshData = await fetchMenuItemsFromDB();
         setMenuItems(freshData);
@@ -46,19 +42,54 @@ export default function MenuPage() {
     setEditingItem(null);
   };
 
-  const handleDeleteItem = (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus menu ini?")) return;
+  const handleDeleteItem = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus menu ini dari database?")) return;
+    
+    // Optimistic UI update
     const updated = menuItems.filter((m) => m.id !== id);
     setMenuItems(updated);
     saveMenuItems(updated);
+
+    try {
+      const res = await fetch(`/api/menu?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const freshData = await fetchMenuItemsFromDB();
+        setMenuItems(freshData);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Gagal menghapus menu di DB:", errData);
+      }
+    } catch (err) {
+      console.error("Gagal menghapus menu:", err);
+    }
   };
 
-  const handleToggleStatus = (id: string) => {
-    const updated = menuItems.map((m) =>
-      m.id === id ? { ...m, isActive: !m.isActive } : m
-    );
-    setMenuItems(updated);
-    saveMenuItems(updated);
+  const handleToggleStatus = async (id: string) => {
+    const targetItem = menuItems.find((m) => m.id === id);
+    if (!targetItem) return;
+
+    const updatedItem = { ...targetItem, isActive: !targetItem.isActive };
+    
+    // Optimistic UI update
+    const updatedList = menuItems.map((m) => (m.id === id ? updatedItem : m));
+    setMenuItems(updatedList);
+    saveMenuItems(updatedList);
+
+    try {
+      const res = await fetch("/api/menu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedItem),
+      });
+      if (res.ok) {
+        const freshData = await fetchMenuItemsFromDB();
+        setMenuItems(freshData);
+      }
+    } catch (err) {
+      console.error("Gagal mengubah status menu:", err);
+    }
   };
 
   const filteredItems = menuItems.filter((item) => {
@@ -83,16 +114,26 @@ export default function MenuPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setEditingItem(null);
-            setIsModalOpen(true);
-          }}
-          className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Tambah Menu Baru</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsVoucherModalOpen(true)}
+            className="py-2.5 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <Ticket className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+            <span>Kelola Voucher Digital</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              setIsModalOpen(true);
+            }}
+            className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Tambah Menu Baru</span>
+          </button>
+        </div>
       </div>
 
       {/* Overview Stat Cards */}
@@ -297,6 +338,12 @@ export default function MenuPage() {
         itemToEdit={editingItem}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveItem}
+      />
+
+      {/* Voucher Digital Management Modal */}
+      <VoucherManagementModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
       />
     </div>
   );

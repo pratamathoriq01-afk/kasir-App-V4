@@ -59,6 +59,20 @@ export interface MonthlyArchive {
   createdAt: string | Date;
 }
 
+export interface Voucher {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  discountType: "percent" | "fixed" | string;
+  discountValue: number;
+  maxDiscount?: number | null;
+  minSubtotal: number;
+  validUntil: string;
+  isActive?: boolean | null;
+  createdAt?: string | Date | null;
+}
+
 export interface StoreInfo {
   name: string;
   address: string;

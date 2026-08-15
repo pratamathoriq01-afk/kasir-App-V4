@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber } from "@/lib/data-service";
+import { playNotificationChime } from "@/lib/audio-notifier";
 import { useCartStore } from "@/store/cart-store";
 import MenuGrid from "./components/MenuGrid";
 import CartSection from "./components/CartSection";
 import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
-import { ArrowRight, ShoppingCart, Utensils } from "lucide-react";
+import IncomingOrderModal from "./components/IncomingOrderModal";
+import { ArrowRight, ShoppingCart, Utensils, Bell } from "lucide-react";
 
 export default function KasirPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
+
+  // Real-time Incoming Order State from Menu Digital v2
+  const [incomingOrder, setIncomingOrder] = useState<Transaction | null>(null);
+  const [isIncomingModalOpen, setIsIncomingModalOpen] = useState<boolean>(false);
+  const knownTxIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef<boolean>(true);
 
   // Mobile active tab ("menu" | "cart")
   const [mobileTab, setMobileTab] = useState<"menu" | "cart">("menu");
@@ -39,6 +47,44 @@ export default function KasirPage() {
 
   useEffect(() => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
+  }, []);
+
+  // Real-time Poller for incoming orders from Menu Digital v2
+  useEffect(() => {
+    const pollIncomingOrders = async () => {
+      try {
+        const res = await fetch("/api/transactions");
+        if (!res.ok) return;
+
+        const transactions: Transaction[] = await res.json();
+        if (!Array.isArray(transactions) || transactions.length === 0) return;
+
+        if (isFirstLoadRef.current) {
+          transactions.forEach((t) => knownTxIdsRef.current.add(t.id));
+          isFirstLoadRef.current = false;
+          return;
+        }
+
+        // Find new orders that were not previously known
+        const newOrders = transactions.filter((t) => !knownTxIdsRef.current.has(t.id));
+
+        if (newOrders.length > 0) {
+          const newest = newOrders[0];
+          newOrders.forEach((t) => knownTxIdsRef.current.add(t.id));
+
+          // Trigger Sound Chime Notification & Open Incoming Modal
+          playNotificationChime();
+          setIncomingOrder(newest);
+          setIsIncomingModalOpen(true);
+        }
+      } catch (err) {
+        console.warn("Polling incoming orders error:", err);
+      }
+    };
+
+    pollIncomingOrders();
+    const interval = setInterval(pollIncomingOrders, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const totalItemsCount = items.reduce((s, i) => s + i.qty, 0);
@@ -75,6 +121,7 @@ export default function KasirPage() {
 
     addTransaction(transaction);
     setCompletedTransaction(transaction);
+    knownTxIdsRef.current.add(transaction.id);
 
     fetch("/api/transactions", {
       method: "POST",
@@ -83,6 +130,12 @@ export default function KasirPage() {
     }).catch(() => {});
 
     setIsPaymentModalOpen(false);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handlePrintAndProcessIncoming = (trx: Transaction) => {
+    setIsIncomingModalOpen(false);
+    setCompletedTransaction(trx);
     setIsReceiptModalOpen(true);
   };
 
@@ -132,16 +185,20 @@ export default function KasirPage() {
       {/* Grid Container */}
       <div className="min-h-[calc(100vh-8.5rem)] lg:h-[calc(100vh-6.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0">
         {/* Left Column: Menu Grid (7 cols desktop) */}
-        <div className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
-          mobileTab === "menu" ? "block" : "hidden lg:flex"
-        }`}>
+        <div
+          className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
+            mobileTab === "menu" ? "block" : "hidden lg:flex"
+          }`}
+        >
           <MenuGrid items={menuItems} />
         </div>
 
         {/* Right Column: Cart Section (5 cols desktop) */}
-        <div className={`lg:col-span-5 xl:col-span-4 lg:h-full lg:overflow-hidden flex flex-col ${
-          mobileTab === "cart" ? "block" : "hidden lg:flex"
-        }`}>
+        <div
+          className={`lg:col-span-5 xl:col-span-4 lg:h-full lg:overflow-hidden flex flex-col ${
+            mobileTab === "cart" ? "block" : "hidden lg:flex"
+          }`}
+        >
           <CartSection onOpenPaymentModal={() => setIsPaymentModalOpen(true)} />
         </div>
       </div>
@@ -189,6 +246,14 @@ export default function KasirPage() {
         transaction={completedTransaction}
         isOpen={isReceiptModalOpen}
         onClose={handleCloseReceipt}
+      />
+
+      {/* Real-time Incoming Digital Order Notification Modal */}
+      <IncomingOrderModal
+        transaction={incomingOrder}
+        isOpen={isIncomingModalOpen}
+        onClose={() => setIsIncomingModalOpen(false)}
+        onPrintAndProcess={handlePrintAndProcessIncoming}
       />
     </div>
   );

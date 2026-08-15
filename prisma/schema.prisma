@@ -7,50 +7,57 @@ datasource db {
 }
 
 model MenuItem {
-  id          String   @id @default(cuid())
-  name        String
-  category    String   // "Makanan" | "Minuman" | "Cemilan"
-  price       Int      // harga jual, Rupiah
-  hpp         Int      // harga pokok / modal
-  taxPercent  Int      @default(10)
-  icon        String?  // emoji
-  imageUrl    String?  // Supabase Storage URL
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  items       TransactionItem[]
+  id         String            @id @default(cuid())
+  name       String
+  category   String
+  price      Int
+  hpp        Int
+  taxPercent Int               @default(10)
+  icon       String?
+  imageUrl   String?
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  items      TransactionItem[]
 }
 
 model Transaction {
-  id            String   @id @default(cuid())
-  orderNumber   String   @unique   // #001, #002, ...
-  customerName  String?
-  orderType     String   // "dine-in" | "takeaway"
-  tableNumber   String?
-  subtotal      Int
-  discountType  String?  // "percent" | "fixed"
-  discountValue Int      @default(0)
-  discountAmount Int     @default(0)
-  tax           Int
-  total         Int
-  hppTotal      Int      // total modal, untuk hitung laba
-  netProfit     Int
-  cashReceived  Int
-  change        Int
-  createdAt     DateTime @default(now())
-  items         TransactionItem[]
+  id              String            @id @default(cuid())
+  orderNumber     String            @unique
+  customerName    String?
+  orderType       String
+  tableNumber     String?
+  subtotal        Int
+  discountType    String?
+  discountValue   Int               @default(0)
+  discountAmount  Int               @default(0)
+  tax             Int
+  total           Int
+  hppTotal        Int
+  netProfit       Int
+  cashReceived    Int
+  change          Int
+  createdAt       DateTime          @default(now())
+  orderStatus     String?           @default("PROCESSED")
+  customerPhone   String?
+  customerEmail   String?
+  deliveryCourier String?
+  orderNotes      String?
+  paymentStatus   String?           @default("PAID")
+  paymentMethod   String?           @default("QRIS")
+  items           TransactionItem[]
 }
 
 model TransactionItem {
-  id            String       @id @default(cuid())
-  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+  id            String      @id @default(cuid())
   transactionId String
-  menuItem      MenuItem?    @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
   menuItemId    String?
-  nameSnapshot  String       // nama menu saat transaksi
+  nameSnapshot  String
   priceSnapshot Int
   hppSnapshot   Int
   qty           Int
+  menuItem      MenuItem?   @relation(fields: [menuItemId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model MonthlyArchive {
@@ -62,4 +69,18 @@ model MonthlyArchive {
   netProfit    Int
   totalTax     Int
   createdAt    DateTime @default(now())
+}
+
+model Voucher {
+  id            String    @id
+  code          String    @unique
+  title         String
+  description   String
+  discountType  String
+  discountValue Int
+  maxDiscount   Int?
+  minSubtotal   Int
+  validUntil    String
+  isActive      Boolean?  @default(true)
+  createdAt     DateTime? @default(now()) @db.Timestamp(6)
 }

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { CartItem, MenuItem } from "@/types";
+import { CartItem, MenuItem, Voucher } from "@/types";
 
 interface CartState {
   items: CartItem[];
@@ -8,6 +8,7 @@ interface CartState {
   tableNumber: string;
   discountType: "percent" | "fixed" | null;
   discountValue: number;
+  appliedVoucher: Voucher | null;
   cashReceived: number;
 
   addItem: (item: MenuItem) => void;
@@ -18,6 +19,7 @@ interface CartState {
   setOrderType: (type: "dine-in" | "takeaway") => void;
   setTableNumber: (table: string) => void;
   setDiscount: (type: "percent" | "fixed" | null, value: number) => void;
+  setVoucher: (voucher: Voucher | null, calculatedDiscountAmount?: number) => void;
   setCashReceived: (amount: number) => void;
   clearCart: () => void;
 
@@ -37,6 +39,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   tableNumber: "-",
   discountType: null,
   discountValue: 0,
+  appliedVoucher: null,
   cashReceived: 0,
 
   addItem: (item: MenuItem) => {
@@ -87,7 +90,28 @@ export const useCartStore = create<CartState>((set, get) => ({
   setTableNumber: (table: string) => set({ tableNumber: table }),
 
   setDiscount: (type: "percent" | "fixed" | null, value: number) =>
-    set({ discountType: type, discountValue: value }),
+    set({ discountType: type, discountValue: value, appliedVoucher: null }),
+
+  setVoucher: (voucher: Voucher | null, calculatedDiscountAmount?: number) => {
+    if (!voucher) {
+      set({ appliedVoucher: null, discountType: null, discountValue: 0 });
+      return;
+    }
+
+    if (voucher.discountType === "percent") {
+      set({
+        appliedVoucher: voucher,
+        discountType: "percent",
+        discountValue: voucher.discountValue,
+      });
+    } else {
+      set({
+        appliedVoucher: voucher,
+        discountType: "fixed",
+        discountValue: calculatedDiscountAmount || voucher.discountValue,
+      });
+    }
+  },
 
   setCashReceived: (amount: number) => set({ cashReceived: amount }),
 
@@ -99,6 +123,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       tableNumber: "01",
       discountType: null,
       discountValue: 0,
+      appliedVoucher: null,
       cashReceived: 0,
     }),
 
@@ -113,11 +138,15 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   getDiscountAmount: () => {
-    const { discountType, discountValue } = get();
+    const { discountType, discountValue, appliedVoucher } = get();
     const subtotal = get().getSubtotal();
     if (!discountType || discountValue <= 0) return 0;
     if (discountType === "percent") {
-      return Math.round((subtotal * Math.min(discountValue, 100)) / 100);
+      let calc = Math.round((subtotal * Math.min(discountValue, 100)) / 100);
+      if (appliedVoucher?.maxDiscount && calc > appliedVoucher.maxDiscount) {
+        calc = appliedVoucher.maxDiscount;
+      }
+      return calc;
     }
     return Math.min(discountValue, subtotal);
   },

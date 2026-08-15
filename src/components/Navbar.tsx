@@ -123,6 +123,10 @@ export default function Navbar() {
                 <span className="bg-amber-500/20 text-amber-300 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
                   POS v4
                 </span>
+                <span className="hidden sm:inline-flex bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Core v2 Online
+                </span>
               </h1>
               {currentTime && (
                 <div className="flex items-center gap-1.5 text-[11px] text-amber-400 font-mono font-medium">

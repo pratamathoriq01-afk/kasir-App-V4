@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useCartStore } from "@/store/cart-store";
-import { Trash2, Plus, Minus, ShoppingCart, Tag, Utensils, ShoppingBag } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, Tag, Utensils, ShoppingBag, Ticket, Check, X } from "lucide-react";
 
 interface CartSectionProps {
   onOpenPaymentModal: () => void;
@@ -15,10 +16,12 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
     tableNumber,
     discountType,
     discountValue,
+    appliedVoucher,
     setCustomerName,
     setOrderType,
     setTableNumber,
     setDiscount,
+    setVoucher,
     updateQty,
     removeItem,
     clearCart,
@@ -28,10 +31,54 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
     getTotal,
   } = useCartStore();
 
+  const [voucherCodeInput, setVoucherCodeInput] = useState("");
+  const [voucherError, setVoucherError] = useState("");
+  const [voucherSuccess, setVoucherSuccess] = useState("");
+  const [claiming, setClaiming] = useState(false);
+
   const subtotal = getSubtotal();
   const discountAmount = getDiscountAmount();
   const taxAmount = getTaxAmount();
   const total = getTotal();
+
+  const handleClaimVoucher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVoucherError("");
+    setVoucherSuccess("");
+
+    if (!voucherCodeInput.trim()) return;
+
+    setClaiming(true);
+    try {
+      const res = await fetch("/api/vouchers/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: voucherCodeInput.trim(),
+          subtotal,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.valid && data.voucher) {
+        setVoucher(data.voucher, data.discountAmount);
+        setVoucherSuccess(data.message);
+        setVoucherCodeInput("");
+      } else {
+        setVoucherError(data.message || "Voucher tidak valid.");
+      }
+    } catch (err) {
+      setVoucherError("Gagal memproses klaim voucher.");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setVoucher(null);
+    setVoucherSuccess("");
+    setVoucherError("");
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col h-full overflow-hidden">
@@ -50,7 +97,7 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
         {items.length > 0 && (
           <button
             onClick={clearCart}
-            className="text-xs text-rose-600 hover:text-rose-700 font-medium px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors flex items-center gap-1"
+            className="text-xs text-rose-600 hover:text-rose-700 font-medium px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Kosongkan</span>
@@ -70,7 +117,7 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
             placeholder="misal: Pelanggan 1"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none"
+            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none font-medium"
           />
         </div>
 
@@ -83,9 +130,9 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
             <button
               type="button"
               onClick={() => setOrderType("dine-in")}
-              className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 orderType === "dine-in"
-                  ? "bg-amber-500 text-white shadow-xs"
+                  ? "bg-amber-500 text-slate-950 font-extrabold shadow-xs"
                   : "bg-white text-slate-600 border border-slate-200"
               }`}
             >
@@ -96,9 +143,9 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
             <button
               type="button"
               onClick={() => setOrderType("takeaway")}
-              className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
+              className={`py-1 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                 orderType === "takeaway"
-                  ? "bg-amber-500 text-white shadow-xs"
+                  ? "bg-amber-500 text-slate-950 font-extrabold shadow-xs"
                   : "bg-white text-slate-600 border border-slate-200"
               }`}
             >
@@ -142,18 +189,22 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
               className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  {item.menuItem.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.menuItem.imageUrl}
-                      alt={item.menuItem.name}
-                      className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200"
-                    />
-                  ) : (
-                    <span className="text-xl shrink-0">
-                      {item.menuItem.category === "Makanan" ? "🍽️" : item.menuItem.category === "Minuman" ? "🥤" : "🍟"}
-                    </span>
-                  )}
+                {item.menuItem.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.menuItem.imageUrl}
+                    alt={item.menuItem.name}
+                    className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200"
+                  />
+                ) : (
+                  <span className="text-xl shrink-0">
+                    {item.menuItem.category === "Makanan"
+                      ? "🍽️"
+                      : item.menuItem.category === "Minuman"
+                      ? "🥤"
+                      : "🍟"}
+                  </span>
+                )}
                 <div className="min-w-0">
                   <h4 className="font-semibold text-slate-800 text-xs truncate">
                     {item.menuItem.name}
@@ -196,12 +247,78 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
         )}
       </div>
 
+      {/* Digital Voucher Claim Section */}
+      <div className="p-3 bg-amber-50/70 border-t border-amber-200/60 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+            <Ticket className="w-3.5 h-3.5 text-amber-600" /> Voucher Digital
+          </span>
+          {appliedVoucher && (
+            <button
+              onClick={handleRemoveVoucher}
+              className="text-[10px] text-rose-600 hover:underline flex items-center gap-0.5 font-bold"
+            >
+              <X className="w-3 h-3" /> Lepas Voucher
+            </button>
+          )}
+        </div>
+
+        {appliedVoucher ? (
+          <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-emerald-500 text-white rounded-lg">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              <div>
+                <span className="font-mono font-bold text-xs text-emerald-900 block">
+                  {appliedVoucher.code}
+                </span>
+                <span className="text-[10px] text-emerald-700 font-medium">
+                  {appliedVoucher.title}
+                </span>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-extrabold text-emerald-700">
+              -Rp {discountAmount.toLocaleString("id-ID")}
+            </span>
+          </div>
+        ) : (
+          <form onSubmit={handleClaimVoucher} className="flex gap-1.5">
+            <input
+              type="text"
+              placeholder="Masukkan kode voucher..."
+              value={voucherCodeInput}
+              onChange={(e) => setVoucherCodeInput(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-xs uppercase font-mono font-bold placeholder:normal-case placeholder:font-sans placeholder:font-normal outline-none focus:ring-2 focus:ring-amber-500/20"
+            />
+            <button
+              type="submit"
+              disabled={claiming || !voucherCodeInput.trim()}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-extrabold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
+            >
+              {claiming ? "Klaim..." : "Klaim"}
+            </button>
+          </form>
+        )}
+
+        {voucherError && (
+          <p className="text-[11px] font-medium text-rose-600 animate-in fade-in">
+            ⚠️ {voucherError}
+          </p>
+        )}
+        {voucherSuccess && (
+          <p className="text-[11px] font-medium text-emerald-700 animate-in fade-in">
+            🎉 {voucherSuccess}
+          </p>
+        )}
+      </div>
+
       {/* Cart Footer Calculations & Payment Action */}
       <div className="p-4 bg-slate-900 text-white border-t border-slate-800 space-y-3">
-        {/* Discount Row */}
+        {/* Manual Discount Row */}
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="text-slate-400 flex items-center gap-1">
-            <Tag className="w-3.5 h-3.5 text-amber-400" /> Diskon Pesanan
+            <Tag className="w-3.5 h-3.5 text-amber-400" /> Diskon Manual
           </span>
           <div className="flex items-center gap-1.5">
             <select
@@ -236,8 +353,8 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
           </div>
 
           {discountAmount > 0 && (
-            <div className="flex justify-between text-amber-400">
-              <span>Diskon</span>
+            <div className="flex justify-between text-amber-400 font-medium">
+              <span>Diskon ({appliedVoucher ? `Voucher ${appliedVoucher.code}` : "Manual"})</span>
               <span className="font-mono">- Rp {discountAmount.toLocaleString("id-ID")}</span>
             </div>
           )}
@@ -259,7 +376,7 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
         <button
           disabled={items.length === 0}
           onClick={onOpenPaymentModal}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] flex items-center justify-center gap-2"
+          className="w-full py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>Bayar Sekarang</span>
           <span className="font-mono bg-slate-950/20 px-2 py-0.5 rounded-md text-xs">
