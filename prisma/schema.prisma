@@ -38,7 +38,7 @@ model Transaction {
   cashReceived    Int
   change          Int
   createdAt       DateTime          @default(now())
-  orderStatus     String?           @default("PROCESSED")
+  orderStatus     String?           @default("NEW_ORDER")
   customerPhone   String?
   customerEmail   String?
   deliveryCourier String?

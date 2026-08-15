@@ -83,10 +83,10 @@ export default function KasirPage() {
     }
   };
 
-  // Real-time Poller for incoming orders from Menu Digital v2 (every 4s)
+  // Real-time Poller for incoming orders from Menu Digital v2 (every 2s)
   useEffect(() => {
     loadDigitalOrders();
-    const interval = setInterval(loadDigitalOrders, 4000);
+    const interval = setInterval(loadDigitalOrders, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -142,19 +142,26 @@ export default function KasirPage() {
     setIsReceiptModalOpen(true);
   };
 
-  const handleUpdateOrderStatus = (trxId: string, status: "PROCESSED" | "COMPLETED" | "CANCELLED") => {
+  const handleUpdateOrderStatus = async (trxId: string, status: "PROCESSED" | "COMPLETED" | "CANCELLED") => {
+    // Optimistic UI update
     setDigitalOrders((prev) =>
-      prev.map((t) => (t.id === trxId ? { ...t, orderStatus: status } : t))
+      prev.map((t) => (t.id === trxId || t.orderNumber === trxId ? { ...t, orderStatus: status } : t))
     );
 
-    // Sync status change to backend if endpoint available
-    fetch(`/api/transactions?id=${trxId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: trxId, orderStatus: status }),
-    }).catch(() => {});
-
-    loadDigitalOrders();
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: trxId, orderStatus: status }),
+      });
+      if (res.ok) {
+        await loadDigitalOrders();
+      } else {
+        console.warn("API returned error updating transaction status:", await res.text());
+      }
+    } catch (err) {
+      console.warn("Failed to update status in DB:", err);
+    }
   };
 
   const handleCloseReceipt = () => {

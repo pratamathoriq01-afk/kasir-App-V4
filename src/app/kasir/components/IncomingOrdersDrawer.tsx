@@ -260,7 +260,7 @@ export default function IncomingOrdersDrawer({
                         {/* Workflow Action Buttons */}
                         {isNew && (
                           <button
-                            onClick={() => onUpdateStatus(trx.id, "PROCESSED")}
+                            onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "PROCESSED")}
                             className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
                           >
                             <span>Terima Pesanan</span>
@@ -270,7 +270,7 @@ export default function IncomingOrdersDrawer({
 
                         {isProcessed && (
                           <button
-                            onClick={() => onUpdateStatus(trx.id, "COMPLETED")}
+                            onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "COMPLETED")}
                             className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
                           >
                             <Check className="w-4 h-4 stroke-[2.5]" />

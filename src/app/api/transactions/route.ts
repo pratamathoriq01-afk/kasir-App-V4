@@ -28,12 +28,35 @@ export async function OPTIONS() {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.transaction) {
       return jsonWithCors(INITIAL_TRANSACTIONS);
     }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const orderNumber = searchParams.get("orderNumber");
+
+    if (id || orderNumber) {
+      const searchKey = (id || orderNumber || "").trim();
+      const single = await prismaClient.transaction.findFirst({
+        where: {
+          OR: [
+            { id: searchKey },
+            { orderNumber: searchKey },
+            { orderNumber: `#${searchKey.replace(/^#/, "")}` },
+          ],
+        },
+        include: { items: true },
+      });
+      if (!single) {
+        return jsonWithCors({ error: "Transaksi tidak ditemukan" }, 404);
+      }
+      return jsonWithCors(single);
+    }
+
     const transactions = await prismaClient.transaction.findMany({
       include: { items: true },
       orderBy: { createdAt: "desc" },
@@ -70,6 +93,7 @@ export async function POST(request: Request) {
         change: Number(body.change),
         orderStatus: body.orderStatus || "NEW_ORDER",
         orderNotes: body.orderNotes || null,
+        customerPhone: body.customerPhone || null,
         items: {
           create: (body.items || []).map((item: { menuItemId?: string; nameSnapshot: string; priceSnapshot: number; hppSnapshot: number; qty: number }) => ({
             menuItemId: item.menuItemId || null,
@@ -98,14 +122,30 @@ export async function PUT(request: Request) {
       return jsonWithCors({ message: "Mock transaction status updated" });
     }
     const body = await request.json();
-    if (!body.id || !body.orderStatus) {
-      return jsonWithCors({ error: "ID Transaksi dan Status wajib diisi." }, 400);
+    const searchKey = String(body.id || body.orderNumber || "").trim();
+    if (!searchKey || !body.orderStatus) {
+      return jsonWithCors({ error: "ID/Nomor Transaksi dan Status wajib diisi." }, 400);
+    }
+
+    // Flexible lookup by id OR orderNumber
+    const existing = await prismaClient.transaction.findFirst({
+      where: {
+        OR: [
+          { id: searchKey },
+          { orderNumber: searchKey },
+          { orderNumber: `#${searchKey.replace(/^#/, "")}` },
+        ],
+      },
+    });
+
+    if (!existing) {
+      return jsonWithCors({ error: `Transaksi dengan ID/Nomor "${searchKey}" tidak ditemukan.` }, 404);
     }
 
     const updated = await prismaClient.transaction.update({
-      where: { id: body.id },
+      where: { id: existing.id },
       data: {
-        orderStatus: body.orderStatus,
+        orderStatus: String(body.orderStatus),
       },
       include: { items: true },
     });
