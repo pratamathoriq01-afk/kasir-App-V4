@@ -2,6 +2,30 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function jsonWithCors(data: any, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
 
 const INITIAL_VOUCHERS = [
   {
@@ -46,7 +70,7 @@ export async function GET() {
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.voucher) {
-      return NextResponse.json(INITIAL_VOUCHERS);
+      return jsonWithCors(INITIAL_VOUCHERS);
     }
 
     let vouchers = await prismaClient.voucher.findMany({
@@ -63,10 +87,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(vouchers);
+    return jsonWithCors(vouchers);
   } catch (error) {
     console.warn("DB voucher query error, returning initial vouchers:", error);
-    return NextResponse.json(INITIAL_VOUCHERS);
+    return jsonWithCors(INITIAL_VOUCHERS);
   }
 }
 
@@ -74,15 +98,15 @@ export async function POST(request: Request) {
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.voucher) {
-      return NextResponse.json({ message: "Mock voucher created" });
+      return jsonWithCors({ message: "Mock voucher created" });
     }
     const body = await request.json();
     const code = String(body.code || "").trim().toUpperCase();
 
     if (!code || !body.title) {
-      return NextResponse.json(
+      return jsonWithCors(
         { error: "Kode voucher dan Judul wajib diisi." },
-        { status: 400 }
+        400
       );
     }
 
@@ -101,11 +125,11 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(newVoucher);
+    return jsonWithCors(newVoucher, 201);
   } catch (error: any) {
-    return NextResponse.json(
+    return jsonWithCors(
       { error: "Gagal membuat voucher (kode mungkin sudah ada).", details: String(error) },
-      { status: 500 }
+      500
     );
   }
 }
@@ -114,11 +138,11 @@ export async function PUT(request: Request) {
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.voucher) {
-      return NextResponse.json({ message: "Mock voucher updated" });
+      return jsonWithCors({ message: "Mock voucher updated" });
     }
     const body = await request.json();
     if (!body.id) {
-      return NextResponse.json({ error: "ID Voucher wajib diisi." }, { status: 400 });
+      return jsonWithCors({ error: "ID Voucher wajib diisi." }, 400);
     }
 
     const updated = await prismaClient.voucher.update({
@@ -133,11 +157,11 @@ export async function PUT(request: Request) {
       },
     });
 
-    return NextResponse.json(updated);
+    return jsonWithCors(updated);
   } catch (error) {
-    return NextResponse.json(
+    return jsonWithCors(
       { error: "Gagal mengubah voucher di DB.", details: String(error) },
-      { status: 500 }
+      500
     );
   }
 }
@@ -146,21 +170,21 @@ export async function DELETE(request: Request) {
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.voucher) {
-      return NextResponse.json({ message: "Mock voucher deleted" });
+      return jsonWithCors({ message: "Mock voucher deleted" });
     }
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "ID Voucher wajib diberikan." }, { status: 400 });
+      return jsonWithCors({ error: "ID Voucher wajib diberikan." }, 400);
     }
 
     await prismaClient.voucher.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    return jsonWithCors({ success: true });
   } catch (error) {
-    return NextResponse.json(
+    return jsonWithCors(
       { error: "Gagal menghapus voucher.", details: String(error) },
-      { status: 500 }
+      500
     );
   }
 }

@@ -2,6 +2,30 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function jsonWithCors(data: any, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -10,9 +34,9 @@ export async function POST(request: Request) {
     const subtotal = Number(body.subtotal || 0);
 
     if (!code) {
-      return NextResponse.json(
+      return jsonWithCors(
         { valid: false, message: "Silakan masukkan kode voucher." },
-        { status: 400 }
+        400
       );
     }
 
@@ -26,21 +50,21 @@ export async function POST(request: Request) {
     }
 
     if (!voucher) {
-      return NextResponse.json({
+      return jsonWithCors({
         valid: false,
         message: `Kode voucher "${code}" tidak ditemukan.`,
       });
     }
 
     if (!voucher.isActive) {
-      return NextResponse.json({
+      return jsonWithCors({
         valid: false,
         message: `Voucher "${code}" sudah tidak aktif.`,
       });
     }
 
     if (subtotal < voucher.minSubtotal) {
-      return NextResponse.json({
+      return jsonWithCors({
         valid: false,
         message: `Minimal belanja untuk voucher ini adalah Rp ${voucher.minSubtotal.toLocaleString("id-ID")}.`,
       });
@@ -62,16 +86,16 @@ export async function POST(request: Request) {
       discountAmount = subtotal;
     }
 
-    return NextResponse.json({
+    return jsonWithCors({
       valid: true,
       voucher,
       discountAmount,
       message: `Voucher "${voucher.title}" berhasil digunakan! Hemat Rp ${discountAmount.toLocaleString("id-ID")}`,
     });
   } catch (error) {
-    return NextResponse.json(
+    return jsonWithCors(
       { valid: false, message: "Gagal memproses klaim voucher.", details: String(error) },
-      { status: 500 }
+      500
     );
   }
 }

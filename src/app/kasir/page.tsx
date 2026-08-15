@@ -247,7 +247,7 @@ export default function KasirPage() {
       </div>
 
       {/* Main Grid Container */}
-      <div className="min-h-[calc(100vh-12rem)] lg:h-[calc(100vh-10rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0">
+      <div className="min-h-[calc(100vh-12rem)] lg:h-[calc(100vh-11.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0 overflow-hidden">
         {/* Left Column: Menu Grid (7 cols desktop) */}
         <div
           className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
