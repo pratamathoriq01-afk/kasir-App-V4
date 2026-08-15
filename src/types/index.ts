@@ -45,6 +45,10 @@ export interface Transaction {
   cashReceived: number;
   change: number;
   createdAt: string | Date;
+  orderStatus?: string | null;
+  orderNotes?: string | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
   items: TransactionItem[];
 }
 

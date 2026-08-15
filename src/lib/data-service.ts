@@ -1,4 +1,4 @@
-import { MenuItem, Transaction } from "@/types";
+import { MenuItem, Transaction, Voucher } from "@/types";
 import { INITIAL_MENU_ITEMS, INITIAL_TRANSACTIONS } from "./mock-data";
 
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
@@ -72,6 +72,21 @@ export async function fetchTransactionsFromDB(): Promise<Transaction[]> {
 export function saveTransactions(transactions: Transaction[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(transactions));
+}
+
+export async function fetchActiveVouchersFromDB(): Promise<Voucher[]> {
+  try {
+    const res = await fetch("/api/vouchers");
+    if (res.ok) {
+      const data: Voucher[] = await res.json();
+      if (Array.isArray(data)) {
+        return data.filter((v) => v.isActive !== false);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to fetch active vouchers from DB:", e);
+  }
+  return [];
 }
 
 export function addTransaction(newTrx: Transaction): Transaction[] {
