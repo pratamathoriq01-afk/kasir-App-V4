@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Transaction } from "@/types";
-import { Bell, Printer, CheckCircle2, Clock, X, Utensils, RefreshCw, ShoppingBag, ArrowRight, Check, Flame, CookingPot } from "lucide-react";
+import { Bell, Printer, CheckCircle2, Clock, X, Utensils, RefreshCw, ShoppingBag, ArrowRight, Check, Sparkles, AlertCircle } from "lucide-react";
 
 interface IncomingOrdersDrawerProps {
   isOpen: boolean;
@@ -22,8 +22,14 @@ export default function IncomingOrdersDrawer({
   onUpdateStatus,
 }: IncomingOrdersDrawerProps) {
   const [activeTab, setActiveTab] = useState<"NEW_ORDER" | "IN_PROCESSED" | "ORDER_FINISH">("NEW_ORDER");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const showNotificationToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
 
   // Filter 3 Tabs
   const newOrders = orders.filter(
@@ -43,23 +49,52 @@ export default function IncomingOrdersDrawer({
       ? inProcessedOrders
       : finishedOrders;
 
+  const handleActionClick = (trx: Transaction, targetStatus: "IN_PROCESSED" | "ORDER_FINISH") => {
+    onUpdateStatus(trx.id || trx.orderNumber, targetStatus);
+    if (targetStatus === "IN_PROCESSED") {
+      showNotificationToast(`🔥 Pesanan ${trx.orderNumber} diterima & masuk ke Dapur!`);
+    } else if (targetStatus === "ORDER_FINISH") {
+      showNotificationToast(`✅ Pesanan ${trx.orderNumber} selesai & masuk ke Riwayat!`);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex justify-end animate-in fade-in duration-300">
+      {/* Toast Floating Alert */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white border border-emerald-500/40 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
+          <Sparkles className="w-5 h-5 text-amber-400 animate-spin" />
+          <span className="text-xs font-black tracking-wide">{toastMessage}</span>
+        </div>
+      )}
+
       <div className="bg-white max-w-xl w-full h-full shadow-2xl border-l border-slate-300 flex flex-col animate-in slide-in-from-right duration-300">
         {/* Top Header Drawer */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0 shadow-md">
+        <div className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500 text-slate-950 rounded-2xl shadow-md">
+            <div className="p-2.5 bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 rounded-2xl shadow-lg shadow-amber-500/20 relative">
               <Bell className="w-5 h-5 stroke-[2.5]" />
+              {newOrders.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-slate-900"></span>
+                </span>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
                   Menu Digital v2
                 </span>
-                <span className="text-[10px] font-bold text-emerald-400 font-mono">Real-time DB Sync</span>
+                <span className="text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  Real-time DB Sync
+                </span>
               </div>
-              <h2 className="text-base font-black text-white mt-0.5">
+              <h2 className="text-base font-black text-white mt-0.5 tracking-tight">
                 Wadah Pesanan Masuk ({orders.length})
               </h2>
             </div>
@@ -68,14 +103,14 @@ export default function IncomingOrdersDrawer({
           <div className="flex items-center gap-2">
             <button
               onClick={onRefresh}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh Data Supabase"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -83,19 +118,21 @@ export default function IncomingOrdersDrawer({
         </div>
 
         {/* Clean 3-Tab Bar (1. Baru | 2. Diproses | 3. Selesai) */}
-        <div className="p-3 bg-slate-100 border-b border-slate-200 grid grid-cols-3 gap-2 shrink-0 text-xs">
+        <div className="p-3 bg-slate-100/90 border-b border-slate-200 grid grid-cols-3 gap-2 shrink-0 text-xs">
           {/* Tab 1: Pesanan Baru */}
           <button
             onClick={() => setActiveTab("NEW_ORDER")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "NEW_ORDER"
-                ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400"
+                ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 ring-2 ring-amber-400 scale-[1.02]"
+                : newOrders.length > 0
+                ? "bg-amber-50 text-slate-800 border border-amber-300/80 animate-pulse hover:bg-amber-100"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
             <span>1. Pesanan Baru</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
-              activeTab === "NEW_ORDER" ? "bg-slate-950 text-amber-400" : "bg-slate-200 text-slate-800"
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+              activeTab === "NEW_ORDER" ? "bg-slate-950 text-amber-400 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {newOrders.length}
             </span>
@@ -104,15 +141,15 @@ export default function IncomingOrdersDrawer({
           {/* Tab 2: Memproses Pesanan */}
           <button
             onClick={() => setActiveTab("IN_PROCESSED")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "IN_PROCESSED"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 ring-2 ring-indigo-400"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400 scale-[1.02]"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
             <span>2. Diproses</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
-              activeTab === "IN_PROCESSED" ? "bg-white text-indigo-900" : "bg-slate-200 text-slate-800"
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+              activeTab === "IN_PROCESSED" ? "bg-white text-indigo-900 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {inProcessedOrders.length}
             </span>
@@ -121,15 +158,15 @@ export default function IncomingOrdersDrawer({
           {/* Tab 3: Riwayat Selesai */}
           <button
             onClick={() => setActiveTab("ORDER_FINISH")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "ORDER_FINISH"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20 ring-2 ring-emerald-400"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400 scale-[1.02]"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
             <span>3. Selesai</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
-              activeTab === "ORDER_FINISH" ? "bg-white text-emerald-900" : "bg-slate-200 text-slate-800"
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+              activeTab === "ORDER_FINISH" ? "bg-white text-emerald-900 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {finishedOrders.length}
             </span>
@@ -137,10 +174,10 @@ export default function IncomingOrdersDrawer({
         </div>
 
         {/* Orders List Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/60">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/80">
           {filteredOrders.length === 0 ? (
-            <div className="text-center py-16 text-slate-400 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs my-auto">
-              <Bell className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-300" />
+            <div className="text-center py-16 text-slate-400 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs my-auto animate-in fade-in duration-300">
+              <Bell className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-300 animate-bounce" />
               <p className="font-bold text-slate-800 text-base">Tidak Ada Pesanan</p>
               <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
                 {activeTab === "NEW_ORDER"
@@ -165,16 +202,16 @@ export default function IncomingOrdersDrawer({
               return (
                 <div
                   key={trx.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col transition-all hover:shadow-md"
+                  className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:border-slate-300 hover:scale-[1.01] animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
                   {/* Distinct Color Header Bar for 3 Stages */}
                   <div
                     className={`px-4 py-2.5 flex items-center justify-between font-bold text-xs ${
                       isNew
-                        ? "bg-amber-500 text-slate-950"
+                        ? "bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950"
                         : isProcessed
-                        ? "bg-indigo-600 text-white"
-                        : "bg-emerald-600 text-white"
+                        ? "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white"
+                        : "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -199,7 +236,7 @@ export default function IncomingOrdersDrawer({
                   {/* Body Content */}
                   <div className="p-4 space-y-3">
                     {/* Customer & Table Row */}
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
                           Nama Pemesan
@@ -262,7 +299,7 @@ export default function IncomingOrdersDrawer({
                         {/* Print Receipt Action */}
                         <button
                           onClick={() => onPrintReceipt(trx)}
-                          className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200"
+                          className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer border border-slate-200"
                           title="Cetak Struk Dapur/Kasir"
                         >
                           <Printer className="w-3.5 h-3.5" />
@@ -272,8 +309,8 @@ export default function IncomingOrdersDrawer({
                         {/* 3-Stage Workflow Action Buttons */}
                         {isNew && (
                           <button
-                            onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "IN_PROCESSED")}
-                            className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            onClick={() => handleActionClick(trx, "IN_PROCESSED")}
+                            className="py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-600 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/25 transition-all duration-200 flex items-center gap-1.5 active:scale-95 hover:scale-[1.03] cursor-pointer"
                           >
                             <span>Terima &amp; Proses Pesanan</span>
                             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -282,8 +319,8 @@ export default function IncomingOrdersDrawer({
 
                         {isProcessed && (
                           <button
-                            onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "ORDER_FINISH")}
-                            className="py-2 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            onClick={() => handleActionClick(trx, "ORDER_FINISH")}
+                            className="py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white font-black rounded-xl text-xs shadow-md shadow-indigo-500/25 transition-all duration-200 flex items-center gap-1.5 active:scale-95 hover:scale-[1.03] cursor-pointer"
                           >
                             <Check className="w-4 h-4 stroke-[2.5]" />
                             <span>Selesaikan Pesanan</span>
@@ -306,10 +343,16 @@ export default function IncomingOrdersDrawer({
 
         {/* Footer */}
         <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
-          <span className="font-mono">Terhubung ke PostgreSQL Supabase DB</span>
+          <span className="font-mono flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Terhubung ke PostgreSQL Supabase DB
+          </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl cursor-pointer"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
           >
             Tutup Panel
           </button>
