@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber } from "@/lib/data-service";
-import { playNotificationChime } from "@/lib/audio-notifier";
+import { playNotificationChime, warmUpAudioContext } from "@/lib/audio-notifier";
 import { useCartStore } from "@/store/cart-store";
 import MenuGrid from "./components/MenuGrid";
 import CartSection from "./components/CartSection";
@@ -48,6 +48,14 @@ export default function KasirPage() {
 
   useEffect(() => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
+
+    const handleUserInteraction = () => warmUpAudioContext();
+    window.addEventListener("pointerdown", handleUserInteraction, { once: true });
+    window.addEventListener("keydown", handleUserInteraction, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handleUserInteraction);
+      window.removeEventListener("keydown", handleUserInteraction);
+    };
   }, []);
 
   const loadDigitalOrders = async () => {
@@ -97,10 +105,10 @@ export default function KasirPage() {
     }
   };
 
-  // Real-time Poller for incoming orders from Menu Digital v2 (every 600ms)
+  // Real-time Poller for incoming orders from Menu Digital v2 (every 400ms)
   useEffect(() => {
     loadDigitalOrders();
-    const interval = setInterval(loadDigitalOrders, 600);
+    const interval = setInterval(loadDigitalOrders, 400);
     return () => clearInterval(interval);
   }, []);
 
