@@ -145,7 +145,7 @@ export default function KasirPage() {
     fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(transaction),
+      body: JSON.stringify({ ...transaction, isPOSAdminCheckout: true }),
     }).catch(() => {});
 
     setIsPaymentModalOpen(false);

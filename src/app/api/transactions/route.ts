@@ -75,6 +75,12 @@ export async function POST(request: Request) {
       return jsonWithCors({ message: "Mock transaction saved" });
     }
     const body = await request.json();
+
+    // Force NEW_ORDER status for all buyer orders coming from Menu Digital v2
+    const initialStatus = body.isPOSAdminCheckout
+      ? (body.orderStatus || "ORDER_FINISH")
+      : "NEW_ORDER";
+
     const newTrx = await prismaClient.transaction.create({
       data: {
         orderNumber: body.orderNumber,
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
         netProfit: Number(body.netProfit),
         cashReceived: Number(body.cashReceived),
         change: Number(body.change),
-        orderStatus: body.orderStatus || "NEW_ORDER",
+        orderStatus: initialStatus,
         orderNotes: body.orderNotes || null,
         customerPhone: body.customerPhone || null,
         items: {
