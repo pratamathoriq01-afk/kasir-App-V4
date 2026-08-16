@@ -54,6 +54,12 @@ export async function GET(request: Request) {
       if (!single) {
         return jsonWithCors({ error: "Transaksi tidak ditemukan" }, 404);
       }
+
+      // Normalize status if single lookup
+      const st = String(single.orderStatus || "").toUpperCase();
+      if (!single.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
+        return jsonWithCors({ ...single, orderStatus: "NEW_ORDER" });
+      }
       return jsonWithCors(single);
     }
 
@@ -61,7 +67,19 @@ export async function GET(request: Request) {
       include: { items: true },
       orderBy: { createdAt: "desc" },
     });
-    return jsonWithCors(transactions);
+
+    // PERMANENT FIX: Normalize DB statuses so that any new order from Menu Digital v2
+    // stored as 'PROCESSED', 'PENDING', or empty in Supabase DB is normalized to 'NEW_ORDER'
+    // UNLESS the cashier has confirmed it as 'IN_PROCESSED' or completed it as 'ORDER_FINISH'.
+    const normalizedTransactions = transactions.map((t: any) => {
+      const st = String(t.orderStatus || "").toUpperCase();
+      if (!t.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
+        return { ...t, orderStatus: "NEW_ORDER" };
+      }
+      return t;
+    });
+
+    return jsonWithCors(normalizedTransactions);
   } catch (error) {
     console.warn("DB query error, returning initial transactions:", error);
     return jsonWithCors(INITIAL_TRANSACTIONS);
