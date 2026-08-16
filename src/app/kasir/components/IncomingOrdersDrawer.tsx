@@ -10,7 +10,7 @@ interface IncomingOrdersDrawerProps {
   onClose: () => void;
   onRefresh: () => void;
   onPrintReceipt: (trx: Transaction) => void;
-  onUpdateStatus: (trxId: string, status: "ORDER_ACCEPTED" | "IN_PROCESSED" | "ORDER_FINISH" | "CANCELLED") => void;
+  onUpdateStatus: (trxId: string, status: "IN_PROCESSED" | "ORDER_FINISH" | "CANCELLED") => void;
 }
 
 export default function IncomingOrdersDrawer({
@@ -21,22 +21,24 @@ export default function IncomingOrdersDrawer({
   onPrintReceipt,
   onUpdateStatus,
 }: IncomingOrdersDrawerProps) {
-  const [activeTab, setActiveTab] = useState<"NEW_ORDER" | "ORDER_ACCEPTED" | "IN_PROCESSED" | "ORDER_FINISH">("NEW_ORDER");
+  const [activeTab, setActiveTab] = useState<"NEW_ORDER" | "IN_PROCESSED" | "ORDER_FINISH">("NEW_ORDER");
 
   if (!isOpen) return null;
 
+  // Filter 3 Tabs
   const newOrders = orders.filter(
-    (o) => !o.orderStatus || o.orderStatus === "NEW_ORDER" || o.orderStatus === "PENDING"
+    (o) => !o.orderStatus || o.orderStatus === "NEW_ORDER" || o.orderStatus === "PENDING" || o.orderStatus === "ORDER_ACCEPTED"
   );
-  const acceptedOrders = orders.filter((o) => o.orderStatus === "ORDER_ACCEPTED");
-  const inProcessedOrders = orders.filter((o) => o.orderStatus === "IN_PROCESSED" || o.orderStatus === "PROCESSED" || o.orderStatus === "COOKING");
-  const finishedOrders = orders.filter((o) => o.orderStatus === "ORDER_FINISH" || o.orderStatus === "COMPLETED" || o.orderStatus === "PAID" || o.orderStatus === "DONE");
+  const inProcessedOrders = orders.filter(
+    (o) => o.orderStatus === "IN_PROCESSED" || o.orderStatus === "PROCESSED" || o.orderStatus === "COOKING"
+  );
+  const finishedOrders = orders.filter(
+    (o) => o.orderStatus === "ORDER_FINISH" || o.orderStatus === "COMPLETED" || o.orderStatus === "PAID" || o.orderStatus === "DONE"
+  );
 
   const filteredOrders =
     activeTab === "NEW_ORDER"
       ? newOrders
-      : activeTab === "ORDER_ACCEPTED"
-      ? acceptedOrders
       : activeTab === "IN_PROCESSED"
       ? inProcessedOrders
       : finishedOrders;
@@ -80,70 +82,53 @@ export default function IncomingOrdersDrawer({
           </div>
         </div>
 
-        {/* Distinct 4-Tab Filter Bar */}
-        <div className="p-2.5 bg-slate-100 border-b border-slate-200 grid grid-cols-4 gap-1.5 shrink-0 text-[11px]">
+        {/* Clean 3-Tab Bar (1. Baru | 2. Diproses | 3. Selesai) */}
+        <div className="p-3 bg-slate-100 border-b border-slate-200 grid grid-cols-3 gap-2 shrink-0 text-xs">
           {/* Tab 1: Pesanan Baru */}
           <button
             onClick={() => setActiveTab("NEW_ORDER")}
-            className={`py-2 px-2 rounded-xl font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === "NEW_ORDER"
                 ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 ring-2 ring-amber-400"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>1. Baru</span>
-            <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full font-mono ${
+            <span>1. Pesanan Baru</span>
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
               activeTab === "NEW_ORDER" ? "bg-slate-950 text-amber-400" : "bg-slate-200 text-slate-800"
             }`}>
               {newOrders.length}
             </span>
           </button>
 
-          {/* Tab 2: Pesanan Diterima */}
-          <button
-            onClick={() => setActiveTab("ORDER_ACCEPTED")}
-            className={`py-2 px-2 rounded-xl font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
-              activeTab === "ORDER_ACCEPTED"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-400"
-                : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
-            }`}
-          >
-            <span>2. Diterima</span>
-            <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full font-mono ${
-              activeTab === "ORDER_ACCEPTED" ? "bg-white text-blue-900" : "bg-slate-200 text-slate-800"
-            }`}>
-              {acceptedOrders.length}
-            </span>
-          </button>
-
-          {/* Tab 3: Sedang Diproses */}
+          {/* Tab 2: Memproses Pesanan */}
           <button
             onClick={() => setActiveTab("IN_PROCESSED")}
-            className={`py-2 px-2 rounded-xl font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === "IN_PROCESSED"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 ring-2 ring-indigo-400"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>3. Diproses</span>
-            <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full font-mono ${
+            <span>2. Diproses</span>
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
               activeTab === "IN_PROCESSED" ? "bg-white text-indigo-900" : "bg-slate-200 text-slate-800"
             }`}>
               {inProcessedOrders.length}
             </span>
           </button>
 
-          {/* Tab 4: Pesanan Selesai / Riwayat */}
+          {/* Tab 3: Riwayat Selesai */}
           <button
             onClick={() => setActiveTab("ORDER_FINISH")}
-            className={`py-2 px-2 rounded-xl font-black flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === "ORDER_FINISH"
                 ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20 ring-2 ring-emerald-400"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>4. Selesai</span>
-            <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full font-mono ${
+            <span>3. Selesai</span>
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono ${
               activeTab === "ORDER_FINISH" ? "bg-white text-emerald-900" : "bg-slate-200 text-slate-800"
             }`}>
               {finishedOrders.length}
@@ -160,8 +145,6 @@ export default function IncomingOrdersDrawer({
               <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
                 {activeTab === "NEW_ORDER"
                   ? "Belum ada pesanan baru dari Menu Digital v2."
-                  : activeTab === "ORDER_ACCEPTED"
-                  ? "Tidak ada pesanan yang sedang menunggu diteruskan ke dapur."
                   : activeTab === "IN_PROCESSED"
                   ? "Tidak ada pesanan yang sedang dimasak di dapur."
                   : "Belum ada riwayat pesanan selesai."}
@@ -170,8 +153,7 @@ export default function IncomingOrdersDrawer({
           ) : (
             filteredOrders.map((trx) => {
               const statusUpper = (trx.orderStatus || "NEW_ORDER").toUpperCase();
-              const isNew = !trx.orderStatus || statusUpper === "NEW_ORDER" || statusUpper === "PENDING";
-              const isAccepted = statusUpper === "ORDER_ACCEPTED";
+              const isNew = !trx.orderStatus || statusUpper === "NEW_ORDER" || statusUpper === "PENDING" || statusUpper === "ORDER_ACCEPTED";
               const isProcessed = statusUpper === "IN_PROCESSED" || statusUpper === "PROCESSED" || statusUpper === "COOKING";
               const isFinished = statusUpper === "ORDER_FINISH" || statusUpper === "COMPLETED" || statusUpper === "PAID" || statusUpper === "DONE";
 
@@ -185,13 +167,11 @@ export default function IncomingOrdersDrawer({
                   key={trx.id}
                   className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col transition-all hover:shadow-md"
                 >
-                  {/* Distinct Color Header Bar for the 4 Stages */}
+                  {/* Distinct Color Header Bar for 3 Stages */}
                   <div
                     className={`px-4 py-2.5 flex items-center justify-between font-bold text-xs ${
                       isNew
                         ? "bg-amber-500 text-slate-950"
-                        : isAccepted
-                        ? "bg-blue-600 text-white"
                         : isProcessed
                         ? "bg-indigo-600 text-white"
                         : "bg-emerald-600 text-white"
@@ -204,11 +184,9 @@ export default function IncomingOrdersDrawer({
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/20 text-white border border-white/20">
                         {isNew
                           ? "1. PESANAN BARU"
-                          : isAccepted
-                          ? "2. DITERIMA KASIR"
                           : isProcessed
-                          ? "3. DIPROSES DAPUR"
-                          : "4. SELESAI"}
+                          ? "2. DIPROSES DAPUR"
+                          : "3. SELESAI"}
                       </span>
                     </div>
 
@@ -291,31 +269,21 @@ export default function IncomingOrdersDrawer({
                           <span>Cetak Struk</span>
                         </button>
 
-                        {/* 4-Stage Workflow Action Buttons */}
+                        {/* 3-Stage Workflow Action Buttons */}
                         {isNew && (
                           <button
-                            onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "ORDER_ACCEPTED")}
-                            className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-                          >
-                            <span>Terima Pesanan</span>
-                            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                          </button>
-                        )}
-
-                        {isAccepted && (
-                          <button
                             onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "IN_PROCESSED")}
-                            className="py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                            className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                           >
-                            <Flame className="w-4 h-4 stroke-[2.5]" />
-                            <span>Proses di Dapur</span>
+                            <span>Terima &amp; Proses Pesanan</span>
+                            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                           </button>
                         )}
 
                         {isProcessed && (
                           <button
                             onClick={() => onUpdateStatus(trx.id || trx.orderNumber, "ORDER_FINISH")}
-                            className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                            className="py-2 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                           >
                             <Check className="w-4 h-4 stroke-[2.5]" />
                             <span>Selesaikan Pesanan</span>
