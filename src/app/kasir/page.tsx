@@ -68,10 +68,10 @@ export default function KasirPage() {
 
       setDigitalOrders(transactions);
 
-      const pendingCount = transactions.filter(
+      const pendingOrders = transactions.filter(
         (t) => !t.orderStatus || t.orderStatus === "NEW_ORDER" || t.orderStatus === "PENDING"
-      ).length;
-      setNewOrdersCount(pendingCount);
+      );
+      setNewOrdersCount(pendingOrders.length);
 
       if (isFirstLoadRef.current) {
         transactions.forEach((t) => {
@@ -79,19 +79,33 @@ export default function KasirPage() {
           if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
         });
         isFirstLoadRef.current = false;
+        if (pendingOrders.length > 0) {
+          playNotificationChime();
+        }
         return;
       }
 
       // Check if new orders arrived that were not in knownTxIds
       const brandNew = transactions.filter(
-        (t) => !knownTxIdsRef.current.has(t.id) && !knownTxIdsRef.current.has(t.orderNumber)
+        (t) =>
+          (!knownTxIdsRef.current.has(t.id) && !knownTxIdsRef.current.has(t.orderNumber)) ||
+          (!t.orderStatus || t.orderStatus === "NEW_ORDER" || t.orderStatus === "PENDING")
       );
-      if (brandNew.length > 0) {
-        brandNew.forEach((t) => {
-          if (t.id) knownTxIdsRef.current.add(t.id);
+
+      const unannounced = brandNew.filter(
+        (t) => !knownTxIdsRef.current.has(`${t.id}-announced`)
+      );
+
+      if (unannounced.length > 0) {
+        unannounced.forEach((t) => {
+          if (t.id) {
+            knownTxIdsRef.current.add(t.id);
+            knownTxIdsRef.current.add(`${t.id}-announced`);
+          }
           if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
         });
-        // Play instant notification chime!
+        // Play instant automatic notification chime!
+        warmUpAudioContext();
         playNotificationChime();
       }
     } catch (err) {
