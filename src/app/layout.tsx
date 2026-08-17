@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { Outfit, Space_Mono } from "next/font/google";
+import { Outfit, Space_Mono, Inter } from "next/font/google";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -26,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`${outfit.variable} ${spaceMono.variable}`}>
+    <html lang="id" className={cn(outfit.variable, spaceMono.variable, "font-sans", inter.variable)}>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased">
         {/* Main Application Header */}
         <Navbar />
