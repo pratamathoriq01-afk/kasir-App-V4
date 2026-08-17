@@ -69,6 +69,40 @@ export default function KasirPage() {
     }
   }, [newOrdersCount]);
 
+  // Title Flashing Alert for Background Tabs (when cashier is on WhatsApp / Antigravity)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const originalTitle = "Kasir POS - Kedai Nyamleng";
+    let titleInterval: NodeJS.Timeout | null = null;
+
+    if (newOrdersCount > 0) {
+      let isFlashing = false;
+      titleInterval = setInterval(() => {
+        isFlashing = !isFlashing;
+        document.title = isFlashing
+          ? `🚨 (${newOrdersCount}) PESANAN ONLINE BARU!`
+          : `🔔 MOHON TERIMA PESANAN (${newOrdersCount})`;
+      }, 1000);
+    } else {
+      document.title = originalTitle;
+    }
+
+    const handleFocus = () => {
+      if (newOrdersCount === 0) {
+        document.title = originalTitle;
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      if (titleInterval) clearInterval(titleInterval);
+      document.title = originalTitle;
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [newOrdersCount]);
+
   const loadDigitalOrders = async () => {
     try {
       const res = await fetch(`/api/transactions?t=${Date.now()}`, {
@@ -132,11 +166,32 @@ export default function KasirPage() {
     }
   };
 
-  // Real-time Poller for incoming orders from Menu Digital v2 (every 400ms)
+  // Dual Web Worker + Foreground Poller for 100% background-resilient realtime order sync
   useEffect(() => {
     loadDigitalOrders();
+
+    let worker: Worker | null = null;
+    if (typeof window !== "undefined" && "Worker" in window) {
+      try {
+        worker = new Worker("/poller-worker.js");
+        worker.onmessage = () => {
+          loadDigitalOrders();
+        };
+        worker.postMessage("start");
+      } catch {
+        // Worker fallback silently
+      }
+    }
+
     const interval = setInterval(loadDigitalOrders, 400);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      if (worker) {
+        worker.postMessage("stop");
+        worker.terminate();
+      }
+    };
   }, []);
 
   const totalItemsCount = items.reduce((s, i) => s + i.qty, 0);
