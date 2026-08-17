@@ -57,9 +57,10 @@ export default function IncomingOrdersDrawer({
       onUpdateStatus(id, targetStatus);
       setProcessingId(null);
       if (targetStatus === "IN_PROCESSED") {
-        showNotificationToast(`🔥 Pesanan ${trx.orderNumber} diterima & masuk ke Dapur!`);
+        showNotificationToast(`🔥 Pesanan ${trx.orderNumber} diterima & diteruskan ke Dapur!`);
+        setActiveTab("IN_PROCESSED");
       } else if (targetStatus === "ORDER_FINISH") {
-        showNotificationToast(`✅ Pesanan ${trx.orderNumber} selesai & masuk ke Riwayat!`);
+        showNotificationToast(`✅ Pesanan ${trx.orderNumber} selesai & masuk ke Riwayat Nota!`);
       }
     }, 250);
   };
