@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Voucher } from "@/types";
-import { Ticket, Plus, Trash2, CheckCircle2, XCircle, X, Sparkles } from "lucide-react";
+import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, X, Sparkles, AlertCircle } from "lucide-react";
 
 interface VoucherManagementModalProps {
   isOpen: boolean;
@@ -14,7 +14,8 @@ export default function VoucherManagementModal({
   onClose,
 }: VoucherManagementModalProps) {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Form State
@@ -22,9 +23,11 @@ export default function VoucherManagementModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
-  const [discountValue, setDiscountValue] = useState(10);
-  const [minSubtotal, setMinSubtotal] = useState(25000);
+  const [discountValue, setDiscountValue] = useState<number>(10);
+  const [maxDiscount, setMaxDiscount] = useState<string>("");
+  const [minSubtotal, setMinSubtotal] = useState<number>(25000);
   const [validUntil, setValidUntil] = useState("2026-12-31");
+  const [isActive, setIsActive] = useState<boolean>(true);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,39 +47,71 @@ export default function VoucherManagementModal({
     }
   };
 
-  const handleCreateVoucher = async (e: React.FormEvent) => {
+  const handleOpenCreateForm = () => {
+    setEditingVoucher(null);
+    setCode("");
+    setTitle("");
+    setDescription("");
+    setDiscountType("percent");
+    setDiscountValue(10);
+    setMaxDiscount("");
+    setMinSubtotal(25000);
+    setValidUntil("2026-12-31");
+    setIsActive(true);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEditForm = (v: Voucher) => {
+    setEditingVoucher(v);
+    setCode(v.code);
+    setTitle(v.title);
+    setDescription(v.description || "");
+    setDiscountType(v.discountType === "fixed" ? "fixed" : "percent");
+    setDiscountValue(v.discountValue);
+    setMaxDiscount(v.maxDiscount ? String(v.maxDiscount) : "");
+    setMinSubtotal(v.minSubtotal || 0);
+    setValidUntil(v.validUntil || "2026-12-31");
+    setIsActive(v.isActive ?? true);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveVoucher = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code || !title) return;
 
     setLoading(true);
+    const isEdit = Boolean(editingVoucher);
+
+    const payload = {
+      id: editingVoucher?.id,
+      code: code.trim().toUpperCase(),
+      title,
+      description,
+      discountType,
+      discountValue: Number(discountValue),
+      maxDiscount: maxDiscount ? Number(maxDiscount) : null,
+      minSubtotal: Number(minSubtotal),
+      validUntil,
+      isActive,
+    };
+
     try {
       const res = await fetch("/api/vouchers", {
-        method: "POST",
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: code.trim().toUpperCase(),
-          title,
-          description,
-          discountType,
-          discountValue: Number(discountValue),
-          minSubtotal: Number(minSubtotal),
-          validUntil,
-          isActive: true,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        setCode("");
-        setTitle("");
-        setDescription("");
-        setIsAdding(false);
+        setIsFormOpen(false);
+        setEditingVoucher(null);
         await loadVouchers();
       } else {
         const err = await res.json();
-        alert(err.error || "Gagal membuat voucher.");
+        alert(err.error || "Gagal menyimpan voucher.");
       }
     } catch (err) {
-      console.error("Error create voucher:", err);
+      console.error("Error save voucher:", err);
     } finally {
       setLoading(false);
     }
@@ -116,6 +151,18 @@ export default function VoucherManagementModal({
 
   if (!isOpen) return null;
 
+  // Calculation simulation sample (Subtotal Rp 100.000)
+  const sampleSubtotal = 100000;
+  let sampleDiscount = 0;
+  if (discountType === "percent") {
+    sampleDiscount = Math.round((sampleSubtotal * discountValue) / 100);
+    if (maxDiscount && Number(maxDiscount) > 0) {
+      sampleDiscount = Math.min(sampleDiscount, Number(maxDiscount));
+    }
+  } else {
+    sampleDiscount = Math.min(discountValue, sampleSubtotal);
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 relative overflow-hidden flex flex-col max-h-[92vh]">
@@ -128,14 +175,14 @@ export default function VoucherManagementModal({
             <div>
               <h2 className="text-lg font-bold text-slate-900">Manajemen Voucher Digital</h2>
               <p className="text-xs text-slate-500">
-                Kelola kode promo &amp; voucher diskon yang dapat di-claim pembeli.
+                Kelola kode promo, diskon persentase (%), nominal tetap (Rp), &amp; batasan diskon.
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -150,23 +197,39 @@ export default function VoucherManagementModal({
             </span>
 
             <button
-              onClick={() => setIsAdding(!isAdding)}
+              onClick={() => {
+                if (isFormOpen) {
+                  setIsFormOpen(false);
+                  setEditingVoucher(null);
+                } else {
+                  handleOpenCreateForm();
+                }
+              }}
               className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>{isAdding ? "Batal" : "Buat Voucher Baru"}</span>
+              <span>{isFormOpen ? "Batal" : "Buat Voucher Baru"}</span>
             </button>
           </div>
 
-          {/* Form Create Voucher */}
-          {isAdding && (
+          {/* Form Create / Edit Voucher */}
+          {isFormOpen && (
             <form
-              onSubmit={handleCreateVoucher}
-              className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 space-y-3 animate-in slide-in-from-top duration-200"
+              onSubmit={handleSaveVoucher}
+              className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300/80 space-y-3.5 animate-in slide-in-from-top duration-200 shadow-sm"
             >
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-800 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>Form Buat Voucher Digital Baru</span>
+              <div className="flex items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>
+                    {editingVoucher ? `✏️ Edit Voucher: ${editingVoucher.code}` : "✨ Form Buat Voucher Promo Baru"}
+                  </span>
+                </div>
+                {editingVoucher && (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                    ID: {editingVoucher.id}
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -177,7 +240,7 @@ export default function VoucherManagementModal({
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: HEMAT10K"
+                    placeholder="Contoh: NYAMLENG20"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl uppercase font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
@@ -191,7 +254,7 @@ export default function VoucherManagementModal({
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Promo Diskon 10%"
+                    placeholder="Contoh: Diskon Promo 20% All Menu"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
@@ -200,11 +263,11 @@ export default function VoucherManagementModal({
 
                 <div className="sm:col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">
-                    Deskripsi Ringkas
+                    Deskripsi Promo Ringkas
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Potongan 10% minimal belanja Rp 25.000"
+                    placeholder="Contoh: Potongan 20% maksimal diskon Rp 15.000 min. belanja Rp 30.000"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
@@ -212,30 +275,47 @@ export default function VoucherManagementModal({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Tipe Diskon</label>
+                  <label className="block font-bold text-slate-700 mb-1">Skema Diskon</label>
                   <select
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value as "percent" | "fixed")}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
                   >
-                    <option value="percent">Persentase (%)</option>
-                    <option value="fixed">Nominal Tetap (Rp)</option>
+                    <option value="percent">Persentase Diskon (%)</option>
+                    <option value="fixed">Nominal Potongan Tetap (Rp)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    Nilai Diskon ({discountType === "percent" ? "%" : "Rp"})
+                    {discountType === "percent" ? "Persentase Diskon (%)" : "Nominal Potongan (Rp)"}
                   </label>
                   <input
                     type="number"
                     min={1}
+                    max={discountType === "percent" ? 100 : undefined}
                     required
                     value={discountValue}
                     onChange={(e) => setDiscountValue(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
                   />
                 </div>
+
+                {discountType === "percent" && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="Contoh: 15000 (Kosongkan jika tanpa batas)"
+                      value={maxDiscount}
+                      onChange={(e) => setMaxDiscount(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
@@ -251,7 +331,7 @@ export default function VoucherManagementModal({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Berlaku Sampai</label>
+                  <label className="block font-bold text-slate-700 mb-1">Masa Berlaku Sampai</label>
                   <input
                     type="date"
                     value={validUntil}
@@ -259,22 +339,46 @@ export default function VoucherManagementModal({
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Status Publikasi</label>
+                  <select
+                    value={isActive ? "true" : "false"}
+                    onChange={(e) => setIsActive(e.target.value === "true")}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
+                  >
+                    <option value="true">🟢 Aktif (Dapat Di-claim Pembeli)</option>
+                    <option value="false">🔴 Nonaktif (Disembunyikan)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Simulation Helper Pill */}
+              <div className="p-2.5 bg-white/80 border border-amber-200 rounded-xl text-[11px] font-medium text-amber-900 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  💡 <strong>Simulasi Potongan:</strong> Belanja Rp 100.000 → Diskon = <strong>Rp {sampleDiscount.toLocaleString("id-ID")}</strong>
+                  {discountType === "percent" && maxDiscount && Number(maxDiscount) > 0 ? ` (Dibatasi Maks. Rp ${Number(maxDiscount).toLocaleString("id-ID")})` : ""}
+                </span>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsAdding(false)}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setEditingVoucher(null);
+                  }}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-xs cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs shadow-md shadow-amber-500/20"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer"
                 >
-                  {loading ? "Menyimpan..." : "Simpan Voucher"}
+                  {loading ? "Menyimpan..." : editingVoucher ? "Update Voucher ✏️" : "Simpan Voucher ✨"}
                 </button>
               </div>
             </form>
@@ -299,7 +403,7 @@ export default function VoucherManagementModal({
 
                     <button
                       onClick={() => handleToggleStatus(v)}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer ${
                         v.isActive
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-slate-200 text-slate-600"
@@ -319,15 +423,22 @@ export default function VoucherManagementModal({
                     <span className="text-slate-400 block text-[10px]">Nilai Diskon:</span>
                     <span className="font-mono font-black text-emerald-600">
                       {v.discountType === "percent"
-                        ? `${v.discountValue}%`
+                        ? `${v.discountValue}% ${v.maxDiscount ? `(Maks Rp ${v.maxDiscount.toLocaleString("id-ID")})` : ""}`
                         : `Rp ${v.discountValue.toLocaleString("id-ID")}`}
                     </span>
                   </div>
 
-                  <div className="text-right">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditForm(v)}
+                      className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                      title="Edit Voucher"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleDelete(v.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Hapus Voucher"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -343,7 +454,7 @@ export default function VoucherManagementModal({
         <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800"
+            className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
           >
             Tutup
           </button>

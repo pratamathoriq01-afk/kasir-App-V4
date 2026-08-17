@@ -154,16 +154,20 @@ export async function PUT(request: Request) {
       return jsonWithCors({ error: "ID Voucher wajib diisi." }, 400);
     }
 
+    const updateData: any = {};
+    if (body.code !== undefined) updateData.code = String(body.code).trim().toUpperCase();
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.discountType !== undefined) updateData.discountType = body.discountType;
+    if (body.discountValue !== undefined) updateData.discountValue = Number(body.discountValue);
+    if (body.maxDiscount !== undefined) updateData.maxDiscount = body.maxDiscount ? Number(body.maxDiscount) : null;
+    if (body.minSubtotal !== undefined) updateData.minSubtotal = Number(body.minSubtotal);
+    if (body.validUntil !== undefined) updateData.validUntil = body.validUntil;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
+
     const updated = await prismaClient.voucher.update({
       where: { id: body.id },
-      data: {
-        isActive: body.isActive,
-        title: body.title,
-        description: body.description,
-        discountType: body.discountType,
-        discountValue: Number(body.discountValue),
-        minSubtotal: Number(body.minSubtotal),
-      },
+      data: updateData,
     });
 
     return jsonWithCors(updated);
