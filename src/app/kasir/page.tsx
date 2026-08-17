@@ -58,13 +58,13 @@ export default function KasirPage() {
     requestPushNotificationPermission();
   }, []);
 
-  // Continuous Alarm Loop: Repeat chime every 3.5s UNTIL cashier accepts orders (newOrdersCount === 0)
+  // Continuous Alarm Loop: Repeat chime every 3s UNTIL cashier accepts orders (newOrdersCount === 0)
   useEffect(() => {
     if (newOrdersCount > 0) {
       const alarmInterval = setInterval(() => {
         warmUpAudioContext();
         playNotificationChime();
-      }, 3500);
+      }, 3000);
       return () => clearInterval(alarmInterval);
     }
   }, [newOrdersCount]);
@@ -220,6 +220,30 @@ export default function KasirPage() {
 
   return (
     <div className="flex flex-col h-full space-y-3">
+      {/* High-Priority Emergency Sound & Push Notification Banner for Cashier Shift */}
+      <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 p-2.5 px-3.5 sm:px-4 rounded-2xl shadow-md flex items-center justify-between gap-2.5 text-xs font-black">
+        <div className="flex items-center gap-2 min-w-0">
+          <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] text-slate-950 shrink-0 animate-bounce" />
+          <span className="truncate sm:whitespace-normal">
+            {newOrdersCount > 0
+              ? `🚨 ALARM AKTIF: Ada ${newOrdersCount} Pesanan Baru! Bel berbunyi berulang setiap 3 detik...`
+              : "🔊 Klik 1x saat buka kasir agar Alarm POS & Push Notifikasi berbunyi otomatis tanpa henti"}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            unlockAudioContext();
+            warmUpAudioContext();
+            playNotificationChime();
+            requestPushNotificationPermission();
+          }}
+          className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-slate-950 text-amber-300 hover:bg-slate-900 rounded-xl text-[10px] sm:text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
+        >
+          Aktifkan Audio 📢
+        </button>
+      </div>
+
       {/* Top Action & Real-time Incoming Orders Header Banner */}
       <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
         <div>
