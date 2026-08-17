@@ -86,11 +86,14 @@ model Voucher {
 }
 
 model StoreSettings {
-  id        String   @id @default("default")
-  storeName String   @default("Kedai Nyamleng")
-  address   String
-  whatsapp  String
-  city      String   @default("Kota Malang")
-  province  String   @default("Jawa Timur")
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default("default")
+  storeName          String   @default("Kedai Nyamleng")
+  address            String
+  whatsapp           String
+  city               String   @default("Kota Malang")
+  province           String   @default("Jawa Timur")
+  googleClientId     String?
+  googleClientSecret String?
+  googleRedirectUri  String?
+  updatedAt          DateTime @updatedAt
 }

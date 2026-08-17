@@ -20,17 +20,21 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
+  const fallbackSettings = {
+    id: "default",
+    storeName: "Kedai Nyamleng",
+    address: "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
+    whatsapp: "085113661387",
+    city: "Kota Malang",
+    province: "Jawa Timur",
+    googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+    googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/oauth2callback",
+  };
+
   try {
     const prismaClient = prisma as any;
     if (!prismaClient || !prismaClient.storeSettings) {
-      return jsonWithCors({
-        id: "default",
-        storeName: "Kedai Nyamleng",
-        address: "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
-        whatsapp: "085113661387",
-        city: "Kota Malang",
-        province: "Jawa Timur",
-      });
+      return jsonWithCors(fallbackSettings);
     }
 
     let settings = await prismaClient.storeSettings.findUnique({
@@ -39,31 +43,18 @@ export async function GET() {
 
     if (!settings) {
       settings = await prismaClient.storeSettings.create({
-        data: {
-          id: "default",
-          storeName: "Kedai Nyamleng",
-          address: "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
-          whatsapp: "085113661387",
-          city: "Kota Malang",
-          province: "Jawa Timur",
-        },
+        data: fallbackSettings,
       });
     }
 
-    return jsonWithCors(settings);
+    return jsonWithCors({
+      ...fallbackSettings,
+      ...settings,
+      googleClientSecret: undefined, // Never expose secret to client
+    });
   } catch (error) {
     console.error("Error GET /api/settings:", error);
-    return jsonWithCors(
-      {
-        id: "default",
-        storeName: "Kedai Nyamleng",
-        address: "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
-        whatsapp: "085113661387",
-        city: "Kota Malang",
-        province: "Jawa Timur",
-      },
-      200
-    );
+    return jsonWithCors(fallbackSettings, 200);
   }
 }
 
@@ -84,6 +75,8 @@ export async function PUT(request: Request) {
         whatsapp: body.whatsapp || "085113661387",
         city: body.city || "Kota Malang",
         province: body.province || "Jawa Timur",
+        googleClientId: body.googleClientId || process.env.GOOGLE_CLIENT_ID,
+        googleRedirectUri: body.googleRedirectUri || process.env.GOOGLE_REDIRECT_URI,
       },
       create: {
         id: "default",
@@ -92,6 +85,8 @@ export async function PUT(request: Request) {
         whatsapp: body.whatsapp || "085113661387",
         city: body.city || "Kota Malang",
         province: body.province || "Jawa Timur",
+        googleClientId: body.googleClientId || process.env.GOOGLE_CLIENT_ID,
+        googleRedirectUri: body.googleRedirectUri || process.env.GOOGLE_REDIRECT_URI,
       },
     });
 
