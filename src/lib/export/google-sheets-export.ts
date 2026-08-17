@@ -1,7 +1,9 @@
 import { Transaction } from "@/types";
 
 // OAuth 2.0 Client Credential
-export const GOOGLE_CLIENT_ID = "815527702419-94kbchi8m7m20tt7egh8bdet9j5lbt65.apps.googleusercontent.com";
+export const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  "815527702419-o2hfl7mo9i3onb96urr7dr0hlbun72uf.apps.googleusercontent.com";
 
 export function getGoogleOAuthRedirectUri(): string {
   if (typeof window !== "undefined") {
