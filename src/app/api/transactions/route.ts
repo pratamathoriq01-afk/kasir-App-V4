@@ -68,10 +68,25 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // PERMANENT FIX: Normalize DB statuses so that any new order from Menu Digital v2
-    // stored as 'PROCESSED', 'PENDING', or empty in Supabase DB is normalized to 'NEW_ORDER'
-    // UNLESS the cashier has confirmed it as 'IN_PROCESSED' or completed it as 'ORDER_FINISH'.
+    // PERMANENT FIX: Differentiate online orders from Menu Digital v2 vs offline POS cash register sales.
+    // Any online order from Menu Digital v2 (having KDN- prefix or customer email/phone)
+    // that has NOT been explicitly confirmed by Kasir App (orderNotes !== 'KASIR_CONFIRMED' and status !== 'IN_PROCESSED')
+    // is normalized to 'NEW_ORDER' so it appears under "1. Pesanan Baru" and triggers the chime notification!
     const normalizedTransactions = transactions.map((t: any) => {
+      const isOnlineDigitalOrder =
+        (t.orderNumber && String(t.orderNumber).startsWith("KDN-")) ||
+        Boolean(t.customerEmail) ||
+        Boolean(t.customerPhone);
+
+      const isKasirConfirmed =
+        t.orderNotes === "KASIR_CONFIRMED" ||
+        t.orderStatus === "IN_PROCESSED" ||
+        t.orderStatus === "CANCELLED";
+
+      if (isOnlineDigitalOrder && !isKasirConfirmed) {
+        return { ...t, orderStatus: "NEW_ORDER" };
+      }
+
       const st = String(t.orderStatus || "").toUpperCase();
       if (!t.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
         return { ...t, orderStatus: "NEW_ORDER" };
@@ -116,7 +131,7 @@ export async function POST(request: Request) {
     // Force NEW_ORDER status for buyer orders coming from Menu Digital v2
     const initialStatus = body.isPOSAdminCheckout
       ? (body.orderStatus || "ORDER_FINISH")
-      : (body.orderStatus || "NEW_ORDER");
+      : "NEW_ORDER";
 
     const subtotal = Number(body.subtotal) || 0;
     const tax = Number(body.tax) || 0;
@@ -141,7 +156,7 @@ export async function POST(request: Request) {
         cashReceived: Number(body.cashReceived || total),
         change: Number(body.change || 0),
         orderStatus: initialStatus,
-        orderNotes: body.orderNotes || null,
+        orderNotes: body.isPOSAdminCheckout ? "KASIR_CONFIRMED" : null,
         customerPhone: body.customerPhone || null,
         items: {
           create: (body.items || []).map((item: { menuItemId?: string; nameSnapshot: string; priceSnapshot: number; hppSnapshot: number; qty: number }) => ({
@@ -196,6 +211,7 @@ export async function PUT(request: Request) {
       where: { id: existing.id },
       data: {
         orderStatus: String(body.orderStatus),
+        orderNotes: "KASIR_CONFIRMED",
       },
       include: { items: true },
     });
