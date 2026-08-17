@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Voucher } from "@/types";
-import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, X, Sparkles, AlertCircle } from "lucide-react";
+import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, X, Sparkles, AlertCircle, Percent, DollarSign } from "lucide-react";
 
 interface VoucherManagementModalProps {
   isOpen: boolean;
@@ -18,14 +18,14 @@ export default function VoucherManagementModal({
   const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Form State
+  // Form State (Strings for 100% flexible input editing)
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
-  const [discountValue, setDiscountValue] = useState<number>(10);
-  const [maxDiscount, setMaxDiscount] = useState<string>("");
-  const [minSubtotal, setMinSubtotal] = useState<number>(25000);
+  const [discountValueStr, setDiscountValueStr] = useState<string>("10");
+  const [maxDiscountStr, setMaxDiscountStr] = useState<string>("");
+  const [minSubtotalStr, setMinSubtotalStr] = useState<string>("25000");
   const [validUntil, setValidUntil] = useState("2026-12-31");
   const [isActive, setIsActive] = useState<boolean>(true);
 
@@ -53,9 +53,9 @@ export default function VoucherManagementModal({
     setTitle("");
     setDescription("");
     setDiscountType("percent");
-    setDiscountValue(10);
-    setMaxDiscount("");
-    setMinSubtotal(25000);
+    setDiscountValueStr("10");
+    setMaxDiscountStr("");
+    setMinSubtotalStr("25000");
     setValidUntil("2026-12-31");
     setIsActive(true);
     setIsFormOpen(true);
@@ -67,9 +67,9 @@ export default function VoucherManagementModal({
     setTitle(v.title);
     setDescription(v.description || "");
     setDiscountType(v.discountType === "fixed" ? "fixed" : "percent");
-    setDiscountValue(v.discountValue);
-    setMaxDiscount(v.maxDiscount ? String(v.maxDiscount) : "");
-    setMinSubtotal(v.minSubtotal || 0);
+    setDiscountValueStr(String(v.discountValue || 0));
+    setMaxDiscountStr(v.maxDiscount ? String(v.maxDiscount) : "");
+    setMinSubtotalStr(String(v.minSubtotal || 0));
     setValidUntil(v.validUntil || "2026-12-31");
     setIsActive(v.isActive ?? true);
     setIsFormOpen(true);
@@ -81,6 +81,9 @@ export default function VoucherManagementModal({
 
     setLoading(true);
     const isEdit = Boolean(editingVoucher);
+    const numDiscount = parseFloat(discountValueStr) || 0;
+    const numMaxDiscount = maxDiscountStr ? parseFloat(maxDiscountStr) : null;
+    const numMinSubtotal = parseFloat(minSubtotalStr) || 0;
 
     const payload = {
       id: editingVoucher?.id,
@@ -88,9 +91,9 @@ export default function VoucherManagementModal({
       title,
       description,
       discountType,
-      discountValue: Number(discountValue),
-      maxDiscount: maxDiscount ? Number(maxDiscount) : null,
-      minSubtotal: Number(minSubtotal),
+      discountValue: numDiscount,
+      maxDiscount: numMaxDiscount,
+      minSubtotal: numMinSubtotal,
       validUntil,
       isActive,
     };
@@ -151,17 +154,30 @@ export default function VoucherManagementModal({
 
   if (!isOpen) return null;
 
-  // Calculation simulation sample (Subtotal Rp 100.000)
+  // Real-time calculation simulation sample (Subtotal Rp 100.000)
   const sampleSubtotal = 100000;
+  const numVal = parseFloat(discountValueStr) || 0;
+  const numMax = maxDiscountStr ? parseFloat(maxDiscountStr) : null;
   let sampleDiscount = 0;
   if (discountType === "percent") {
-    sampleDiscount = Math.round((sampleSubtotal * discountValue) / 100);
-    if (maxDiscount && Number(maxDiscount) > 0) {
-      sampleDiscount = Math.min(sampleDiscount, Number(maxDiscount));
+    sampleDiscount = Math.round((sampleSubtotal * numVal) / 100);
+    if (numMax && numMax > 0) {
+      sampleDiscount = Math.min(sampleDiscount, numMax);
     }
   } else {
-    sampleDiscount = Math.min(discountValue, sampleSubtotal);
+    sampleDiscount = Math.min(numVal, sampleSubtotal);
   }
+
+  const percentPresets = [5, 10, 15, 20, 25, 30, 50, 75, 100];
+  const fixedPresets = [2000, 5000, 10000, 15000, 20000, 25000, 50000];
+  const maxCapPresets = [
+    { label: "Tanpa Batas", val: "" },
+    { label: "Maks 10rb", val: "10000" },
+    { label: "Maks 15rb", val: "15000" },
+    { label: "Maks 20rb", val: "20000" },
+    { label: "Maks 25rb", val: "25000" },
+    { label: "Maks 50rb", val: "50000" },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
@@ -175,7 +191,7 @@ export default function VoucherManagementModal({
             <div>
               <h2 className="text-lg font-bold text-slate-900">Manajemen Voucher Digital</h2>
               <p className="text-xs text-slate-500">
-                Kelola kode promo, diskon persentase (%), nominal tetap (Rp), &amp; batasan diskon.
+                Kelola kode promo, persentase (%), nominal (Rp), &amp; batas maksimal diskon.
               </p>
             </div>
           </div>
@@ -216,7 +232,7 @@ export default function VoucherManagementModal({
           {isFormOpen && (
             <form
               onSubmit={handleSaveVoucher}
-              className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300/80 space-y-3.5 animate-in slide-in-from-top duration-200 shadow-sm"
+              className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300/80 space-y-4 animate-in slide-in-from-top duration-200 shadow-sm"
             >
               <div className="flex items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 uppercase tracking-wider">
@@ -232,7 +248,7 @@ export default function VoucherManagementModal({
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
                     Kode Voucher (Unik)
@@ -274,11 +290,18 @@ export default function VoucherManagementModal({
                   />
                 </div>
 
+                {/* Skema Diskon Selector */}
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Skema Diskon</label>
                   <select
                     value={discountType}
-                    onChange={(e) => setDiscountType(e.target.value as "percent" | "fixed")}
+                    onChange={(e) => {
+                      const newType = e.target.value as "percent" | "fixed";
+                      setDiscountType(newType);
+                      if (newType === "percent" && parseFloat(discountValueStr) > 100) {
+                        setDiscountValueStr("20");
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
                   >
                     <option value="percent">Persentase Diskon (%)</option>
@@ -286,34 +309,117 @@ export default function VoucherManagementModal({
                   </select>
                 </div>
 
+                {/* Flexible Discount Input Field */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    {discountType === "percent" ? "Persentase Diskon (%)" : "Nominal Potongan (Rp)"}
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>{discountType === "percent" ? "Persentase Diskon (%)" : "Nominal Potongan (Rp)"}</span>
+                    <span className="text-[10px] text-amber-700 font-extrabold">
+                      {discountType === "percent" ? "1% - 100%" : "Nominal Tetap"}
+                    </span>
                   </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={discountType === "percent" ? 100 : undefined}
-                    required
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
-                  />
-                </div>
-
-                {discountType === "percent" && (
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">
-                      Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
-                    </label>
+                  
+                  <div className="relative flex items-center">
+                    {discountType === "fixed" && (
+                      <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                        Rp
+                      </span>
+                    )}
                     <input
                       type="number"
+                      step="any"
                       min={0}
-                      placeholder="Contoh: 15000 (Kosongkan jika tanpa batas)"
-                      value={maxDiscount}
-                      onChange={(e) => setMaxDiscount(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                      required
+                      placeholder={discountType === "percent" ? "Masukkan % (contoh: 20)" : "Masukkan Rp (contoh: 10000)"}
+                      value={discountValueStr}
+                      onChange={(e) => setDiscountValueStr(e.target.value)}
+                      className={`w-full py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none ${
+                        discountType === "fixed" ? "pl-9 pr-3" : "pl-3 pr-9"
+                      }`}
                     />
+                    {discountType === "percent" && (
+                      <span className="absolute right-3 font-extrabold font-mono text-amber-700 text-xs select-none">
+                        %
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Preset Pills for Quick Selection */}
+                  <div className="mt-1.5 flex items-center gap-1 overflow-x-auto pb-1">
+                    <span className="text-[9px] font-bold text-slate-400 shrink-0">Pilihan Cepat:</span>
+                    {discountType === "percent"
+                      ? percentPresets.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setDiscountValueStr(String(p))}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
+                              discountValueStr === String(p)
+                                ? "bg-amber-500 text-slate-950 font-black shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-amber-100"
+                            }`}
+                          >
+                            {p}%
+                          </button>
+                        ))
+                      : fixedPresets.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setDiscountValueStr(String(p))}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
+                              discountValueStr === String(p)
+                                ? "bg-amber-500 text-slate-950 font-black shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-amber-100"
+                            }`}
+                          >
+                            {(p / 1000)}rb
+                          </button>
+                        ))}
+                  </div>
+                </div>
+
+                {/* Maksimal Diskon Caps Input (Only for Percent) */}
+                {discountType === "percent" && (
+                  <div className="sm:col-span-2 bg-white/60 p-3 rounded-xl border border-amber-200/60 space-y-1.5">
+                    <label className="block font-bold text-slate-700 flex items-center justify-between">
+                      <span>Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span></span>
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {maxDiscountStr ? `Maksimal Rp ${Number(maxDiscountStr).toLocaleString("id-ID")}` : "Tanpa Batas Maximum"}
+                      </span>
+                    </label>
+                    
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Kosongkan jika tanpa batas (contoh: 15000)"
+                        value={maxDiscountStr}
+                        onChange={(e) => setMaxDiscountStr(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                      />
+                    </div>
+
+                    {/* Max Discount Presets */}
+                    <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
+                      <span className="text-[9px] font-bold text-slate-400 shrink-0">Batas Caps:</span>
+                      {maxCapPresets.map((cap) => (
+                        <button
+                          key={cap.label}
+                          type="button"
+                          onClick={() => setMaxDiscountStr(cap.val)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
+                            maxDiscountStr === cap.val
+                              ? "bg-slate-900 text-white shadow-xs"
+                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {cap.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -321,13 +427,18 @@ export default function VoucherManagementModal({
                   <label className="block font-bold text-slate-700 mb-1">
                     Minimal Subtotal Belanja (Rp)
                   </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={minSubtotal}
-                    onChange={(e) => setMinSubtotal(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
-                  />
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                      Rp
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={minSubtotalStr}
+                      onChange={(e) => setMinSubtotalStr(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -340,25 +451,25 @@ export default function VoucherManagementModal({
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">Status Publikasi</label>
                   <select
                     value={isActive ? "true" : "false"}
                     onChange={(e) => setIsActive(e.target.value === "true")}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
                   >
-                    <option value="true">🟢 Aktif (Dapat Di-claim Pembeli)</option>
-                    <option value="false">🔴 Nonaktif (Disembunyikan)</option>
+                    <option value="true">🟢 Aktif (Dapat Di-claim &amp; Terbaca Realtime oleh Pembeli)</option>
+                    <option value="false">🔴 Nonaktif (Disembunyikan dari Pembeli)</option>
                   </select>
                 </div>
               </div>
 
               {/* Simulation Helper Pill */}
-              <div className="p-2.5 bg-white/80 border border-amber-200 rounded-xl text-[11px] font-medium text-amber-900 flex items-center gap-2">
+              <div className="p-3 bg-white border border-amber-300/80 rounded-xl text-xs font-medium text-amber-950 flex items-center gap-2.5 shadow-2xs">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>
-                  💡 <strong>Simulasi Potongan:</strong> Belanja Rp 100.000 → Diskon = <strong>Rp {sampleDiscount.toLocaleString("id-ID")}</strong>
-                  {discountType === "percent" && maxDiscount && Number(maxDiscount) > 0 ? ` (Dibatasi Maks. Rp ${Number(maxDiscount).toLocaleString("id-ID")})` : ""}
+                  💡 <strong>Simulasi Perhitungan:</strong> Belanja Rp 100.000 → Hemat Diskon = <strong className="font-mono text-emerald-700">Rp {sampleDiscount.toLocaleString("id-ID")}</strong>
+                  {discountType === "percent" && numMax && numMax > 0 ? ` (Dibatasi Maks. Rp ${numMax.toLocaleString("id-ID")})` : ""}
                 </span>
               </div>
 
