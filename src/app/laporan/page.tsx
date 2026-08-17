@@ -4,19 +4,21 @@ import { useState, useEffect } from "react";
 import { Transaction } from "@/types";
 import { fetchTransactionsFromDB, saveTransactions } from "@/lib/data-service";
 import { exportTransactionsToPDF } from "@/lib/export/pdf-export";
-import { exportTransactionsToExcel } from "@/lib/export/excel-export";
+import { exportTransactionsToGoogleSheets } from "@/lib/export/google-sheets-export";
 import StatsCards from "./components/StatsCards";
 import SalesTrendChart from "./components/SalesTrendChart";
 import CategoryPieChart from "./components/CategoryPieChart";
+import TopMenuBarChart from "./components/TopMenuBarChart";
 import AiInsightCard from "./components/AiInsightCard";
 import MenuPerformanceTable from "./components/MenuPerformanceTable";
 import HistoryTable from "./components/HistoryTable";
-import { FileText, FileSpreadsheet, RotateCcw, Calendar, Loader2 } from "lucide-react";
+import { FileText, Table, RotateCcw, Calendar, Loader2, Sparkles } from "lucide-react";
 
 export default function LaporanPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [periodFilter, setPeriodFilter] = useState<"today" | "7days" | "month" | "all">("all");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingGoogleSheets, setIsExportingGoogleSheets] = useState(false);
 
   const handleExportPDF = async () => {
     setIsExportingPdf(true);
@@ -27,6 +29,18 @@ export default function LaporanPage() {
       alert("Gagal mengunduh PDF: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportGoogleSheets = async () => {
+    setIsExportingGoogleSheets(true);
+    try {
+      await exportTransactionsToGoogleSheets(filteredTransactions, getPeriodLabel());
+    } catch (err) {
+      console.error("Google Sheets export error:", err);
+      alert("Gagal ekspor ke Google Sheets: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsExportingGoogleSheets(false);
     }
   };
 
@@ -85,16 +99,19 @@ export default function LaporanPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Actions */}
+      {/* Top Header & Action Buttons */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard Laporan & Analytics</h1>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <span>Dashboard Laporan &amp; Analytics Eksekutif</span>
+            <Sparkles className="w-5 h-5 text-amber-500 fill-amber-400" />
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Ringkasan omzet, laba bersih, grafik penjualan, AI insight, dan riwayat nota.
+            Ringkasan omzet, laba bersih SAK EMKM, grafik tren harian, 5 menu terlaris, dan integrasi Google Sheets.
           </p>
         </div>
 
-        {/* Action Buttons: Export PDF, Excel, Seed Demo Data, Reset */}
+        {/* Action Buttons: Export PDF, Direct Google Sheets API, Seed Demo Data, Reset */}
         <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => {
@@ -156,22 +173,27 @@ export default function LaporanPage() {
           <button
             onClick={handleExportPDF}
             disabled={isExportingPdf}
-            className="py-2 px-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            className="py-2 px-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
             {isExportingPdf ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <FileText className="w-3.5 h-3.5" />
             )}
-            <span className="truncate">{isExportingPdf ? "Mengunduh..." : "Export PDF"}</span>
+            <span className="truncate">{isExportingPdf ? "Mengunduh..." : "Export PDF Eksekutif"}</span>
           </button>
 
           <button
-            onClick={() => exportTransactionsToExcel(filteredTransactions, getPeriodLabel())}
-            className="py-2 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            onClick={handleExportGoogleSheets}
+            disabled={isExportingGoogleSheets}
+            className="py-2 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span className="truncate">Export Excel</span>
+            {isExportingGoogleSheets ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Table className="w-3.5 h-3.5 text-emerald-200" />
+            )}
+            <span className="truncate">{isExportingGoogleSheets ? "Menghubungkan..." : "Export Google Sheets 🟩"}</span>
           </button>
 
           <button
@@ -196,12 +218,12 @@ export default function LaporanPage() {
             { key: "today", label: "Hari Ini" },
             { key: "7days", label: "7 Hari Terakhir" },
             { key: "month", label: "Bulan Ini" },
-            { key: "all", label: "Semua" },
+            { key: "all", label: "Semua Periode" },
           ].map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriodFilter(p.key as typeof periodFilter)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
                 periodFilter === p.key
                   ? "bg-amber-500 text-white shadow-xs"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -224,7 +246,7 @@ export default function LaporanPage() {
       {/* AI Narrative Insight Card */}
       <AiInsightCard transactions={filteredTransactions} />
 
-      {/* Charts Row */}
+      {/* Analytics Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <SalesTrendChart transactions={filteredTransactions} />
@@ -234,8 +256,15 @@ export default function LaporanPage() {
         </div>
       </div>
 
-      {/* Performance Per Menu Table */}
-      <MenuPerformanceTable transactions={filteredTransactions} />
+      {/* Best Seller Top 5 Menu Chart & Performance Table */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-1">
+          <TopMenuBarChart transactions={filteredTransactions} />
+        </div>
+        <div className="lg:col-span-2">
+          <MenuPerformanceTable transactions={filteredTransactions} />
+        </div>
+      </div>
 
       {/* Full Transaction History Table */}
       <HistoryTable

@@ -3,6 +3,7 @@
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import { Transaction } from "@/types";
+import { PieChart } from "lucide-react";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -23,14 +24,18 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
         name.includes("kopi") ||
         name.includes("teh") ||
         name.includes("jeruk") ||
-        name.includes("minuman")
+        name.includes("minuman") ||
+        name.includes("susu") ||
+        name.includes("jus")
       ) {
         minumanRev += item.priceSnapshot * item.qty;
       } else if (
         name.includes("tahu") ||
         name.includes("pisang") ||
         name.includes("cemilan") ||
-        name.includes("snack")
+        name.includes("snack") ||
+        name.includes("kentang") ||
+        name.includes("cireng")
       ) {
         cemilanRev += item.priceSnapshot * item.qty;
       } else {
@@ -39,43 +44,85 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
     });
   });
 
+  const totalCatRev = makananRev + minumanRev + cemilanRev;
+
   const data = {
-    labels: ["Makanan", "Minuman", "Cemilan"],
+    labels: ["Makanan Utama", "Minuman Segar", "Cemilan & Snack"],
     datasets: [
       {
-        data: [makananRev || 1, minumanRev || 1, cemilanRev || 1],
+        data: [makananRev, minumanRev, cemilanRev],
         backgroundColor: [
-          "rgba(217, 119, 6, 0.85)",
-          "rgba(59, 130, 246, 0.85)",
-          "rgba(16, 185, 129, 0.85)",
+          "#D97706", // Amber 600
+          "#0284C7", // Sky 600
+          "#059669", // Emerald 600
         ],
-        borderWidth: 2,
-        borderColor: "#ffffff",
+        hoverBackgroundColor: [
+          "#B45309",
+          "#0369A1",
+          "#047857",
+        ],
+        borderWidth: 3,
+        borderColor: "#FFFFFF",
+        hoverOffset: 6,
       },
     ],
   };
 
-  const options = {
+  const options: any = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: "70%",
     plugins: {
       legend: {
         position: "bottom" as const,
         labels: {
-          font: { family: "sans-serif", size: 11 },
+          usePointStyle: true,
+          pointStyle: "circle",
+          padding: 14,
+          font: { family: "sans-serif", size: 10, weight: "bold" },
+          color: "#334155",
+        },
+      },
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.95)",
+        titleFont: { size: 12, weight: "bold" },
+        bodyFont: { size: 11 },
+        padding: 12,
+        cornerRadius: 12,
+        callbacks: {
+          label: function (context: any) {
+            const val = context.parsed || 0;
+            const pct = totalCatRev > 0 ? ((val / totalCatRev) * 100).toFixed(1) : "0.0";
+            return `  ${context.label}: Rp ${val.toLocaleString("id-ID")} (${pct}%)`;
+          },
         },
       },
     },
   };
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col h-80">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-slate-800 text-sm">Proporsi Omzet Kategori</h3>
-        <span className="text-xs text-slate-400 font-medium">Persentase</span>
+    <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-88">
+      <div className="flex items-center justify-between mb-2 border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-sky-100 text-sky-800 rounded-xl">
+            <PieChart className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-900 text-sm">Proporsi Omzet Kategori</h3>
+            <p className="text-[11px] text-slate-500">Distribusi pendapatan per jenis menu.</p>
+          </div>
+        </div>
       </div>
+
       <div className="flex-1 w-full relative flex items-center justify-center">
         <Doughnut data={data} options={options} />
+        {/* Center Total Overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
+          <span className="text-[10px] uppercase font-extrabold text-slate-400">Total Omzet</span>
+          <span className="text-xs font-black text-slate-900 font-mono">
+            Rp {(totalCatRev / 1000).toFixed(0)}rb
+          </span>
+        </div>
       </div>
     </div>
   );
