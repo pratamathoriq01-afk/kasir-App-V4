@@ -3,7 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber } from "@/lib/data-service";
-import { playNotificationChime, warmUpAudioContext, unlockAudioContext } from "@/lib/audio-notifier";
+import {
+  playNotificationChime,
+  warmUpAudioContext,
+  unlockAudioContext,
+  requestPushNotificationPermission,
+  showOrderPushNotification,
+} from "@/lib/audio-notifier";
 import { useCartStore } from "@/store/cart-store";
 import MenuGrid from "./components/MenuGrid";
 import CartSection from "./components/CartSection";
@@ -49,8 +55,19 @@ export default function KasirPage() {
   useEffect(() => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
     unlockAudioContext();
+    requestPushNotificationPermission();
   }, []);
 
+  // Continuous Alarm Loop: Repeat chime every 3.5s UNTIL cashier accepts orders (newOrdersCount === 0)
+  useEffect(() => {
+    if (newOrdersCount > 0) {
+      const alarmInterval = setInterval(() => {
+        warmUpAudioContext();
+        playNotificationChime();
+      }, 3500);
+      return () => clearInterval(alarmInterval);
+    }
+  }, [newOrdersCount]);
 
   const loadDigitalOrders = async () => {
     try {
@@ -81,6 +98,7 @@ export default function KasirPage() {
         isFirstLoadRef.current = false;
         if (pendingOrders.length > 0) {
           playNotificationChime();
+          showOrderPushNotification(pendingOrders[0]);
         }
         return;
       }
@@ -103,6 +121,7 @@ export default function KasirPage() {
             knownTxIdsRef.current.add(`${t.id}-announced`);
           }
           if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
+          showOrderPushNotification(t);
         });
         // Play instant automatic notification chime!
         warmUpAudioContext();

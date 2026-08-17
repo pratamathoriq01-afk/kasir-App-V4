@@ -164,3 +164,36 @@ export function playNotificationChime(): void {
     }
   }
 }
+
+export function requestPushNotificationPermission(): void {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+export function showOrderPushNotification(order: { orderNumber: string; customerName?: string | null; orderType?: string | null; total?: number }): void {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+
+  if (Notification.permission === "granted") {
+    try {
+      const title = `🔔 PESANAN ONLINE BARU! (${order.orderNumber})`;
+      const options: any = {
+        body: `Pemesan: ${order.customerName || "Pelanggan"} • ${order.orderType === "dine-in" ? "Dine In" : "Bungkus"} • Total: Rp ${(order.total || 0).toLocaleString("id-ID")}\nKlik untuk membuka Kasir App & terima pesanan.`,
+        tag: `new-order-${order.orderNumber}`,
+        requireInteraction: true,
+        renotify: true,
+      };
+
+      const notification = new Notification(title, options);
+      notification.onclick = () => {
+        if (typeof window !== "undefined") {
+          window.focus();
+        }
+        notification.close();
+      };
+    } catch (err) {
+      console.warn("Browser Push Notification error:", err);
+    }
+  }
+}
