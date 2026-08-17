@@ -10,10 +10,17 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.39",
+    "@ai-sdk/deepseek": "^3.0.28",
+    "@ai-sdk/google": "^4.0.44",
+    "@ai-sdk/groq": "^4.0.28",
+    "@ai-sdk/openai": "^4.0.42",
+    "@ai-sdk/react": "^4.0.69",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
+    "ai": "^7.0.66",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
