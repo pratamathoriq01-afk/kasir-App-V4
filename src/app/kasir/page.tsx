@@ -148,7 +148,9 @@ export default function KasirPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...transaction, isPOSAdminCheckout: true }),
-    }).catch(() => {});
+    })
+      .then(() => loadDigitalOrders())
+      .catch(() => {});
 
     setIsPaymentModalOpen(false);
     setIsReceiptModalOpen(true);

@@ -94,37 +94,62 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
 
-    // Force NEW_ORDER status for all buyer orders coming from Menu Digital v2
+    // Generate bulletproof unique orderNumber if missing or colliding
+    let finalOrderNumber = String(body.orderNumber || "").trim();
+    if (!finalOrderNumber) {
+      finalOrderNumber = `KDN-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
+    const existingNumber = await prismaClient.transaction.findFirst({
+      where: {
+        OR: [
+          { orderNumber: finalOrderNumber },
+          { id: finalOrderNumber },
+        ],
+      },
+    });
+
+    if (existingNumber) {
+      finalOrderNumber = `${finalOrderNumber}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    // Force NEW_ORDER status for buyer orders coming from Menu Digital v2
     const initialStatus = body.isPOSAdminCheckout
       ? (body.orderStatus || "ORDER_FINISH")
-      : "NEW_ORDER";
+      : (body.orderStatus || "NEW_ORDER");
+
+    const subtotal = Number(body.subtotal) || 0;
+    const tax = Number(body.tax) || 0;
+    const total = Number(body.total) || (subtotal + tax);
+    const hppTotal = Number(body.hppTotal) || 0;
+    const netProfit = Number(body.netProfit) || (total - hppTotal - tax);
 
     const newTrx = await prismaClient.transaction.create({
       data: {
-        orderNumber: body.orderNumber,
-        customerName: body.customerName,
-        orderType: body.orderType,
-        tableNumber: body.tableNumber,
-        subtotal: Number(body.subtotal),
-        discountType: body.discountType,
+        orderNumber: finalOrderNumber,
+        customerName: body.customerName || "Pelanggan",
+        orderType: body.orderType || "dine-in",
+        tableNumber: body.tableNumber || "-",
+        subtotal,
+        discountType: body.discountType || null,
         discountValue: Number(body.discountValue || 0),
         discountAmount: Number(body.discountAmount || 0),
-        tax: Number(body.tax),
-        total: Number(body.total),
-        hppTotal: Number(body.hppTotal),
-        netProfit: Number(body.netProfit),
-        cashReceived: Number(body.cashReceived),
-        change: Number(body.change),
+        tax,
+        total,
+        hppTotal,
+        netProfit,
+        cashReceived: Number(body.cashReceived || total),
+        change: Number(body.change || 0),
         orderStatus: initialStatus,
         orderNotes: body.orderNotes || null,
         customerPhone: body.customerPhone || null,
         items: {
           create: (body.items || []).map((item: { menuItemId?: string; nameSnapshot: string; priceSnapshot: number; hppSnapshot: number; qty: number }) => ({
             menuItemId: item.menuItemId || null,
-            nameSnapshot: item.nameSnapshot,
-            priceSnapshot: Number(item.priceSnapshot),
-            hppSnapshot: Number(item.hppSnapshot),
-            qty: Number(item.qty),
+            nameSnapshot: item.nameSnapshot || "Menu",
+            priceSnapshot: Number(item.priceSnapshot || 0),
+            hppSnapshot: Number(item.hppSnapshot || 0),
+            qty: Number(item.qty || 1),
           })),
         },
       },
@@ -132,6 +157,7 @@ export async function POST(request: Request) {
     });
     return jsonWithCors(newTrx, 201);
   } catch (error) {
+    console.error("POST transaction error:", error);
     return jsonWithCors(
       { error: "Gagal menyimpan transaksi ke DB.", details: String(error) },
       500
