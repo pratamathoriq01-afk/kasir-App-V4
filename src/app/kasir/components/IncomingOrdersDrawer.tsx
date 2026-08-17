@@ -49,14 +49,22 @@ export default function IncomingOrdersDrawer({
       ? inProcessedOrders
       : finishedOrders;
 
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   const handleActionClick = (trx: Transaction, targetStatus: "IN_PROCESSED" | "ORDER_FINISH") => {
-    onUpdateStatus(trx.id || trx.orderNumber, targetStatus);
-    if (targetStatus === "IN_PROCESSED") {
-      showNotificationToast(`🔥 Pesanan ${trx.orderNumber} diterima & masuk ke Dapur!`);
-    } else if (targetStatus === "ORDER_FINISH") {
-      showNotificationToast(`✅ Pesanan ${trx.orderNumber} selesai & masuk ke Riwayat!`);
-    }
+    const id = trx.id || trx.orderNumber;
+    setProcessingId(id);
+    setTimeout(() => {
+      onUpdateStatus(id, targetStatus);
+      setProcessingId(null);
+      if (targetStatus === "IN_PROCESSED") {
+        showNotificationToast(`🔥 Pesanan ${trx.orderNumber} diterima & masuk ke Dapur!`);
+      } else if (targetStatus === "ORDER_FINISH") {
+        showNotificationToast(`✅ Pesanan ${trx.orderNumber} selesai & masuk ke Riwayat!`);
+      }
+    }, 250);
   };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex justify-end animate-in fade-in duration-300">
@@ -310,10 +318,24 @@ export default function IncomingOrdersDrawer({
                         {isNew && (
                           <button
                             onClick={() => handleActionClick(trx, "IN_PROCESSED")}
-                            className="py-2.5 px-4 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-600 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-md shadow-amber-500/25 transition-all duration-200 flex items-center gap-1.5 active:scale-95 hover:scale-[1.03] cursor-pointer"
+                            disabled={processingId === (trx.id || trx.orderNumber)}
+                            className={`py-2.5 px-4 font-black rounded-xl text-xs shadow-md transition-all duration-300 flex items-center gap-1.5 active:scale-95 hover:scale-[1.02] cursor-pointer ${
+                              processingId === (trx.id || trx.orderNumber)
+                                ? "bg-amber-500 text-slate-950 shadow-amber-500/30 ring-2 ring-amber-300"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                            }`}
                           >
-                            <span>Terima &amp; Proses Pesanan</span>
-                            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                            {processingId === (trx.id || trx.orderNumber) ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                                <span>Memproses Pesanan...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Terima Pesanan</span>
+                                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                              </>
+                            )}
                           </button>
                         )}
 

@@ -24,7 +24,36 @@ function getAudioContext(): AudioContext | null {
 }
 
 export function warmUpAudioContext(): void {
-  getAudioContext();
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
+export function unlockAudioContext(): void {
+  if (typeof window === "undefined") return;
+
+  const unlock = () => {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().then(() => {
+        window.removeEventListener("pointerdown", unlock);
+        window.removeEventListener("click", unlock);
+        window.removeEventListener("keydown", unlock);
+        window.removeEventListener("touchstart", unlock);
+      }).catch(() => {});
+    } else {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    }
+  };
+
+  window.addEventListener("pointerdown", unlock, { once: true });
+  window.addEventListener("click", unlock, { once: true });
+  window.addEventListener("keydown", unlock, { once: true });
+  window.addEventListener("touchstart", unlock, { once: true });
 }
 
 export function playNotificationChime(): void {

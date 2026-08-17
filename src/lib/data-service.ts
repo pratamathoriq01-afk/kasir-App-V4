@@ -1,20 +1,15 @@
 import { MenuItem, Transaction, Voucher } from "@/types";
-import { INITIAL_MENU_ITEMS, INITIAL_TRANSACTIONS } from "./mock-data";
 
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
 const TRANSACTIONS_STORAGE_KEY = "kedainyamleng_transactions_v4";
 
 export function getStoredMenuItems(): MenuItem[] {
-  if (typeof window === "undefined") return INITIAL_MENU_ITEMS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(MENU_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(INITIAL_MENU_ITEMS));
-      return INITIAL_MENU_ITEMS;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return INITIAL_MENU_ITEMS;
+    return [];
   }
 }
 
@@ -23,7 +18,7 @@ export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
     const res = await fetch("/api/menu");
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         saveMenuItems(data);
         return data;
       }
@@ -40,16 +35,12 @@ export function saveMenuItems(items: MenuItem[]): void {
 }
 
 export function getStoredTransactions(): Transaction[] {
-  if (typeof window === "undefined") return INITIAL_TRANSACTIONS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(TRANSACTIONS_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(INITIAL_TRANSACTIONS));
-      return INITIAL_TRANSACTIONS;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return INITIAL_TRANSACTIONS;
+    return [];
   }
 }
 
@@ -58,7 +49,7 @@ export async function fetchTransactionsFromDB(): Promise<Transaction[]> {
     const res = await fetch("/api/transactions");
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         saveTransactions(data);
         return data;
       }
@@ -101,3 +92,4 @@ export function getNextOrderNumber(): string {
   const count = trxs.length + 1;
   return `#${String(count).padStart(3, "0")}`;
 }
+

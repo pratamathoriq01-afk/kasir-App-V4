@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber } from "@/lib/data-service";
-import { playNotificationChime, warmUpAudioContext } from "@/lib/audio-notifier";
+import { playNotificationChime, warmUpAudioContext, unlockAudioContext } from "@/lib/audio-notifier";
 import { useCartStore } from "@/store/cart-store";
 import MenuGrid from "./components/MenuGrid";
 import CartSection from "./components/CartSection";
 import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
 import IncomingOrdersDrawer from "./components/IncomingOrdersDrawer";
-import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw } from "lucide-react";
+import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2 } from "lucide-react";
 
 export default function KasirPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -48,15 +48,9 @@ export default function KasirPage() {
 
   useEffect(() => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
-
-    const handleUserInteraction = () => warmUpAudioContext();
-    window.addEventListener("pointerdown", handleUserInteraction, { once: true });
-    window.addEventListener("keydown", handleUserInteraction, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", handleUserInteraction);
-      window.removeEventListener("keydown", handleUserInteraction);
-    };
+    unlockAudioContext();
   }, []);
+
 
   const loadDigitalOrders = async () => {
     try {
@@ -202,30 +196,47 @@ export default function KasirPage() {
           </p>
         </div>
 
-        {/* Dedicated Wadah Pesanan Masuk Trigger Button */}
-        <button
-          onClick={() => setIsOrdersDrawerOpen(true)}
-          className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md cursor-pointer shrink-0 ${
-            newOrdersCount > 0
-              ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/25 animate-pulse"
-              : "bg-slate-900 hover:bg-slate-800 text-white"
-          }`}
-        >
-          <div className="relative">
-            <Bell className="w-4 h-4 stroke-[2.5]" />
-            {newOrdersCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white animate-ping" />
-            )}
-          </div>
-          <span>Wadah Pesanan Masuk (Menu Digital)</span>
-          <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-black ${
-            newOrdersCount > 0
-              ? "bg-slate-950 text-amber-400"
-              : "bg-slate-800 text-slate-300"
-          }`}>
-            {newOrdersCount > 0 ? `${newOrdersCount} Baru` : `${digitalOrders.length}`}
-          </span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Audio Notifier Status & Test Trigger Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              warmUpAudioContext();
+              playNotificationChime();
+            }}
+            className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 active:scale-95 cursor-pointer"
+            title="Tes Suara Bel Notifikasi POS"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+            <span className="hidden md:inline">Audio Notifikasi</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">Aktif</span>
+          </button>
+
+          {/* Dedicated Compact Pesanan Online Trigger Button */}
+          <button
+            onClick={() => setIsOrdersDrawerOpen(true)}
+            className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md cursor-pointer shrink-0 ${
+              newOrdersCount > 0
+                ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/25 animate-pulse"
+                : "bg-slate-900 hover:bg-slate-800 text-white"
+            }`}
+          >
+            <div className="relative">
+              <Bell className="w-4 h-4 stroke-[2.5]" />
+              {newOrdersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white animate-ping" />
+              )}
+            </div>
+            <span>🔔 Pesanan Online</span>
+            <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-black ${
+              newOrdersCount > 0
+                ? "bg-slate-950 text-amber-400"
+                : "bg-slate-800 text-slate-300"
+            }`}>
+              {newOrdersCount > 0 ? `🔴 ${newOrdersCount} Baru` : `${digitalOrders.length}`}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Top View Switcher (Visible on < lg screens) */}
