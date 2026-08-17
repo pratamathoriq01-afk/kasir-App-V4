@@ -1,7 +1,25 @@
 import { Transaction } from "@/types";
 
-// OAuth 2.0 Client Credential provided by User
+// OAuth 2.0 Client Credential
 export const GOOGLE_CLIENT_ID = "815527702419-94kbchi8m7m20tt7egh8bdet9j5lbt65.apps.googleusercontent.com";
+
+export function getGoogleOAuthRedirectUri(): string {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/oauth2callback`;
+  }
+  return "https://app-kasir-kedai-nyamleng.vercel.app/oauth2callback";
+}
+
+export function triggerGoogleOAuthConnect() {
+  const clientId = GOOGLE_CLIENT_ID;
+  const redirectUri = encodeURIComponent(getGoogleOAuthRedirectUri());
+  const scope = encodeURIComponent(
+    "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file"
+  );
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true`;
+
+  window.location.href = authUrl;
+}
 
 /**
  * Export Transactions directly formatted for Google Sheets
