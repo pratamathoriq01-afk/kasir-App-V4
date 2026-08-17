@@ -23,6 +23,7 @@ export default function IncomingOrdersDrawer({
 }: IncomingOrdersDrawerProps) {
   const [activeTab, setActiveTab] = useState<"NEW_ORDER" | "IN_PROCESSED" | "ORDER_FINISH">("NEW_ORDER");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -48,8 +49,6 @@ export default function IncomingOrdersDrawer({
       : activeTab === "IN_PROCESSED"
       ? inProcessedOrders
       : finishedOrders;
-
-  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleActionClick = (trx: Transaction, targetStatus: "IN_PROCESSED" | "ORDER_FINISH") => {
     const id = trx.id || trx.orderNumber;
