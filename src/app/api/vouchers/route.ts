@@ -87,7 +87,16 @@ export async function GET() {
       });
     }
 
-    return jsonWithCors(vouchers);
+    const normalized = vouchers.map((v: any) => {
+      const dt = String(v.discountType || "").toLowerCase();
+      const type = dt.includes("fixed") ? "fixed" : "percent";
+      return {
+        ...v,
+        discountType: type,
+      };
+    });
+
+    return jsonWithCors(normalized);
   } catch (error) {
     console.warn("DB voucher query error, returning initial vouchers:", error);
     return jsonWithCors(INITIAL_VOUCHERS);

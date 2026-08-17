@@ -72,7 +72,8 @@ export async function POST(request: Request) {
 
     // Calculate discount amount
     let discountAmount = 0;
-    if (voucher.discountType === "percent") {
+    const isPercent = String(voucher.discountType || "").toLowerCase().includes("percent");
+    if (isPercent) {
       discountAmount = Math.round((subtotal * voucher.discountValue) / 100);
       if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
         discountAmount = voucher.maxDiscount;
