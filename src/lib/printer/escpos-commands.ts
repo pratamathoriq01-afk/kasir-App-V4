@@ -149,7 +149,8 @@ export async function buildCustomerReceiptESCPOS(
   // 3. Store Address & Telp ONLY (NO big bold text "Kedai Nyamleng", ONLY logo above address!)
   parts.push(ESC_ALIGN_CENTER);
   parts.push(ESC_FONT_NORMAL);
-  parts.push(encBytes("Jl. LA. Sucipto XIV/42 Malang\n"));
+  parts.push(encBytes("Jl. Laksada Adi Sucipto Gg.14 No 42\n"));
+  parts.push(encBytes("Kel. Blimbing, Malang\n"));
   parts.push(encBytes("Telp/WA: 085113661387\n"));
 
   // 4. Divider

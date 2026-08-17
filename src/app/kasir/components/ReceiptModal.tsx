@@ -124,8 +124,12 @@ export default function ReceiptModal({
                     className="w-16 h-16 object-contain mx-auto mb-1 rounded-lg"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
-                  <p className="text-[10px] text-slate-600">Jl. LA. Sucipto XIV/42 Malang</p>
-                  <p className="text-[10px] font-bold text-slate-700">Telp/WA: 085113661387</p>
+                  <p className="text-[9px] text-slate-600 font-semibold px-1 leading-tight">
+                    Jl. Laksada Adi Sucipto Gg.14 No 42, Kel. Blimbing, Malang
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-800 mt-0.5">
+                    Telp/WA: 085113661387
+                  </p>
                 </div>
 
                 {/* Order Info */}
