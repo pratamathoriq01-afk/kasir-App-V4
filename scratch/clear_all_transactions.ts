@@ -6,24 +6,23 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 async function main() {
   const url = process.env.DIRECT_URL || process.env.DATABASE_URL;
+  console.log("Connecting to DB URL:", url ? url.replace(/:[^:@]+@/, ":***@") : "NONE");
+
   const pool = new Pool({
     connectionString: url,
     ssl: { rejectUnauthorized: false },
   });
 
-  console.log("Cleaning all transaction history in Supabase PostgreSQL DB...");
+  console.log("Clearing all transactions and transaction items from Supabase DB...");
 
-  // 1. Delete all items in TransactionItem table
-  const deleteItems = await pool.query(`DELETE FROM "TransactionItem";`);
-  console.log(`Deleted ${deleteItems.rowCount} rows from TransactionItem.`);
+  const delItems = await pool.query(`DELETE FROM "TransactionItem";`);
+  console.log("Deleted TransactionItems count:", delItems.rowCount);
 
-  // 2. Delete all transactions in Transaction table
-  const deleteTrx = await pool.query(`DELETE FROM "Transaction";`);
-  console.log(`Deleted ${deleteTrx.rowCount} rows from Transaction.`);
+  const delTrx = await pool.query(`DELETE FROM "Transaction";`);
+  console.log("Deleted Transactions count:", delTrx.rowCount);
 
-  // Verify DB count
-  const count = await pool.query(`SELECT COUNT(*) FROM "Transaction";`);
-  console.log(`Remaining transactions in Supabase DB: ${count.rows[0].count}`);
+  const countRes = await pool.query(`SELECT COUNT(*) FROM "Transaction"`);
+  console.log("Remaining Transaction count in DB:", countRes.rows[0].count);
 
   await pool.end();
 }
