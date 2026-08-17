@@ -52,7 +52,7 @@ export default function HistoryTable({
                 return (
                   <tr key={t.id} className="group hover:bg-slate-50/80 transition-colors">
                     <td colSpan={7} className="p-0">
-                      <div className="flex items-center justify-between py-3 px-4 border-b border-slate-50">
+                      <div className="flex items-center justify-between py-3 px-4 border-b border-slate-50 min-w-[640px]">
                         <div className="w-44">
                           <span className="font-bold font-mono text-slate-900 block">
                             {t.orderNumber}

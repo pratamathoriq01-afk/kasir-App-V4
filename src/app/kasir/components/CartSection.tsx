@@ -223,28 +223,32 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
               </div>
 
               {/* Quantity Controls */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden shadow-xs">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden shadow-xs">
                   <button
+                    type="button"
                     onClick={() => updateQty(item.menuItem.id, item.qty - 1)}
-                    className="p-1 hover:bg-slate-100 text-slate-600 transition-colors"
+                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors active:scale-95 cursor-pointer"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="w-7 text-center text-xs font-bold text-slate-800 font-mono">
+                  <span className="w-7 sm:w-8 text-center text-xs font-bold text-slate-800 font-mono">
                     {item.qty}
                   </span>
                   <button
+                    type="button"
                     onClick={() => updateQty(item.menuItem.id, item.qty + 1)}
-                    className="p-1 hover:bg-slate-100 text-slate-600 transition-colors"
+                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-slate-100 text-slate-700 transition-colors active:scale-95 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => removeItem(item.menuItem.id)}
-                  className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors active:scale-90 cursor-pointer"
+                  title="Hapus menu dari keranjang"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

@@ -78,7 +78,7 @@ export default function MenuGrid({ items }: MenuGridProps) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 pb-4">
             {filteredItems.map((item) => (
               <div
                 key={item.id}
@@ -87,7 +87,7 @@ export default function MenuGrid({ items }: MenuGridProps) {
               >
                 {/* Menu Image or Placeholder */}
                 {item.imageUrl ? (
-                  <div className="w-full h-32 overflow-hidden shrink-0">
+                  <div className="w-full h-24 sm:h-32 overflow-hidden shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.imageUrl}
@@ -96,30 +96,32 @@ export default function MenuGrid({ items }: MenuGridProps) {
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-24 bg-gradient-to-br from-amber-50 to-amber-100/50 flex items-center justify-center text-4xl shrink-0 border-b border-amber-100/60 group-hover:from-amber-100 transition-colors">
+                  <div className="w-full h-20 sm:h-24 bg-gradient-to-br from-amber-50 to-amber-100/50 flex items-center justify-center text-3xl sm:text-4xl shrink-0 border-b border-amber-100/60 group-hover:from-amber-100 transition-colors">
                     {categoryEmoji[item.category] || "🍽️"}
                   </div>
                 )}
 
                 {/* Card Body */}
-                <div className="p-3 flex flex-col flex-1">
-                  {/* Category Badge */}
-                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded-md w-fit mb-1.5">
-                    {item.category}
-                  </span>
+                <div className="p-2.5 sm:p-3 flex flex-col flex-1 justify-between">
+                  <div>
+                    {/* Category Badge */}
+                    <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded-md w-fit mb-1 block">
+                      {item.category}
+                    </span>
 
-                  {/* Menu Name */}
-                  <h3 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-amber-700 transition-colors flex-1">
-                    {item.name}
-                  </h3>
+                    {/* Menu Name */}
+                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-2 leading-tight sm:leading-snug group-hover:text-amber-700 transition-colors">
+                      {item.name}
+                    </h3>
+                  </div>
 
                   {/* Price & Add Button */}
-                  <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
-                    <div>
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">
+                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide block sm:inline">
                         Harga
                       </span>
-                      <span className="text-sm font-black text-amber-600 font-mono tracking-tight">
+                      <span className="text-xs sm:text-sm font-black text-amber-600 font-mono tracking-tight block truncate">
                         Rp {item.price.toLocaleString("id-ID")}
                       </span>
                     </div>
@@ -130,9 +132,10 @@ export default function MenuGrid({ items }: MenuGridProps) {
                         e.stopPropagation();
                         addItem(item);
                       }}
-                      className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-2.5 py-1.5 rounded-xl shadow-xs group-hover:shadow-md transition-all active:scale-90 cursor-pointer shrink-0"
+                      className="flex items-center justify-center gap-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl shadow-xs group-hover:shadow-md transition-all active:scale-90 cursor-pointer shrink-0"
+                      title="Tambah ke keranjang"
                     >
-                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                       <span className="hidden sm:inline">Tambah</span>
                     </button>
                   </div>

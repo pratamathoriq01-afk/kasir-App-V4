@@ -118,9 +118,9 @@ export default function Navbar() {
               />
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                Kedai Nyamleng
-                <span className="bg-amber-500/20 text-amber-300 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
+              <h1 className="text-sm sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5 sm:gap-2">
+                <span className="truncate max-w-[120px] sm:max-w-none">Kedai Nyamleng</span>
+                <span className="bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded-full border border-amber-500/30 shrink-0">
                   POS v4
                 </span>
                 <span className="hidden sm:inline-flex bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 items-center gap-1">
@@ -129,15 +129,16 @@ export default function Navbar() {
                 </span>
               </h1>
               {currentTime && (
-                <div className="flex items-center gap-1.5 text-[11px] text-amber-400 font-mono font-medium">
-                  <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
-                  <span>{currentTime}</span>
+                <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-amber-400 font-mono font-medium truncate max-w-[180px] sm:max-w-none">
+                  <Clock className="w-3 h-3 text-amber-400 animate-pulse shrink-0" />
+                  <span className="hidden sm:inline">{currentTime}</span>
+                  <span className="sm:hidden">{currentTime.split(" • ")[1] || currentTime}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Center: Printer Hardware Status Controls */}
+          {/* Desktop Printer Hardware Status Controls */}
           <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
             <span className="text-[11px] font-medium text-slate-400 mr-1">Thermal Printer:</span>
             
@@ -190,24 +191,27 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Navigation Links with Active State & Tactile Press Animations */}
+          {/* Navigation Links with Active State & Compact Mobile View */}
           <nav className="flex items-center space-x-1 sm:space-x-2">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href || pathname.startsWith(link.href);
 
+              const mobileLabel = link.href === "/kasir" ? "Kasir" : link.href === "/menu" ? "Menu" : "Laporan";
+
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-150 transform active:scale-95 cursor-pointer select-none ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-150 transform active:scale-95 cursor-pointer select-none ${
                     isActive
                       ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 scale-[1.02]"
                       : "text-slate-300 hover:text-white hover:bg-slate-800/80 active:bg-slate-800"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-slate-950" : "text-amber-400"}`} />
-                  <span>{link.label}</span>
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-slate-950" : "text-amber-400"}`} />
+                  <span className="hidden sm:inline">{link.label}</span>
+                  <span className="sm:hidden">{mobileLabel}</span>
                 </Link>
               );
             })}

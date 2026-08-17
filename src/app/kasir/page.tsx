@@ -186,17 +186,17 @@ export default function KasirPage() {
   return (
     <div className="flex flex-col h-full space-y-3">
       {/* Top Action & Real-time Incoming Orders Header Banner */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
         <div>
-          <h1 className="text-lg font-black text-slate-900 flex items-center gap-2">
+          <h1 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
             Kasir POS Offline &amp; Menu Digital v2
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
             Layan transaksi pembeli offline dan pantau pesanan masuk secara realtime.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           {/* Audio Notifier Status & Test Trigger Pill */}
           <button
             type="button"
@@ -204,18 +204,18 @@ export default function KasirPage() {
               warmUpAudioContext();
               playNotificationChime();
             }}
-            className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 active:scale-95 cursor-pointer"
+            className="py-1.5 px-2.5 sm:py-2 sm:px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 active:scale-95 cursor-pointer"
             title="Tes Suara Bel Notifikasi POS"
           >
             <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-            <span className="hidden md:inline">Audio Notifikasi</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">Aktif</span>
+            <span className="inline">Audio</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-black">Aktif</span>
           </button>
 
           {/* Dedicated Compact Pesanan Online Trigger Button */}
           <button
             onClick={() => setIsOrdersDrawerOpen(true)}
-            className={`py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md cursor-pointer shrink-0 ${
+            className={`py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md cursor-pointer shrink-0 ${
               newOrdersCount > 0
                 ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/25 animate-pulse"
                 : "bg-slate-900 hover:bg-slate-800 text-white"
@@ -227,8 +227,8 @@ export default function KasirPage() {
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white animate-ping" />
               )}
             </div>
-            <span>🔔 Pesanan Online</span>
-            <span className={`px-2 py-0.5 rounded-full font-mono text-[11px] font-black ${
+            <span>Pesanan Online</span>
+            <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] sm:text-[11px] font-black ${
               newOrdersCount > 0
                 ? "bg-slate-950 text-amber-400"
                 : "bg-slate-800 text-slate-300"
@@ -244,7 +244,7 @@ export default function KasirPage() {
         <button
           type="button"
           onClick={() => setMobileTab("menu")}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === "menu"
               ? "bg-amber-500 text-slate-950 shadow-sm"
               : "text-slate-400 hover:text-white"
@@ -257,7 +257,7 @@ export default function KasirPage() {
         <button
           type="button"
           onClick={() => setMobileTab("cart")}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 relative ${
+          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 relative ${
             mobileTab === "cart"
               ? "bg-amber-500 text-slate-950 shadow-sm"
               : "text-slate-400 hover:text-white"
@@ -266,7 +266,7 @@ export default function KasirPage() {
           <ShoppingCart className="w-4 h-4" />
           <span>Keranjang</span>
           {totalItemsCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-slate-950 text-amber-400 font-mono">
+            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-slate-950 text-amber-400 font-mono">
               {totalItemsCount}
             </span>
           )}
@@ -275,7 +275,7 @@ export default function KasirPage() {
         <button
           type="button"
           onClick={() => setIsOrdersDrawerOpen(true)}
-          className="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-slate-800 text-amber-400 hover:bg-slate-700"
+          className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-slate-800 text-amber-400 hover:bg-slate-700"
         >
           <Bell className="w-4 h-4" />
           <span>Pesanan ({newOrdersCount})</span>
@@ -283,7 +283,7 @@ export default function KasirPage() {
       </div>
 
       {/* Main Grid Container */}
-      <div className="min-h-[calc(100vh-12rem)] lg:h-[calc(100vh-11.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0 overflow-hidden">
+      <div className="min-h-0 flex-1 lg:h-[calc(100vh-11.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0 overflow-hidden">
         {/* Left Column: Menu Grid (7 cols desktop) */}
         <div
           className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
@@ -303,8 +303,8 @@ export default function KasirPage() {
         </div>
       </div>
 
-      {/* Mobile Floating Sticky Bottom Bar */}
-      {items.length > 0 && (
+      {/* Mobile Floating Sticky Bottom Bar (Only visible when viewing Menu Tab) */}
+      {items.length > 0 && mobileTab === "menu" && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 border-t border-slate-800 shadow-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-200">
           <div
             onClick={() => setMobileTab("cart")}

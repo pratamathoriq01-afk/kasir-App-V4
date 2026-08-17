@@ -76,12 +76,12 @@ export default function IncomingOrdersDrawer({
         </div>
       )}
 
-      <div className="bg-white max-w-xl w-full h-full shadow-2xl border-l border-slate-300 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="bg-white max-w-full sm:max-w-xl w-full h-full shadow-2xl border-l border-slate-300 flex flex-col animate-in slide-in-from-right duration-300">
         {/* Top Header Drawer */}
-        <div className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 rounded-2xl shadow-lg shadow-amber-500/20 relative">
-              <Bell className="w-5 h-5 stroke-[2.5]" />
+        <div className="p-3.5 sm:p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-between shrink-0 shadow-lg border-b border-slate-800">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 rounded-2xl shadow-lg shadow-amber-500/20 relative shrink-0">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
               {newOrders.length > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -89,12 +89,12 @@ export default function IncomingOrdersDrawer({
                 </span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[9px] sm:text-[10px] font-extrabold text-amber-300 uppercase tracking-widest bg-amber-500/20 px-1.5 py-0.5 rounded-md border border-amber-500/30">
                   Menu Digital v2
                 </span>
-                <span className="text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 font-mono flex items-center gap-1">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -102,23 +102,23 @@ export default function IncomingOrdersDrawer({
                   Real-time DB Sync
                 </span>
               </div>
-              <h2 className="text-base font-black text-white mt-0.5 tracking-tight">
+              <h2 className="text-sm sm:text-base font-black text-white mt-0.5 tracking-tight truncate">
                 Wadah Pesanan Masuk ({orders.length})
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               onClick={onRefresh}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh Data Supabase"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all active:scale-95 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -126,11 +126,11 @@ export default function IncomingOrdersDrawer({
         </div>
 
         {/* Clean 3-Tab Bar (1. Baru | 2. Diproses | 3. Selesai) */}
-        <div className="p-3 bg-slate-100/90 border-b border-slate-200 grid grid-cols-3 gap-2 shrink-0 text-xs">
+        <div className="p-2 sm:p-3 bg-slate-100/90 border-b border-slate-200 grid grid-cols-3 gap-1.5 sm:gap-2 shrink-0 text-[10px] sm:text-xs">
           {/* Tab 1: Pesanan Baru */}
           <button
             onClick={() => setActiveTab("NEW_ORDER")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
+            className={`py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl font-black flex items-center justify-center gap-1 sm:gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "NEW_ORDER"
                 ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 ring-2 ring-amber-400 scale-[1.02]"
                 : newOrders.length > 0
@@ -138,8 +138,8 @@ export default function IncomingOrdersDrawer({
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>1. Pesanan Baru</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+            <span className="truncate">1. Baru</span>
+            <span className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
               activeTab === "NEW_ORDER" ? "bg-slate-950 text-amber-400 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {newOrders.length}
@@ -149,14 +149,14 @@ export default function IncomingOrdersDrawer({
           {/* Tab 2: Memproses Pesanan */}
           <button
             onClick={() => setActiveTab("IN_PROCESSED")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
+            className={`py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl font-black flex items-center justify-center gap-1 sm:gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "IN_PROCESSED"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400 scale-[1.02]"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>2. Diproses</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+            <span className="truncate">2. Diproses</span>
+            <span className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
               activeTab === "IN_PROCESSED" ? "bg-white text-indigo-900 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {inProcessedOrders.length}
@@ -166,14 +166,14 @@ export default function IncomingOrdersDrawer({
           {/* Tab 3: Riwayat Selesai */}
           <button
             onClick={() => setActiveTab("ORDER_FINISH")}
-            className={`py-2.5 px-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
+            className={`py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl font-black flex items-center justify-center gap-1 sm:gap-2 transition-all duration-200 cursor-pointer ${
               activeTab === "ORDER_FINISH"
                 ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400 scale-[1.02]"
                 : "bg-white text-slate-700 hover:bg-slate-200 border border-slate-200"
             }`}
           >
-            <span>3. Selesai</span>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
+            <span className="truncate">3. Selesai</span>
+            <span className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black rounded-full font-mono transition-transform duration-200 ${
               activeTab === "ORDER_FINISH" ? "bg-white text-emerald-900 scale-110" : "bg-slate-200 text-slate-800"
             }`}>
               {finishedOrders.length}

@@ -114,13 +114,13 @@ export default function MenuPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           <button
             onClick={() => setIsVoucherModalOpen(true)}
-            className="py-2.5 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shrink-0"
+            className="flex-1 sm:flex-initial py-2.5 px-3 sm:px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shrink-0"
           >
-            <Ticket className="w-4 h-4 text-amber-400 stroke-[2.5]" />
-            <span>Kelola Voucher Digital</span>
+            <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 stroke-[2.5]" />
+            <span className="truncate">Voucher Digital</span>
           </button>
 
           <button
@@ -128,10 +128,10 @@ export default function MenuPage() {
               setEditingItem(null);
               setIsModalOpen(true);
             }}
-            className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer shrink-0"
+            className="flex-1 sm:flex-initial py-2.5 px-3 sm:px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Tambah Menu Baru</span>
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+            <span className="truncate">Tambah Menu</span>
           </button>
         </div>
       </div>
@@ -209,8 +209,125 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Menu Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      {/* Mobile Card List View (< md screens) */}
+      <div className="md:hidden space-y-3">
+        {filteredItems.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
+            Belum ada menu dalam kategori ini.
+          </div>
+        ) : (
+          filteredItems.map((item) => {
+            const profit = item.price - item.hpp;
+            const marginPct = item.price > 0 ? Math.round((profit / item.price) * 100) : 0;
+
+            return (
+              <div
+                key={item.id}
+                className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3"
+              >
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-lg overflow-hidden shrink-0">
+                      {item.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-10 h-10 object-cover rounded-xl"
+                        />
+                      ) : (
+                        <span className="text-lg">
+                          {item.category === "Makanan" ? "🍽️" : item.category === "Minuman" ? "🥤" : "🍟"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-900 text-sm truncate">{item.name}</h4>
+                      <span className="text-[10px] text-slate-400 font-mono">ID: {item.id}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Pill Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(item.id)}
+                    className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all active:scale-95 cursor-pointer ${
+                      item.isActive
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        : "bg-slate-100 text-slate-500 border border-slate-200"
+                    }`}
+                  >
+                    {item.isActive ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Aktif
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3.5 h-3.5" /> Nonaktif
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Pricing & Profit Grid */}
+                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl text-xs border border-slate-100">
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Harga Jual</span>
+                    <span className="font-black font-mono text-slate-900">
+                      Rp {item.price.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">HPP / Modal</span>
+                    <span className="font-semibold font-mono text-slate-600">
+                      Rp {item.hpp.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Margin Laba</span>
+                    <span className="font-extrabold font-mono text-emerald-600">
+                      {marginPct}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer Action Buttons */}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-lg text-[10px]">
+                    {item.category}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingItem(item);
+                        setIsModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 font-bold text-xs flex items-center gap-1 border border-amber-200/80 active:scale-95 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 font-bold text-xs flex items-center gap-1 border border-rose-200/80 active:scale-95 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Menu Table (>= md screens) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
