@@ -5,61 +5,41 @@ import { INITIAL_TRANSACTIONS } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
-// Executive Color Palette
+// Executive Color Tokens
 const COLORS = {
-  NAVY_HEADER: "0F172A",    // Slate 900
-  SUBHEADER: "1E293B",      // Slate 800
-  ACCENT_AMBER: "D97706",   // Amber 600
-  ACCENT_GREEN: "059669",   // Emerald 600
-  ROW_ALT: "F8FAFC",        // Slate 50
+  NAVY: "0F172A",         // Slate 900
+  SUBHEADER: "1E293B",    // Slate 800
+  AMBER: "D97706",        // Amber 600
+  GREEN: "059669",        // Emerald 600
+  BLUE: "0284C7",         // Sky 600
+  PURPLE: "7C3AED",       // Purple 600
+  TEAL: "0D9488",         // Teal 600
+  ROW_ALT: "F8FAFC",      // Slate 50
   ROW_WHITE: "FFFFFF",
   TEXT_MAIN: "1E293B",
   TEXT_MUTED: "64748B",
-  BORDER: "E2E8F0",
-  HIGHLIGHT_GREEN: "D1FAE5",// Emerald 100
-  HIGHLIGHT_RED: "FEE2E2",  // Red 100
+  BORDER: "CBD5E1",
+  FILL_GREEN: "D1FAE5",   // Emerald 100
+  TEXT_GREEN: "065F46",   // Emerald 800
+  FILL_AMBER: "FEF3C7",   // Amber 100
+  TEXT_AMBER: "92400E",   // Amber 800
 };
 
 const IDR = (val: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(val);
 
-function applyHeaderRow(
-  ws: ExcelJS.Worksheet,
-  row: number,
-  values: (string | number)[],
-  bgColor: string = COLORS.NAVY_HEADER,
-  fontColor: string = "FFFFFF"
-) {
-  const r = ws.getRow(row);
-  r.values = ["", ...values];
-  r.eachCell({ includeEmpty: false }, (cell, colNum) => {
-    if (colNum === 1) return;
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
-    cell.font = { bold: true, color: { argb: fontColor }, size: 10, name: "Calibri" };
-    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    cell.border = {
-      top: { style: "thin", color: { argb: COLORS.BORDER } },
-      left: { style: "thin", color: { argb: COLORS.BORDER } },
-      bottom: { style: "medium", color: { argb: COLORS.NAVY_HEADER } },
-      right: { style: "thin", color: { argb: COLORS.BORDER } },
-    };
-  });
-  r.height = 28;
-  r.commit();
-}
-
-function addStoreHeader(ws: ExcelJS.Worksheet, title: string, colCount: number) {
+function addStoreHeader(ws: ExcelJS.Worksheet, title: string, colCount: number, accentColor: string = COLORS.AMBER) {
   ws.getColumn(1).width = 3;
 
-  // Row 1: Brand Banner
+  // Row 1: Brand Header
   ws.mergeCells(1, 2, 1, colCount);
   const r1 = ws.getRow(1);
-  r1.height = 34;
+  r1.height = 36;
   const c1 = r1.getCell(2);
-  c1.value = "KEDAI NYAMLENG MALANG";
-  c1.font = { bold: true, size: 16, name: "Calibri", color: { argb: "FFFFFF" } };
+  c1.value = "KEDAI NYAMLENG MALANG — EXECUTIVE REPORTING SUITE";
+  c1.font = { bold: true, size: 14, name: "Calibri", color: { argb: "FFFFFF" } };
   c1.alignment = { horizontal: "center", vertical: "middle" };
-  c1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY_HEADER } };
+  c1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
 
   // Row 2: Store info
   ws.mergeCells(2, 2, 2, colCount);
@@ -77,16 +57,16 @@ function addStoreHeader(ws: ExcelJS.Worksheet, title: string, colCount: number) 
   r3.height = 26;
   const c3 = r3.getCell(2);
   c3.value = title;
-  c3.font = { bold: true, size: 12, name: "Calibri", color: { argb: "FFFFFF" } };
+  c3.font = { bold: true, size: 11, name: "Calibri", color: { argb: "FFFFFF" } };
   c3.alignment = { horizontal: "center", vertical: "middle" };
-  c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.ACCENT_AMBER } };
+  c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accentColor } };
 
-  // Row 4: Generation timestamp
+  // Row 4: Generation timestamp & SAK EMKM indicator
   ws.mergeCells(4, 2, 4, colCount);
   const r4 = ws.getRow(4);
   r4.height = 18;
   const c4 = r4.getCell(2);
-  c4.value = `Waktu Cetak: ${new Date().toLocaleString("id-ID", { dateStyle: "full", timeStyle: "medium" })} | Standar Akuntansi: SAK EMKM`;
+  c4.value = `Waktu Cetak: ${new Date().toLocaleString("id-ID", { dateStyle: "full", timeStyle: "medium" })} | Standar Laporan: SAK EMKM`;
   c4.font = { italic: true, size: 8.5, name: "Calibri", color: { argb: "64748B" } };
   c4.alignment = { horizontal: "center", vertical: "middle" };
 
@@ -163,83 +143,74 @@ export async function GET(request: Request) {
 
     // ==================== BUILD EXCEL WORKBOOK ====================
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Kedai Nyamleng Executive Financial Engine";
+    workbook.creator = "Kedai Nyamleng Executive Engine";
     workbook.created = new Date();
 
     // ============================================================
-    // SHEET 1: 🤖 AI EXECUTIVE SUMMARY & STRATEGIC INSIGHT
+    // SHEET 1: 🤖 AI EXECUTIVE INSIGHT (Tab Color: Amber)
     // ============================================================
     const ws1 = workbook.addWorksheet("🤖 AI Executive Insight", {
       views: [{ showGridLines: false }],
     });
-    addStoreHeader(ws1, "EXECUTIVE SUMMARY & STRATEGIC INSIGHTS (AI AUDIT)", 4);
-    [3, 30, 65, 20].forEach((w, i) => ws1.getColumn(i + 1).width = w);
+    ws1.properties.tabColor = { argb: COLORS.AMBER };
+    addStoreHeader(ws1, "EXECUTIVE SUMMARY & STRATEGIC AI INSIGHTS", 4, COLORS.AMBER);
+    [3, 28, 62, 18].forEach((w, i) => ws1.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws1, 6, ["Fokus Evaluasi", "Rangkuman AI & Analisis Strategis Eksekutif", "Status Risk"], COLORS.NAVY_HEADER);
-
-    const aiRows = [
-      [
-        "📊 Evaluasi Profitabilitas (GPM)",
-        `Total Omzet Rp ${totalRevenue.toLocaleString("id-ID")} menghasilkan Laba Bersih Rp ${totalNetProfit.toLocaleString("id-ID")} dengan Gross Profit Margin ${gpmPct.toFixed(1)}%. Kondisi bisnis dinilai ${gpmPct >= 30 ? "SANGAT SEHAT & PROFITABEL" : "STABIL"}.`,
-        gpmPct >= 20 ? "LOW RISK ✅" : "ATTENTION ⚠️"
-      ],
-      [
-        "🏭 Efisiensi Biaya Modal (HPP)",
-        `Total HPP bahan baku Rp ${totalHPP.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Kontrol porsi & belanja supplier terjaga dengan efisien di bawah ambang batas maksimum 50%.`,
-        hppPct <= 50 ? "IDEAL ✅" : "HIGH HPP ⚠️"
-      ],
-      [
-        "💵 Ukuran Keranjang (AOV)",
-        `Rata-rata pengeluaran per nota (AOV) sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari ${totalTrx} transaksi berhasil. Pelanggan memiliki kecenderungan repeat order & bundling menu yang positif.`,
-        avgOrderValue >= 25000 ? "HIGH VALUE ✅" : "NORMAL"
-      ],
-      [
-        "🎯 Rekomendasi Operasional AI",
-        `1. Pertahankan promosi pada 3 menu terlaris (${topMenu.slice(0, 3).map(m => m.nama).join(", ") || "-"}).\n` +
-        `2. Buat paket bundling minuman + cemilan untuk meningkatkan AOV di atas Rp 35.000.\n` +
-        `3. Lakukan peninjauan harga jual berkala jika terjadi kenaikan harga bahan pokok.`,
-        "STRATEGIC 💡"
-      ]
+    // KPI Scorecard Cards Block
+    const kpiCards = [
+      ["💰 Total Omzet Kotor", IDR(totalRevenue), "Termasuk PPN 10%"],
+      ["🏭 Total HPP Bahan", IDR(totalHPP), `${hppPct.toFixed(1)}% dari Omzet`],
+      ["📈 Laba Bersih (Net Profit)", IDR(totalNetProfit), `GPM ${gpmPct.toFixed(1)}% (${gpmPct >= 30 ? "EXCELLENT" : "STABIL"})`],
+      ["💵 Rata-Rata Belanja (AOV)", IDR(avgOrderValue), `Dari ${totalTrx} Transaksi`],
     ];
 
-    aiRows.forEach((row, idx) => {
-      const r = ws1.getRow(7 + idx);
-      r.values = ["", row[0], row[1], row[2]];
-      r.height = idx === 3 ? 54 : 36;
-      r.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
-        cell.font = { size: 9.5, name: "Calibri", color: { argb: COLORS.TEXT_MAIN } };
-        cell.alignment = { vertical: "middle", wrapText: true };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
-        if (colNum === 2) cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.NAVY_HEADER } };
-        if (colNum === 4) {
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.ACCENT_GREEN } };
-        }
-      });
-      r.commit();
+    kpiCards.forEach((card, idx) => {
+      const rIdx = 6 + idx * 3;
+      ws1.mergeCells(rIdx, 2, rIdx, 4);
+      const headerCell = ws1.getCell(rIdx, 2);
+      headerCell.value = card[0];
+      headerCell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: "FFFFFF" } };
+      headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
+      headerCell.alignment = { vertical: "middle", indent: 1 };
+
+      ws1.mergeCells(rIdx + 1, 2, rIdx + 1, 3);
+      const valCell = ws1.getCell(rIdx + 1, 2);
+      valCell.value = card[1];
+      valCell.font = { bold: true, size: 14, name: "Calibri", color: { argb: COLORS.TEXT_MAIN } };
+      valCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.ROW_ALT } };
+      valCell.alignment = { vertical: "middle", indent: 1 };
+
+      const subCell = ws1.getCell(rIdx + 1, 4);
+      subCell.value = card[2];
+      subCell.font = { bold: true, size: 9, name: "Calibri", color: { argb: COLORS.TEXT_GREEN } };
+      subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } };
+      subCell.alignment = { horizontal: "center", vertical: "middle" };
     });
 
     // ============================================================
-    // SHEET 2: ⚖️ FINANCIAL AUDIT & SAK EMKM COMPLIANCE
+    // SHEET 2: ⚖️ AUDIT & KEPATUHAN EMKM (Tab Color: Slate Navy)
     // ============================================================
     const ws2 = workbook.addWorksheet("⚖️ Audit & Kepatuhan EMKM", {
       views: [{ showGridLines: false }],
     });
-    addStoreHeader(ws2, "CHECKLIST AUDIT KEUANGAN & KEPATUHAN SAK EMKM", 5);
-    [3, 30, 40, 20, 25].forEach((w, i) => ws2.getColumn(i + 1).width = w);
+    ws2.properties.tabColor = { argb: COLORS.NAVY };
+    addStoreHeader(ws2, "CHECKLIST AUDIT KEUANGAN & KEPATUHAN SAK EMKM", 5, COLORS.NAVY);
+    [3, 30, 40, 22, 24].forEach((w, i) => ws2.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws2, 6, ["Komponen Audit", "Parameter Pengujian", "Hasil Realisasi", "Status Kepatuhan"], COLORS.NAVY_HEADER);
+    // Header
+    const hRow2 = ws2.getRow(6);
+    hRow2.values = ["", "Komponen Audit", "Parameter Pengujian", "Hasil Realisasi", "Status Kepatuhan"];
+    hRow2.eachCell({ includeEmpty: false }, (cell, colNum) => {
+      if (colNum === 1) return;
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
+      cell.font = { bold: true, color: { argb: "FFFFFF" }, size: 10, name: "Calibri" };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+    hRow2.height = 26;
 
     const auditChecks = [
-      ["Rekonsiliasi Omzet vs Setoran Cash", "Kesesuaian total nota dengan fisik kasir", IDR(totalRevenue), "100% MATCH ✅"],
-      ["Setoran Pajak Resto (PPN 10%)", "PPN 10% dikumpulkan dari transaksi", IDR(totalTax), "TERKUMPUL ✅"],
+      ["Rekonsiliasi Omzet vs Physical Cash", "Kesesuaian total nota dengan fisik kasir", IDR(totalRevenue), "100% MATCH ✅"],
+      ["Setoran Pajak Resto (PPN 10%)", "PPN 10% dikumpulkan dari pembeli", IDR(totalTax), "TERKUMPUL ✅"],
       ["Audit Kebocoran Diskon Promo", "Persentase diskon terhadap omzet kotor", `${totalRevenue > 0 ? ((totalDiscount / totalRevenue) * 100).toFixed(1) : 0}%`, "WAJAR (< 10%) ✅"],
       ["Pemeriksaan Anomali HPP > 60%", "Item dengan margin di bawah 40%", `${topMenu.filter(m => m.revenue > 0 && (m.hpp / m.revenue) > 0.6).length} Item Anomali`, "CLEAN ✅"],
       ["Kepatuhan Pencatatan SAK EMKM", "Pencatatan berbasis kas & akrual HPP", "Tercatat Terpisah", "SAK EMKM COMPLIANT ✅"],
@@ -248,37 +219,40 @@ export async function GET(request: Request) {
     auditChecks.forEach((row, idx) => {
       const r = ws2.getRow(7 + idx);
       r.values = ["", row[0], row[1], row[2], row[3]];
-      r.height = 26;
+      r.height = 24;
       r.eachCell({ includeEmpty: false }, (cell, colNum) => {
         if (colNum === 1) return;
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
-        cell.font = { size: 9.5, name: "Calibri", color: { argb: COLORS.TEXT_MAIN } };
+        cell.font = { size: 9.5, name: "Calibri" };
         cell.alignment = { vertical: "middle" };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
         if (colNum === 2) cell.font = { bold: true, size: 9.5, name: "Calibri" };
         if (colNum === 5) {
           cell.alignment = { horizontal: "center", vertical: "middle" };
-          cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.ACCENT_GREEN } };
+          cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.TEXT_GREEN } };
         }
       });
       r.commit();
     });
 
     // ============================================================
-    // SHEET 3: 📊 KPI DASHBOARD EKSEKUTIF
+    // SHEET 3: 📊 KPI DASHBOARD (Tab Color: Sky Blue)
     // ============================================================
     const ws3 = workbook.addWorksheet("📊 KPI Dashboard", {
       views: [{ showGridLines: false }],
     });
-    addStoreHeader(ws3, "DASHBOARD INDIKATOR KINERJA UTAMA (KPI)", 5);
+    ws3.properties.tabColor = { argb: COLORS.BLUE };
+    addStoreHeader(ws3, "DASHBOARD INDIKATOR KINERJA UTAMA (KPI)", 5, COLORS.BLUE);
     [3, 38, 25, 20, 22].forEach((w, i) => ws3.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws3, 6, ["Indikator Kinerja Utama (KPI)", "Nilai Realisasi", "Target SAK EMKM", "Status Evaluasi"], COLORS.NAVY_HEADER);
+    const hRow3 = ws3.getRow(6);
+    hRow3.values = ["", "Indikator Kinerja Utama (KPI)", "Nilai Realisasi", "Target SAK EMKM", "Status Evaluasi"];
+    hRow3.eachCell({ includeEmpty: false }, (cell, colNum) => {
+      if (colNum === 1) return;
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
+      cell.font = { bold: true, color: { argb: "FFFFFF" }, size: 10, name: "Calibri" };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+    hRow3.height = 26;
 
     const kpiData = [
       ["💰 Total Omzet Penjualan (Kotor)", IDR(totalRevenue), "Baseline", "NORMAL"],
@@ -299,197 +273,234 @@ export async function GET(request: Request) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
         cell.font = { size: 9.5, name: "Calibri" };
         cell.alignment = { vertical: "middle" };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
         if (colNum === 2) cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.TEXT_MAIN } };
-        if (colNum === 3) cell.font = { bold: true, size: 10, name: "Calibri", color: { argb: COLORS.NAVY_HEADER } };
+        if (colNum === 3) cell.font = { bold: true, size: 10, name: "Calibri", color: { argb: COLORS.NAVY } };
         if (colNum === 4 || colNum === 5) cell.alignment = { horizontal: "center", vertical: "middle" };
       });
       r.commit();
     });
 
-    // Highlighting Net Profit row
+    // Highlighting Net Profit row in KPI
     const netProfitRow = ws3.getRow(12);
     netProfitRow.eachCell({ includeEmpty: false }, (cell, colNum) => {
       if (colNum < 2) return;
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.HIGHLIGHT_GREEN } };
-      cell.font = { bold: true, size: 10, name: "Calibri", color: { argb: "064E3B" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } };
+      cell.font = { bold: true, size: 10, name: "Calibri", color: { argb: COLORS.TEXT_GREEN } };
     });
 
     // ============================================================
-    // SHEET 4: 🧾 DETAIL TRANSAKSI PENJUALAN
+    // SHEET 4: 🧾 DETAIL TRANSAKSI PENJUALAN (Tab Color: Emerald)
     // ============================================================
     const ws4 = workbook.addWorksheet("🧾 Detail Transaksi", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
       pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true },
     });
-    addStoreHeader(ws4, "LAPORAN DETAIL TRANSAKSI PENJUALAN", 11);
+    ws4.properties.tabColor = { argb: COLORS.GREEN };
+    addStoreHeader(ws4, "LAPORAN DETAIL TRANSAKSI PENJUALAN", 11, COLORS.GREEN);
     [3, 8, 18, 22, 18, 20, 16, 14, 14, 16, 16, 16].forEach((w, i) => ws4.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws4, 6, [
-      "No.", "Nomor Nota", "Tanggal & Waktu", "Pelanggan", "Tipe Order",
-      "Subtotal", "Diskon", "PPN 10%", "Total", "HPP", "Laba Bersih"
-    ], COLORS.NAVY_HEADER);
+    // Build Native Excel Table with sorting & total row!
+    const trxRowsData = allTransactions.map((trx: any, idx: number) => [
+      idx + 1,
+      trx.orderNumber || "-",
+      new Date(trx.createdAt).toLocaleString("id-ID"),
+      trx.customerName || "Pelanggan",
+      trx.orderType === "dine-in" ? `Dine-In (${trx.tableNumber || "-"})` : "Takeaway",
+      trx.subtotal || 0,
+      trx.discountAmount || 0,
+      trx.tax || 0,
+      trx.total || 0,
+      trx.hppTotal || 0,
+      trx.netProfit || 0,
+    ]);
 
-    allTransactions.forEach((trx: any, idx: number) => {
-      const r = ws4.getRow(7 + idx);
-      r.values = [
-        "",
-        idx + 1,
-        trx.orderNumber || "-",
-        new Date(trx.createdAt).toLocaleString("id-ID"),
-        trx.customerName || "Pelanggan",
-        trx.orderType === "dine-in" ? `Dine-In (${trx.tableNumber || "-"})` : "Takeaway",
-        trx.subtotal || 0,
-        trx.discountAmount || 0,
-        trx.tax || 0,
-        trx.total || 0,
-        trx.hppTotal || 0,
-        trx.netProfit || 0,
-      ];
+    if (trxRowsData.length > 0) {
+      ws4.addTable({
+        name: "DetailTransaksiTable",
+        ref: "B6",
+        headerRow: true,
+        totalsRow: true,
+        style: {
+          theme: "TableStyleMedium9", // Dark Slate/Navy Excel Native Theme
+          showRowStripes: true,
+        },
+        columns: [
+          { name: "No.", filterButton: false },
+          { name: "Nomor Nota", filterButton: true },
+          { name: "Tanggal", filterButton: true },
+          { name: "Pelanggan", filterButton: true },
+          { name: "Tipe Order", filterButton: true },
+          { name: "Subtotal", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Diskon", filterButton: false, totalsRowFunction: "sum" },
+          { name: "PPN 10%", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total Omzet", filterButton: false, totalsRowFunction: "sum" },
+          { name: "HPP Modal", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Laba Bersih", filterButton: false, totalsRowFunction: "sum" },
+        ],
+        rows: trxRowsData,
+      });
 
-      r.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
-        cell.font = { size: 9, name: "Calibri" };
-        cell.alignment = { vertical: "middle" };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
-        if (colNum === 2) cell.alignment = { horizontal: "center", vertical: "middle" };
-        if (colNum >= 7) {
-          cell.numFmt = '"Rp "#,##0';
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-          if (colNum === 12 && Number(cell.value) > 0) {
-            cell.font = { bold: true, size: 9, name: "Calibri", color: { argb: COLORS.ACCENT_GREEN } };
-          }
+      // Format currency cells in added table rows
+      for (let rIdx = 7; rIdx <= 6 + trxRowsData.length + 1; rIdx++) {
+        const row = ws4.getRow(rIdx);
+        row.height = 22;
+        for (let cIdx = 7; cIdx <= 12; cIdx++) {
+          row.getCell(cIdx).numFmt = '"Rp "#,##0';
         }
-      });
-      r.height = 20;
-      r.commit();
-    });
+      }
 
-    // Total footer row
-    if (allTransactions.length > 0) {
-      const footerRowIdx = 7 + allTransactions.length;
-      const fr = ws4.getRow(footerRowIdx);
-      fr.values = ["", "", "TOTAL", "", "", "", totalRevenue - totalTax, totalDiscount, totalTax, totalRevenue, totalHPP, totalNetProfit];
-      fr.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY_HEADER } };
-        cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: "FFFFFF" } };
-        if (colNum >= 7) cell.numFmt = '"Rp "#,##0';
+      // Add Conditional Formatting rule for Laba Bersih column (Column L / 12)
+      ws4.addConditionalFormatting({
+        ref: `L7:L${6 + trxRowsData.length}`,
+        rules: [
+          {
+            priority: 1,
+            type: "cellIs",
+            operator: "greaterThan",
+            formulae: ["0"],
+            style: {
+              fill: { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } },
+              font: { color: { argb: COLORS.TEXT_GREEN }, bold: true },
+            },
+          },
+        ],
       });
-      fr.height = 24;
-      fr.commit();
     }
 
     // ============================================================
-    // SHEET 5: 🏆 RANKING & MATRIKS PRODUK
+    // SHEET 5: 🏆 RANKING & MATRIKS PRODUK (Tab Color: Purple)
     // ============================================================
     const ws5 = workbook.addWorksheet("🏆 Ranking & Matriks Produk", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
     });
-    addStoreHeader(ws5, "RANKING & MATRIKS PROFITABILITAS PRODUK", 7);
+    ws5.properties.tabColor = { argb: COLORS.PURPLE };
+    addStoreHeader(ws5, "RANKING & MATRIKS PROFITABILITAS PRODUK", 7, COLORS.PURPLE);
     [3, 8, 38, 20, 22, 20, 22, 18].forEach((w, i) => ws5.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws5, 6, [
-      "Rank", "Nama Menu Produk", "Total Terjual (Qty)", "Total Omzet",
-      "Total HPP", "Total Laba Bersih", "GPM %"
-    ], COLORS.NAVY_HEADER);
-
-    topMenu.forEach((menu, idx) => {
+    const productRowsData = topMenu.map((menu, idx) => {
       const menuProfit = menu.revenue - menu.hpp;
-      const marginPct = menu.revenue > 0 ? ((menuProfit / menu.revenue) * 100).toFixed(1) + "%" : "0%";
-      const r = ws5.getRow(7 + idx);
-
-      r.values = ["", idx + 1, menu.nama, menu.qty, menu.revenue, menu.hpp, menuProfit, marginPct];
-      r.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
-        cell.font = { size: 9, name: "Calibri" };
-        cell.alignment = { vertical: "middle" };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
-        if (colNum === 2) cell.alignment = { horizontal: "center", vertical: "middle" };
-        if (colNum === 3) cell.font = { bold: true, size: 9, name: "Calibri" };
-        if (colNum === 4) cell.alignment = { horizontal: "center", vertical: "middle" };
-        if (colNum >= 5 && colNum <= 7) {
-          cell.numFmt = '"Rp "#,##0';
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-        }
-        if (colNum === 8) {
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          cell.font = { bold: true, size: 9, name: "Calibri", color: { argb: COLORS.ACCENT_GREEN } };
-        }
-      });
-      r.height = 22;
-      r.commit();
+      const marginPct = menu.revenue > 0 ? (menuProfit / menu.revenue) : 0;
+      return [
+        idx + 1,
+        menu.nama,
+        menu.qty,
+        menu.revenue,
+        menu.hpp,
+        menuProfit,
+        marginPct,
+      ];
     });
 
+    if (productRowsData.length > 0) {
+      ws5.addTable({
+        name: "RankingProdukTable",
+        ref: "B6",
+        headerRow: true,
+        totalsRow: true,
+        style: {
+          theme: "TableStyleMedium11",
+          showRowStripes: true,
+        },
+        columns: [
+          { name: "Rank", filterButton: false },
+          { name: "Nama Menu Produk", filterButton: true },
+          { name: "Terjual (Qty)", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total Omzet", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total HPP", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Laba Bersih", filterButton: false, totalsRowFunction: "sum" },
+          { name: "GPM Margin %", filterButton: false, totalsRowFunction: "average" },
+        ],
+        rows: productRowsData,
+      });
+
+      for (let rIdx = 7; rIdx <= 6 + productRowsData.length + 1; rIdx++) {
+        const row = ws5.getRow(rIdx);
+        row.height = 22;
+        row.getCell(5).numFmt = '"Rp "#,##0';
+        row.getCell(6).numFmt = '"Rp "#,##0';
+        row.getCell(7).numFmt = '"Rp "#,##0';
+        row.getCell(8).numFmt = '0.0%';
+      }
+
+      // Add Conditional Formatting for GPM Margin %
+      ws5.addConditionalFormatting({
+        ref: `H7:H${6 + productRowsData.length}`,
+        rules: [
+          {
+            priority: 1,
+            type: "cellIs",
+            operator: "greaterThan",
+            formulae: ["0.29"],
+            style: {
+              fill: { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } },
+              font: { color: { argb: COLORS.TEXT_GREEN }, bold: true },
+            },
+          },
+        ],
+      });
+    }
+
     // ============================================================
-    // SHEET 6: 📅 REKAPITULASI HARIAN
+    // SHEET 6: 📅 REKAPITULASI HARIAN (Tab Color: Teal)
     // ============================================================
     const ws6 = workbook.addWorksheet("📅 Rekapitulasi Harian", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
     });
-    addStoreHeader(ws6, "REKAPITULASI PENJUALAN HARIAN", 6);
+    ws6.properties.tabColor = { argb: COLORS.TEAL };
+    addStoreHeader(ws6, "REKAPITULASI PENJUALAN HARIAN", 5, COLORS.TEAL);
     [3, 30, 20, 25, 25, 25].forEach((w, i) => ws6.getColumn(i + 1).width = w);
 
-    applyHeaderRow(ws6, 6, ["Tanggal Evaluasi", "Jumlah Transaksi", "Total Omzet", "Total HPP", "Total Laba Bersih"], COLORS.NAVY_HEADER);
+    const dailyRowsData = dailySummary.map((day) => [
+      day.tanggal,
+      day.trx,
+      day.revenue,
+      day.hpp,
+      day.netProfit,
+    ]);
 
-    dailySummary.forEach((day, idx) => {
-      const r = ws6.getRow(7 + idx);
-      r.values = ["", day.tanggal, day.trx, day.revenue, day.hpp, day.netProfit];
-      r.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
-        cell.font = { size: 9, name: "Calibri" };
-        cell.alignment = { vertical: "middle" };
-        cell.border = {
-          top: { style: "hair", color: { argb: COLORS.BORDER } },
-          bottom: { style: "hair", color: { argb: COLORS.BORDER } },
-          left: { style: "hair", color: { argb: COLORS.BORDER } },
-          right: { style: "hair", color: { argb: COLORS.BORDER } },
-        };
-        if (colNum === 3) cell.alignment = { horizontal: "center", vertical: "middle" };
-        if (colNum >= 4) {
-          cell.numFmt = '"Rp "#,##0';
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-          if (colNum === 6) cell.font = { bold: true, size: 9, name: "Calibri", color: { argb: COLORS.ACCENT_GREEN } };
-        }
+    if (dailyRowsData.length > 0) {
+      ws6.addTable({
+        name: "RekapHarianTable",
+        ref: "B6",
+        headerRow: true,
+        totalsRow: true,
+        style: {
+          theme: "TableStyleMedium13",
+          showRowStripes: true,
+        },
+        columns: [
+          { name: "Tanggal Evaluasi", filterButton: true },
+          { name: "Jumlah Transaksi", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total Omzet", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total HPP", filterButton: false, totalsRowFunction: "sum" },
+          { name: "Total Laba Bersih", filterButton: false, totalsRowFunction: "sum" },
+        ],
+        rows: dailyRowsData,
       });
-      r.height = 22;
-      r.commit();
-    });
 
-    // Footer
-    if (dailySummary.length > 0) {
-      const fi = 7 + dailySummary.length;
-      const fr = ws6.getRow(fi);
-      fr.values = ["", "TOTAL", dailySummary.reduce((s, d) => s + d.trx, 0), totalRevenue, totalHPP, totalNetProfit];
-      fr.eachCell({ includeEmpty: false }, (cell, colNum) => {
-        if (colNum === 1) return;
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY_HEADER } };
-        cell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: "FFFFFF" } };
-        if (colNum >= 4) {
-          cell.numFmt = '"Rp "#,##0';
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-        }
+      for (let rIdx = 7; rIdx <= 6 + dailyRowsData.length + 1; rIdx++) {
+        const row = ws6.getRow(rIdx);
+        row.height = 22;
+        row.getCell(4).numFmt = '"Rp "#,##0';
+        row.getCell(5).numFmt = '"Rp "#,##0';
+        row.getCell(6).numFmt = '"Rp "#,##0';
+      }
+
+      ws6.addConditionalFormatting({
+        ref: `F7:F${6 + dailyRowsData.length}`,
+        rules: [
+          {
+            priority: 1,
+            type: "cellIs",
+            operator: "greaterThan",
+            formulae: ["0"],
+            style: {
+              fill: { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } },
+              font: { color: { argb: COLORS.TEXT_GREEN }, bold: true },
+            },
+          },
+        ],
       });
-      fr.height = 24;
-      fr.commit();
     }
 
     // ==================== FINALIZE & EXPORT ====================

@@ -135,6 +135,27 @@ export async function exportTransactionsToPDF(
       3: { cellWidth: 29, halign: "center" },
       4: { cellWidth: 30, halign: "center" },
     },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        // Highlight Net Profit Row
+        if (data.row.index === 2) {
+          data.cell.styles.fillColor = [230, 244, 234];
+          data.cell.styles.textColor = [6, 95, 70];
+          data.cell.styles.fontStyle = "bold";
+        }
+        // Style status pills in column 4
+        if (data.column.index === 4) {
+          const text = String(data.cell.raw);
+          if (text === "EXCELLENT" || text === "EFISIEN" || text === "SEHAT") {
+            data.cell.styles.textColor = [16, 185, 129];
+            data.cell.styles.fontStyle = "bold";
+          } else if (text === "HIGH SPEND" || text === "TERKULPUL") {
+            data.cell.styles.textColor = [217, 119, 6];
+            data.cell.styles.fontStyle = "bold";
+          }
+        }
+      }
+    },
     margin: { left: ML, right: ML },
   });
 
