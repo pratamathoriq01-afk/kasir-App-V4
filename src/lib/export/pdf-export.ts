@@ -1,57 +1,56 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Transaction } from "@/types";
-import {
-  Chart,
-  CategoryScale, LinearScale, PointElement, LineElement,
-  BarElement, ArcElement, Title, Tooltip, Legend, Filler,
-} from "chart.js";
 
-// Register Chart.js components
-Chart.register(
-  CategoryScale, LinearScale, PointElement, LineElement,
-  BarElement, ArcElement, Title, Tooltip, Legend, Filler
-);
-
-// ─── Chart Canvas Offscreen Renderer ──────────────────────────────────────────
+/**
+ * Offscreen Chart renderer to convert Chart.js options to Base64 PNG for jsPDF
+ */
 async function renderChartToBase64(
-  type: "line" | "bar" | "doughnut",
-  data: object,
-  options: object,
-  width = 900,
-  height = 400
+  config: any,
+  width: number = 800,
+  height: number = 320
 ): Promise<string> {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  canvas.style.display = "none";
-  document.body.appendChild(canvas);
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.visibility = "hidden";
+      canvas.style.position = "absolute";
+      canvas.style.left = "-9999px";
+      document.body.appendChild(canvas);
 
-  try {
-    const chart = new Chart(canvas, {
-      type,
-      data: data as never,
-      options: {
-        animation: false,
-        responsive: false,
-        devicePixelRatio: 2,
-        ...(options as object),
-      } as never,
-    });
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        document.body.removeChild(canvas);
+        reject(new Error("Gagal membuat 2D context untuk Canvas PDF"));
+        return;
+      }
 
-    await new Promise((r) => setTimeout(r, 150));
-    const base64 = canvas.toDataURL("image/png", 0.95);
-    chart.destroy();
-    if (canvas.parentNode) document.body.removeChild(canvas);
-    return base64;
-  } catch (err) {
-    console.warn("Chart render fallback:", err);
-    if (canvas.parentNode) document.body.removeChild(canvas);
-    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-  }
+      import("chart.js/auto").then(({ default: Chart }) => {
+        const chartInstance = new Chart(ctx, {
+          ...config,
+          options: {
+            ...config.options,
+            animation: false,
+            responsive: false,
+            maintainAspectRatio: false,
+          },
+        });
+
+        setTimeout(() => {
+          const base64Img = chartInstance.toBase64Image("image/png", 1.0);
+          chartInstance.destroy();
+          document.body.removeChild(canvas);
+          resolve(base64Img);
+        }, 120);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
-// ─── Main Executive PDF Export Engine ─────────────────────────────────────────
 export async function exportTransactionsToPDF(
   transactions: Transaction[],
   periodLabel: string = "Semua Periode"
@@ -61,7 +60,7 @@ export async function exportTransactionsToPDF(
   const ML = 14;
   const CW = PW - ML * 2; // content width (182mm)
 
-  // Computed KPIs
+  // Computed Financial Metrics
   const totalRevenue = transactions.reduce((s, t) => s + t.total, 0);
   const totalHpp = transactions.reduce((s, t) => s + t.hppTotal, 0);
   const totalNetProfit = transactions.reduce((s, t) => s + t.netProfit, 0);
@@ -74,10 +73,10 @@ export async function exportTransactionsToPDF(
   const isHealthy = gpmPct >= 20;
 
   // ── Header Banner ───────────────────────────────────────────────────────────
-  doc.setFillColor(15, 23, 42); // Slate 900
+  doc.setFillColor(15, 23, 42); // Slate 900 / Dark Navy
   doc.rect(0, 0, PW, 38, "F");
 
-  doc.setFillColor(217, 119, 6); // Amber accent bar
+  doc.setFillColor(217, 119, 6); // Gold/Amber accent bar
   doc.rect(0, 36, PW, 2, "F");
 
   doc.setTextColor(255, 255, 255);
@@ -107,12 +106,12 @@ export async function exportTransactionsToPDF(
 
   let curY = 44;
 
-  // ── 1. Executive KPI Scorecard Table ─────────────────────────────────────────
+  // ── PAGE 1: KPI SCORECARD ────────────────────────────────────────────────────
   doc.setTextColor(15, 23, 42);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.text("1. Ringkasan Kinerja Eksekutif (KPI Scorecard)", ML, curY);
-  curY += 4;
+  curY += 3;
 
   autoTable(doc, {
     startY: curY,
@@ -126,8 +125,8 @@ export async function exportTransactionsToPDF(
       ["Rata-Rata Belanja (AOV)", `Rp ${avgOrderValue.toLocaleString("id-ID")}`, "-", "Per Transaksi", avgOrderValue >= 30000 ? "HIGH SPEND" : "NORMAL"],
     ],
     theme: "grid",
-    headStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
-    styles: { font: "helvetica", fontSize: 8, cellPadding: 2.2 },
+    headStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
+    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 55 },
       1: { cellWidth: 42, halign: "right" },
@@ -135,269 +134,227 @@ export async function exportTransactionsToPDF(
       3: { cellWidth: 29, halign: "center" },
       4: { cellWidth: 30, halign: "center" },
     },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        if (data.row.index === 2) {
+          data.cell.styles.fillColor = [240, 253, 244];
+          data.cell.styles.textColor = [5, 150, 105];
+          data.cell.styles.fontStyle = "bold";
+        }
+        if (data.column.index === 4) {
+          const text = String(data.cell.raw);
+          if (text === "EXCELLENT" || text === "EFISIEN" || text === "SEHAT") {
+            data.cell.styles.textColor = [5, 150, 105];
+            data.cell.styles.fontStyle = "bold";
+          }
+        }
+      }
+    },
     margin: { left: ML, right: ML },
   });
 
-  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
 
-  // ── 2. AI Executive Summary Box ──────────────────────────────────────────────
+  // ── 2. AI Executive Summary Box (Amber Card) ─────────────────────────────────
   doc.setFillColor(254, 243, 199); // Amber 50
-  doc.setDrawColor(217, 119, 6); // Amber 600
-  doc.roundedRect(ML, curY, CW, 32, 2, 2, "FD");
+  doc.setDrawColor(217, 119, 6); // Gold 600
+  doc.roundedRect(ML, curY, CW, 28, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(180, 83, 9);
-  doc.text("AI EXECUTIVE BUSINESS SUMMARY & RECOMMENDATIONS:", ML + 4, curY + 6);
+  doc.text("AI EXECUTIVE BUSINESS SUMMARY & RECOMMENDATIONS:", ML + 4, curY + 5);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(15, 23, 42);
   const aiSummaryText =
-    `- Kinerja Omzet & Profit: Total omzet sebesar Rp ${totalRevenue.toLocaleString("id-ID")} dengan Laba Bersih Rp ${totalNetProfit.toLocaleString("id-ID")} ` +
-    `(Gross Profit Margin ${gpmPct.toFixed(1)}%). Evaluasi bisnis berada dalam kondisi ${gpmPct >= 30 ? "EXCELLENT & Sangat Profitabel" : "SEHAT"}.\n` +
-    `- Pengendalian HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari total omzet). Penggunaan bahan baku terkendali efisien.\n` +
-    `- Nilai Transaksi Rata-Rata (AOV): Rata-rata pengeluaran per nota sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.\n` +
-    `- Rekomendasi Operasional: Pertahankan porsi pendorong profitabilitas dan dorong promosi paket bundling pada menu margin tinggi.`;
+    `- Kinerja Omzet & Profit: Total omzet Rp ${totalRevenue.toLocaleString("id-ID")} dengan Laba Bersih Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Business Status: ${gpmPct >= 30 ? "EXCELLENT & Sangat Profitabel" : "SEHAT"}.\n` +
+    `- Pengendalian HPP: Biaya modal HPP Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Bahan baku efisien.\n` +
+    `- Rata-Rata Nota (AOV): Rata-rata Rp ${avgOrderValue.toLocaleString("id-ID")} per nota dari ${txCount} transaksi berhasil.\n` +
+    `- Rekomendasi Operasional: Pertahankan promosi bundling menu margin tinggi & evaluasi stok bahan baku ber-HPP tinggi.`;
 
   const splitSummary = doc.splitTextToSize(aiSummaryText, CW - 8);
-  doc.text(splitSummary, ML + 4, curY + 12);
-  curY += 38;
+  doc.text(splitSummary, ML + 4, curY + 10);
+  curY += 33;
 
   // ── 3. Line Chart — Tren Omzet & Laba Harian ───────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.text("2. Grafik Tren Omzet & Laba Harian", ML, curY);
-  curY += 4;
+  curY += 3;
 
   const dailyMap: Record<string, { omzet: number; laba: number; hpp: number }> = {};
-  [...transactions]
-    .sort((a, b) => new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime())
-    .forEach((t) => {
-      const d = new Date(t.createdAt as string).toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
-      if (!dailyMap[d]) dailyMap[d] = { omzet: 0, laba: 0, hpp: 0 };
-      dailyMap[d].omzet += t.total;
-      dailyMap[d].laba += t.netProfit;
-      dailyMap[d].hpp += t.hppTotal;
-    });
+  transactions.forEach((t) => {
+    const dateStr = new Date(t.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+    if (!dailyMap[dateStr]) dailyMap[dateStr] = { omzet: 0, laba: 0, hpp: 0 };
+    dailyMap[dateStr].omzet += t.total;
+    dailyMap[dateStr].laba += t.netProfit;
+    dailyMap[dateStr].hpp += t.hppTotal;
+  });
 
-  const dateLabels = Object.keys(dailyMap).length > 0 ? Object.keys(dailyMap) : ["Tidak Ada Data"];
-  const omzetVals = Object.values(dailyMap).map((v) => v.omzet);
-  const labaVals = Object.values(dailyMap).map((v) => v.laba);
+  const chartLabels = Object.keys(dailyMap);
+  const chartOmzet = chartLabels.map((k) => dailyMap[k].omzet);
+  const chartLaba = chartLabels.map((k) => dailyMap[k].laba);
 
   const lineChartImg = await renderChartToBase64(
-    "line",
     {
-      labels: dateLabels,
-      datasets: [
-        {
-          label: "Omzet Kotor (Rp)",
-          data: omzetVals.length > 0 ? omzetVals : [0],
-          borderColor: "rgb(217, 119, 6)",
-          backgroundColor: "rgba(217, 119, 6, 0.12)",
-          borderWidth: 2.5,
-          pointRadius: 5,
-          pointBackgroundColor: "rgb(217, 119, 6)",
-          fill: true,
-          tension: 0.35,
-        },
-        {
-          label: "Laba Bersih (Rp)",
-          data: labaVals.length > 0 ? labaVals : [0],
-          borderColor: "rgb(16, 185, 129)",
-          backgroundColor: "rgba(16, 185, 129, 0.1)",
-          borderWidth: 2.5,
-          pointRadius: 5,
-          pointBackgroundColor: "rgb(16, 185, 129)",
-          fill: true,
-          tension: 0.35,
-        },
-      ],
-    },
-    {
-      plugins: {
-        legend: { position: "top", labels: { font: { size: 12 }, padding: 12 } },
+      type: "line",
+      data: {
+        labels: chartLabels.length > 0 ? chartLabels : ["Hari 1"],
+        datasets: [
+          { label: "Omzet Kotor (Rp)", data: chartOmzet.length > 0 ? chartOmzet : [0], borderColor: "#D97706", backgroundColor: "rgba(217, 119, 6, 0.1)", tension: 0.3, fill: true },
+          { label: "Laba Bersih (Rp)", data: chartLaba.length > 0 ? chartLaba : [0], borderColor: "#059669", backgroundColor: "rgba(5, 150, 105, 0.1)", tension: 0.3, fill: true },
+        ],
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            font: { size: 10 },
-            callback: (v: number) => "Rp " + (v / 1000).toFixed(0) + "k",
-          },
-        },
-        x: { ticks: { font: { size: 10 } } },
+      options: {
+        plugins: { legend: { position: "top" } },
+        scales: { y: { ticks: { callback: (v: any) => `Rp ${(v / 1000).toFixed(0)}k` } } },
       },
     },
     900,
-    360
+    300
   );
 
-  const lineH = (CW * 360) / 900;
-  if (curY + lineH > 270) {
-    doc.addPage();
-    curY = 16;
-  }
+  const lineH = (CW * 300) / 900;
   doc.addImage(lineChartImg, "PNG", ML, curY, CW, lineH);
-  curY += lineH + 10;
+
+  // Footer Page 1
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text("Halaman 1 dari 2 | Dokumen Laporan Keuangan Resmi Kedai Nyamleng Malang", PW / 2, 290, { align: "center" });
+
+  // ── PAGE 2: DONUT CHART & DETAILED TABLES ────────────────────────────────────
+  doc.addPage();
+  curY = 14;
 
   // ── 4. Doughnut Chart — Proporsi Omzet Produk ──────────────────────────────
   const productMap: Record<string, { qty: number; revenue: number }> = {};
   transactions.forEach((t) => {
     t.items.forEach((item) => {
-      if (!productMap[item.nameSnapshot]) productMap[item.nameSnapshot] = { qty: 0, revenue: 0 };
-      productMap[item.nameSnapshot].qty += item.qty;
-      productMap[item.nameSnapshot].revenue += item.priceSnapshot * item.qty;
+      const name = item.nameSnapshot;
+      if (!productMap[name]) productMap[name] = { qty: 0, revenue: 0 };
+      productMap[name].qty += item.qty;
+      productMap[name].revenue += item.qty * item.priceSnapshot;
     });
   });
 
-  const sortedProds = Object.entries(productMap).sort(([, a], [, b]) => b.revenue - a.revenue);
-  const top5Prods = sortedProds.slice(0, 5);
-  const otherProds = sortedProds.slice(5);
-  const otherRev = otherProds.reduce((s, [, v]) => s + v.revenue, 0);
+  const sortedProducts = Object.entries(productMap).sort((a, b) => b[1].revenue - a[1].revenue);
+  const topProducts = sortedProducts.slice(0, 5);
+  const otherRevenue = sortedProducts.slice(5).reduce((sum, p) => sum + p[1].revenue, 0);
 
-  const pieLabels: string[] = [];
-  const pieData: number[] = [];
-  const pieColors = ["#D97706", "#0284C7", "#059669", "#8B5CF6", "#F59E0B", "#94A3B8"];
-
-  top5Prods.forEach(([name, v]) => {
-    const pct = totalRevenue > 0 ? ((v.revenue / totalRevenue) * 100).toFixed(1) : "0.0";
-    pieLabels.push(`${name} (${pct}%)`);
-    pieData.push(v.revenue);
+  const pieLabels = topProducts.map((p) => {
+    const pct = totalRevenue > 0 ? ((p[1].revenue / totalRevenue) * 100).toFixed(1) : 0;
+    return `${p[0]} (${pct}%)`;
   });
-
-  if (otherRev > 0) {
-    const pct = totalRevenue > 0 ? ((otherRev / totalRevenue) * 100).toFixed(1) : "0.0";
+  const pieData = topProducts.map((p) => p[1].revenue);
+  if (otherRevenue > 0) {
+    const pct = totalRevenue > 0 ? ((otherRevenue / totalRevenue) * 100).toFixed(1) : 0;
     pieLabels.push(`Lainnya (${pct}%)`);
-    pieData.push(otherRev);
+    pieData.push(otherRevenue);
   }
 
-  if (curY + 65 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.text("3. Donut Chart — Proporsi Omzet Produk Terlaris", ML, curY);
-  curY += 4;
+  curY += 3;
 
   const pieImg = await renderChartToBase64(
-    "doughnut",
     {
-      labels: pieLabels,
-      datasets: [
-        {
-          data: pieData.length > 0 ? pieData : [1],
-          backgroundColor: pieColors,
-          borderWidth: 2,
-          borderColor: "#FFFFFF",
-        },
-      ],
-    },
-    {
-      plugins: {
-        legend: { position: "right", labels: { font: { size: 11 }, padding: 14 } },
+      type: "doughnut",
+      data: {
+        labels: pieLabels,
+        datasets: [{ data: pieData, backgroundColor: ["#D97706", "#0284C7", "#059669", "#8B5CF6", "#F59E0B", "#94A3B8"] }],
       },
+      options: { plugins: { legend: { position: "right" } } },
     },
     900,
-    340
+    280
   );
 
-  const pieH = (CW * 340) / 900;
+  const pieH = (CW * 280) / 900;
   doc.addImage(pieImg, "PNG", ML, curY, CW, pieH);
-  curY += pieH + 8;
+  curY += pieH + 6;
 
   // ── 5. Product Performance Table ────────────────────────────────────────────
-  if (curY + 40 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.text("4. Tabel Analisis Performa Produk & Kontribusi Omzet", ML, curY);
-  curY += 4;
+  curY += 3;
+
+  const productRows = sortedProducts.slice(0, 8).map((p, idx) => {
+    const pct = totalRevenue > 0 ? ((p[1].revenue / totalRevenue) * 100).toFixed(1) : 0;
+    return [`#${idx + 1}`, p[0], `${p[1].qty} porsi`, `Rp ${p[1].revenue.toLocaleString("id-ID")}`, `${pct}%`];
+  });
 
   autoTable(doc, {
     startY: curY,
     head: [["Rank", "Nama Menu Produk", "Porsi Terjual", "Total Omzet (Rp)", "% Kontribusi Omzet"]],
-    body: sortedProds.map(([name, v], i) => [
-      `#${i + 1}`,
-      name,
-      `${v.qty} porsi`,
-      `Rp ${v.revenue.toLocaleString("id-ID")}`,
-      `${totalRevenue > 0 ? ((v.revenue / totalRevenue) * 100).toFixed(1) : 0}%`,
-    ]),
+    body: productRows,
     theme: "grid",
-    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
-    styles: { font: "helvetica", fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
+    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 16, halign: "center" },
       1: { cellWidth: 70 },
-      2: { cellWidth: 28, halign: "center" },
-      3: { cellWidth: 40, halign: "right" },
-      4: { cellWidth: 28, halign: "center" },
+      2: { cellWidth: 32, halign: "center" },
+      3: { cellWidth: 36, halign: "right" },
+      4: { cellWidth: 28, halign: "right" },
     },
     margin: { left: ML, right: ML },
   });
 
-  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 
   // ── 6. Full Transaction History Audit Table ─────────────────────────────────
-  if (curY + 40 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
   doc.text("5. Rincian Audit Seluruh Transaksi Nota", ML, curY);
-  curY += 4;
+  curY += 3;
+
+  const txRows = transactions.slice(0, 15).map((t) => [
+    t.orderNumber || "-",
+    new Date(t.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+    t.customerName || "Pelanggan",
+    t.orderType === "dine-in" ? "Dine-In" : "Takeaway",
+    `Rp ${t.hppTotal.toLocaleString("id-ID")}`,
+    `Rp ${t.tax.toLocaleString("id-ID")}`,
+    `Rp ${t.total.toLocaleString("id-ID")}`,
+    `Rp ${t.netProfit.toLocaleString("id-ID")}`,
+  ]);
 
   autoTable(doc, {
     startY: curY,
     head: [["No. Nota", "Tanggal", "Pelanggan", "Order", "HPP (Rp)", "Pajak (Rp)", "Total Omzet (Rp)", "Laba (Rp)"]],
-    body: transactions.map((t) => [
-      t.orderNumber,
-      new Date(t.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
-      t.customerName || "Pelanggan",
-      t.orderType === "dine-in" ? `Dine-In (${t.tableNumber})` : "Takeaway",
-      `Rp ${t.hppTotal.toLocaleString("id-ID")}`,
-      `Rp ${t.tax.toLocaleString("id-ID")}`,
-      `Rp ${t.total.toLocaleString("id-ID")}`,
-      `Rp ${t.netProfit.toLocaleString("id-ID")}`,
-    ]),
+    body: txRows,
     theme: "grid",
-    headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
-    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 1.8 },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+    styles: { font: "helvetica", fontSize: 7, cellPadding: 1.8 },
     columnStyles: {
-      0: { cellWidth: 24 },
-      1: { cellWidth: 20 },
-      2: { cellWidth: 32 },
-      3: { cellWidth: 22 },
+      0: { cellWidth: 26 },
+      1: { cellWidth: 18, halign: "center" },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 20, halign: "center" },
       4: { cellWidth: 22, halign: "right" },
       5: { cellWidth: 20, halign: "right" },
-      6: { cellWidth: 22, halign: "right" },
-      7: { cellWidth: 20, halign: "right" },
+      6: { cellWidth: 24, halign: "right" },
+      7: { cellWidth: 22, halign: "right" },
     },
     margin: { left: ML, right: ML },
   });
 
-  // Footer / Page numbers
-  const pageCount = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184);
-    doc.text(
-      `Halaman ${i} dari ${pageCount}  |  Dokumen Laporan Keuangan Resmi Kedai Nyamleng Malang`,
-      PW / 2,
-      290,
-      { align: "center" }
-    );
-  }
+  // Footer Page 2
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text("Halaman 2 dari 2 | Dokumen Laporan Keuangan Resmi Kedai Nyamleng Malang", PW / 2, 290, { align: "center" });
 
-  doc.save(`Laporan_PDF_Kedai_Nyamleng_${new Date().toISOString().slice(0, 10)}.pdf`);
+  // Save PDF file
+  const reportDate = new Date().toISOString().split("T")[0];
+  doc.save(`Laporan_Audit_Kedai_Nyamleng_${reportDate}.pdf`);
 }
