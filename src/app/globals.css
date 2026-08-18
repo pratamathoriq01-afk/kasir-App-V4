@@ -44,7 +44,7 @@
 body {
   background-color: #f8fafc;
   color: #0f172a;
-  font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
 }
 
 /* Custom scrollbars */

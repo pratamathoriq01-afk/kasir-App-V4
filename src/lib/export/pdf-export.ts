@@ -140,29 +140,40 @@ export async function exportTransactionsToPDF(
 
   curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 
-  // ── 2. AI Executive Summary Box ──────────────────────────────────────────────
-  doc.setFillColor(254, 243, 199); // Amber 50
-  doc.setDrawColor(217, 119, 6); // Amber 600
-  doc.roundedRect(ML, curY, CW, 32, 2, 2, "FD");
+  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+
+  // ── 2. AI Executive Summary & Audit Insight Box ─────────────────────────────
+  const boxHeight = 44;
+  doc.setFillColor(248, 250, 252); // Slate 50
+  doc.setDrawColor(226, 232, 240); // Slate 200
+  doc.roundedRect(ML, curY, CW, boxHeight, 3, 3, "FD");
+
+  // Left Amber Accent Stripe
+  doc.setFillColor(217, 119, 6); // Amber 600
+  doc.rect(ML, curY, 3.5, boxHeight, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(180, 83, 9);
-  doc.text("AI EXECUTIVE BUSINESS SUMMARY & RECOMMENDATIONS:", ML + 4, curY + 6);
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42); // Slate 900
+  doc.text("🤖 ANALISIS STRATEGIS AI & AUDIT KEUANGAN (SAK EMKM)", ML + 7, curY + 7);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(15, 23, 42);
-  const aiSummaryText =
-    `- Kinerja Omzet & Profit: Total omzet sebesar Rp ${totalRevenue.toLocaleString("id-ID")} dengan Laba Bersih Rp ${totalNetProfit.toLocaleString("id-ID")} ` +
-    `(Gross Profit Margin ${gpmPct.toFixed(1)}%). Evaluasi bisnis berada dalam kondisi ${gpmPct >= 30 ? "EXCELLENT & Sangat Profitabel" : "SEHAT"}.\n` +
-    `- Pengendalian HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari total omzet). Penggunaan bahan baku terkendali efisien.\n` +
-    `- Nilai Transaksi Rata-Rata (AOV): Rata-rata pengeluaran per nota sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.\n` +
-    `- Rekomendasi Operasional: Pertahankan porsi pendorong profitabilitas dan dorong promosi paket bundling pada menu margin tinggi.`;
+  doc.setFontSize(7.5);
+  doc.setTextColor(51, 65, 85); // Slate 700
 
-  const splitSummary = doc.splitTextToSize(aiSummaryText, CW - 8);
-  doc.text(splitSummary, ML + 4, curY + 12);
-  curY += 38;
+  const p1 = `• OLEH OMZET & PROFITABILITAS: Omzet terealisasi Rp ${totalRevenue.toLocaleString("id-ID")} dengan Net Profit Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Kondisi finansial: ${gpmPct >= 30 ? "Sangat Sehat & Profitabel" : "Stabil"}.`;
+  const p2 = `• PENGENDALIAN HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari total omzet). Penggunaan bahan baku terkendali efisien.`;
+  const p3 = `• TRAFIK & AOV: Rata-rata belanja nota (AOV) sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.`;
+  const p4 = `• REKOMENDASI STRATEGIS: Pertahankan promo bundling menu margin tinggi (>50%) dan lakukan audit berkala pada item ber-HPP tinggi.`;
+
+  let lineY = curY + 14;
+  [p1, p2, p3, p4].forEach((p) => {
+    const lines = doc.splitTextToSize(p, CW - 12);
+    doc.text(lines, ML + 7, lineY);
+    lineY += lines.length * 4 + 1.5;
+  });
+
+  curY += boxHeight + 8;
 
   // ── 3. Line Chart — Tren Omzet & Laba Harian ───────────────────────────────
   doc.setFont("helvetica", "bold");

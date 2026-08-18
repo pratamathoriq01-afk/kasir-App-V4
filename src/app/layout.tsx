@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import { Outfit, Space_Mono, Inter } from "next/font/google";
-import Link from "next/link";
+import { Plus_Jakarta_Sans, Space_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const outfit = Outfit({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const spaceMono = Space_Mono({
@@ -19,8 +17,8 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kedai Nyamleng — Sistem Kasir POS",
-  description: "Aplikasi Kasir POS & Laporan Kedai Nyamleng Malang",
+  title: "Kedai Nyamleng — Sistem Kasir POS & Analytics Eksekutif",
+  description: "Sistem Kasir POS, Manajemen Menu & Laporan Keuangan Eksekutif Kedai Nyamleng Malang",
 };
 
 export default function RootLayout({
@@ -29,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={cn(outfit.variable, spaceMono.variable, "font-sans", inter.variable)}>
-      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased">
+    <html lang="id" className={cn(plusJakarta.variable, spaceMono.variable, "font-sans")}>
+      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-amber-500 selection:text-slate-950">
         {/* Main Application Header */}
         <Navbar />
 
