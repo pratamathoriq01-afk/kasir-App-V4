@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Transaction } from "@/types";
 import { fetchTransactionsFromDB, saveTransactions } from "@/lib/data-service";
 import { exportTransactionsToPDF } from "@/lib/export/pdf-export";
-import { exportTransactionsToGoogleSheets } from "@/lib/export/google-sheets-export";
 import StatsCards from "./components/StatsCards";
 import SalesTrendChart from "./components/SalesTrendChart";
 import CategoryPieChart from "./components/CategoryPieChart";
@@ -12,13 +11,12 @@ import TopMenuBarChart from "./components/TopMenuBarChart";
 import AiInsightCard from "./components/AiInsightCard";
 import MenuPerformanceTable from "./components/MenuPerformanceTable";
 import HistoryTable from "./components/HistoryTable";
-import { FileText, Table, RotateCcw, Calendar, Loader2, Sparkles, Sheet } from "lucide-react";
+import { FileText, RotateCcw, Calendar, Loader2, Sparkles, Sheet } from "lucide-react";
 
 export default function LaporanPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [periodFilter, setPeriodFilter] = useState<"today" | "7days" | "month" | "all">("all");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isExportingGoogleSheets, setIsExportingGoogleSheets] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const handleExportPDF = async () => {
@@ -33,17 +31,7 @@ export default function LaporanPage() {
     }
   };
 
-  const handleExportGoogleSheets = async () => {
-    setIsExportingGoogleSheets(true);
-    try {
-      await exportTransactionsToGoogleSheets(filteredTransactions, getPeriodLabel());
-    } catch (err) {
-      console.error("Google Sheets export error:", err);
-      alert("Gagal ekspor ke Google Sheets: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setIsExportingGoogleSheets(false);
-    }
-  };
+
 
   const handleExportExcel = async () => {
     setIsExportingExcel(true);
@@ -237,18 +225,7 @@ export default function LaporanPage() {
             <span className="truncate">{isExportingExcel ? "Membuat..." : "Export Excel 📊"}</span>
           </button>
 
-          <button
-            onClick={handleExportGoogleSheets}
-            disabled={isExportingGoogleSheets}
-            className="py-2 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
-          >
-            {isExportingGoogleSheets ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Table className="w-3.5 h-3.5 text-emerald-200" />
-            )}
-            <span className="truncate">{isExportingGoogleSheets ? "Menghubungkan..." : "Export Google Sheets 🟩"}</span>
-          </button>
+
 
           <button
             onClick={handleResetHistory}
