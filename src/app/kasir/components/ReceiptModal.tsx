@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Transaction } from "@/types";
 import { printViaWebUSB } from "@/lib/printer/usb-printer";
 import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";

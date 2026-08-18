@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Voucher } from "@/types";
 import { fetchActiveVouchersFromDB } from "@/lib/data-service";
 import { Ticket, Sparkles, CheckCircle2, AlertCircle, X, ArrowRight } from "lucide-react";
