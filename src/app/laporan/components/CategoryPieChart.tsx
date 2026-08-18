@@ -110,15 +110,15 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-88">
-      <div className="flex items-center justify-between mb-2 border-b border-slate-100 pb-3">
+    <div className="bg-card p-5 rounded-3xl border border-border shadow-xs flex flex-col h-88 transition-colors">
+      <div className="flex items-center justify-between mb-2 border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-sky-100 text-sky-800 rounded-xl">
+          <div className="p-2 bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-400 rounded-xl">
             <PieChart className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm">Proporsi Omzet Kategori</h3>
-            <p className="text-[11px] text-slate-500">Distribusi pendapatan per jenis menu.</p>
+            <h3 className="font-bold text-foreground text-sm">Proporsi Omzet Kategori</h3>
+            <p className="text-[11px] text-muted-foreground">Distribusi pendapatan per jenis menu.</p>
           </div>
         </div>
       </div>
@@ -127,8 +127,8 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
         <Doughnut data={data} options={options} />
         {/* Center Total Overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
-          <span className="text-[10px] uppercase font-extrabold text-slate-400">Total Omzet</span>
-          <span className="text-xs font-black text-slate-900 font-mono">
+          <span className="text-[10px] uppercase font-extrabold text-muted-foreground">Total Omzet</span>
+          <span className="text-xs font-black text-foreground font-mono">
             Rp {(totalCatRev / 1000).toFixed(0)}rb
           </span>
         </div>
@@ -136,3 +136,4 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
     </div>
   );
 }
+

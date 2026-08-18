@@ -186,21 +186,21 @@ export default function SalesTrendChart({ transactions }: SalesTrendChartProps) 
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-88">
-      <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+    <div className="bg-card p-5 rounded-3xl border border-border shadow-xs flex flex-col h-88 transition-colors">
+      <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+          <div className="p-2 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 rounded-xl">
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm">Grafik Tren Penjualan &amp; Margin Laba</h3>
-            <p className="text-[11px] text-slate-500">
+            <h3 className="font-bold text-foreground text-sm">Grafik Tren Penjualan &amp; Margin Laba</h3>
+            <p className="text-[11px] text-muted-foreground">
               Evaluasi performa omzet kotor vs laba bersih harian Kedai Nyamleng.
             </p>
           </div>
         </div>
 
-        <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wider">
+        <span className="text-[10px] font-extrabold text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 px-2.5 py-1 rounded-full uppercase tracking-wider">
           {labels.length} Hari Terdata
         </span>
       </div>
@@ -211,3 +211,4 @@ export default function SalesTrendChart({ transactions }: SalesTrendChartProps) 
     </div>
   );
 }
+

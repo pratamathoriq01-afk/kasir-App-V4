@@ -103,19 +103,19 @@ export default function TopMenuBarChart({ transactions }: TopMenuBarChartProps) 
   };
 
   return (
-    <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-88">
-      <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
+    <div className="bg-card p-5 rounded-3xl border border-border shadow-xs flex flex-col h-88 transition-colors">
+      <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-amber-500 text-slate-950 rounded-xl shadow-xs">
+          <div className="p-2 bg-amber-500 text-slate-950 dark:bg-amber-400 rounded-xl shadow-xs">
             <Flame className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm">Top 5 Menu Terlaris (Best Seller)</h3>
-            <p className="text-[11px] text-slate-500">Paling banyak dipesan oleh pelanggan.</p>
+            <h3 className="font-bold text-foreground text-sm">Top 5 Menu Terlaris (Best Seller)</h3>
+            <p className="text-[11px] text-muted-foreground">Paling banyak dipesan oleh pelanggan.</p>
           </div>
         </div>
 
-        <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-extrabold text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 px-2 py-0.5 rounded-full">
           RANKING #1-#5
         </span>
       </div>
@@ -126,3 +126,4 @@ export default function TopMenuBarChart({ transactions }: TopMenuBarChartProps) 
     </div>
   );
 }
+

@@ -31,16 +31,16 @@ export default function MenuPerformanceTable({ transactions }: MenuPerformanceTa
   const sortedList = Object.values(itemMap).sort((a, b) => b.revenue - a.revenue);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-      <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <h3 className="font-bold text-slate-800 text-sm">Analisis Performa Per Menu</h3>
-        <span className="text-xs text-slate-500 font-medium">Diurutkan Berdasarkan Omzet</span>
+    <div className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden transition-colors">
+      <div className="p-4 bg-slate-50/80 dark:bg-slate-900/90 border-b border-border flex items-center justify-between">
+        <h3 className="font-bold text-foreground text-sm">Analisis Performa Per Menu</h3>
+        <span className="text-xs text-muted-foreground font-medium">Diurutkan Berdasarkan Omzet</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-100/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <tr className="bg-slate-100/70 dark:bg-slate-900/60 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               <th className="py-3 px-4">Nama Menu</th>
               <th className="py-3 px-4 text-center">Terjual (Qty)</th>
               <th className="py-3 px-4">Total Omzet (Rp)</th>
@@ -48,10 +48,10 @@ export default function MenuPerformanceTable({ transactions }: MenuPerformanceTa
               <th className="py-3 px-4 text-right">Laba Bersih (Rp)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-xs font-medium">
+          <tbody className="divide-y divide-border text-xs font-medium">
             {sortedList.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-slate-400">
+                <td colSpan={5} className="text-center py-6 text-muted-foreground">
                   Belum ada data item terjual dalam periode ini.
                 </td>
               </tr>
@@ -59,18 +59,18 @@ export default function MenuPerformanceTable({ transactions }: MenuPerformanceTa
               sortedList.map((item, idx) => {
                 const profit = item.revenue - item.hpp;
                 return (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-900">{item.name}</td>
-                    <td className="py-3 px-4 text-center font-mono font-bold text-slate-800">
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="py-3 px-4 font-bold text-foreground">{item.name}</td>
+                    <td className="py-3 px-4 text-center font-mono font-bold text-foreground">
                       {item.qty}
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                    <td className="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
                       Rp {item.revenue.toLocaleString("id-ID")}
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">
+                    <td className="py-3 px-4 font-mono text-muted-foreground">
                       Rp {item.hpp.toLocaleString("id-ID")}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       +Rp {profit.toLocaleString("id-ID")}
                     </td>
                   </tr>
@@ -83,3 +83,4 @@ export default function MenuPerformanceTable({ transactions }: MenuPerformanceTa
     </div>
   );
 }
+
