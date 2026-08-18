@@ -12,13 +12,14 @@ import TopMenuBarChart from "./components/TopMenuBarChart";
 import AiInsightCard from "./components/AiInsightCard";
 import MenuPerformanceTable from "./components/MenuPerformanceTable";
 import HistoryTable from "./components/HistoryTable";
-import { FileText, Table, RotateCcw, Calendar, Loader2, Sparkles } from "lucide-react";
+import { FileText, Table, RotateCcw, Calendar, Loader2, Sparkles, Sheet } from "lucide-react";
 
 export default function LaporanPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [periodFilter, setPeriodFilter] = useState<"today" | "7days" | "month" | "all">("all");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingGoogleSheets, setIsExportingGoogleSheets] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const handleExportPDF = async () => {
     setIsExportingPdf(true);
@@ -44,8 +45,48 @@ export default function LaporanPage() {
     }
   };
 
+  const handleExportExcel = async () => {
+    setIsExportingExcel(true);
+    try {
+      const now = new Date();
+      let from: string | undefined;
+      if (periodFilter === "today") {
+        from = now.toISOString().split("T")[0];
+      } else if (periodFilter === "7days") {
+        from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      } else if (periodFilter === "month") {
+        from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      }
+      const to = now.toISOString().split("T")[0];
+
+      const url = from
+        ? `/api/export/excel?from=${from}&to=${to}`
+        : `/api/export/excel`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(await res.text());
+
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Laporan_Kedai_Nyamleng_${now.toISOString().split("T")[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error("Excel export error:", err);
+      alert("Gagal mengunduh Excel: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   useEffect(() => {
-    fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
+    const loadData = () => {
+      fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
+    };
+    loadData();
+    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const filteredTransactions = transactions.filter((t) => {
@@ -180,7 +221,20 @@ export default function LaporanPage() {
             ) : (
               <FileText className="w-3.5 h-3.5" />
             )}
-            <span className="truncate">{isExportingPdf ? "Mengunduh..." : "Export PDF Eksekutif"}</span>
+            <span className="truncate">{isExportingPdf ? "Mengunduh..." : "Export PDF"}</span>
+          </button>
+
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="py-2 px-3 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+          >
+            {isExportingExcel ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sheet className="w-3.5 h-3.5" />
+            )}
+            <span className="truncate">{isExportingExcel ? "Membuat..." : "Export Excel 📊"}</span>
           </button>
 
           <button

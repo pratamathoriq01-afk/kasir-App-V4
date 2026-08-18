@@ -18,8 +18,17 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
 
   transactions.forEach((t) => {
     t.items.forEach((item) => {
+      const itemCat = (item as any).category || (item as any).categorySnapshot;
+      const rev = item.priceSnapshot * item.qty;
       const name = item.nameSnapshot.toLowerCase();
-      if (
+
+      if (itemCat === "Minuman" || itemCat === "Beverage") {
+        minumanRev += rev;
+      } else if (itemCat === "Cemilan" || itemCat === "Snack") {
+        cemilanRev += rev;
+      } else if (itemCat === "Makanan" || itemCat === "Food") {
+        makananRev += rev;
+      } else if (
         name.includes("es ") ||
         name.includes("kopi") ||
         name.includes("teh") ||
@@ -28,7 +37,7 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
         name.includes("susu") ||
         name.includes("jus")
       ) {
-        minumanRev += item.priceSnapshot * item.qty;
+        minumanRev += rev;
       } else if (
         name.includes("tahu") ||
         name.includes("pisang") ||
@@ -37,9 +46,9 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
         name.includes("kentang") ||
         name.includes("cireng")
       ) {
-        cemilanRev += item.priceSnapshot * item.qty;
+        cemilanRev += rev;
       } else {
-        makananRev += item.priceSnapshot * item.qty;
+        makananRev += rev;
       }
     });
   });
