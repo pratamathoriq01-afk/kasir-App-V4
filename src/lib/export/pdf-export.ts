@@ -107,7 +107,7 @@ export async function exportTransactionsToPDF(
 
   let curY = 44;
 
-  // ── 1. Executive KPI Scorecard Table ─────────────────────────────────────────
+  // ── PAGE 1: EXECUTIVE SCORECARD & AI AUDIT SUMMARY ───────────────────────────
   doc.setTextColor(15, 23, 42);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -126,8 +126,8 @@ export async function exportTransactionsToPDF(
       ["Rata-Rata Belanja (AOV)", `Rp ${avgOrderValue.toLocaleString("id-ID")}`, "-", "Per Transaksi", avgOrderValue >= 30000 ? "HIGH SPEND" : "NORMAL"],
     ],
     theme: "grid",
-    headStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
-    styles: { font: "helvetica", fontSize: 8, cellPadding: 2.2 },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 2.5 },
     columnStyles: {
       0: { cellWidth: 55 },
       1: { cellWidth: 42, halign: "right" },
@@ -138,32 +138,33 @@ export async function exportTransactionsToPDF(
     margin: { left: ML, right: ML },
   });
 
-  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
   // ── 2. AI Executive Summary & Audit Insight Box ─────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(15, 23, 42); // Slate 900
-  doc.text("2. Analisis Strategis AI & Recommendations", ML, curY);
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.text("2. Analisis Strategis AI & Audit Keuangan (SAK EMKM)", ML, curY);
   curY += 4;
 
-  const p1 = `• OMZET & PROFITABILITAS: Total omzet Rp ${totalRevenue.toLocaleString("id-ID")} menghasilkan Net Profit Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Evaluasi bisnis: ${gpmPct >= 30 ? "Sangat Sehat & Profitabel" : "Stabil"}.`;
-  const p2 = `• KONTROL HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Bahan baku terjaga efisien di bawah ambang batas 50%.`;
-  const p3 = `• TRAFIK & AOV: Rata-rata belanja per nota (AOV) sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.`;
-  const p4 = `• REKOMENDASI AI: Pertahankan promosi bundling menu margin tinggi (>50%) & lakukan evaluasi berkala pada item HPP tinggi.`;
+  const p1 = `• KINERJA OMZET & PROFITABILITAS: Total omzet Rp ${totalRevenue.toLocaleString("id-ID")} menghasilkan Net Profit Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Evaluasi bisnis: ${gpmPct >= 30 ? "Sangat Sehat & Profitabel" : "Stabil"}.`;
+  const p2 = `• PENGENDALIAN HPP BAHAN BAKU: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Bahan baku terjaga efisien di bawah ambang batas maksimum SAK EMKM (50%).`;
+  const p3 = `• TRAFIK & UKURAN NOTA (AOV): Rata-rata belanja per nota sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.`;
+  const p4 = `• REKOMENDASI OPERASIONAL: Pertahankan promosi bundling menu margin tinggi (>50%) & lakukan evaluasi berkala pada stok bahan baku ber-HPP tinggi.`;
 
+  const paragraphs = [p1, p2, p3, p4];
   const allLines: string[] = [];
-  [p1, p2, p3, p4].forEach((p) => {
+  paragraphs.forEach((p) => {
     const wrapped = doc.splitTextToSize(p, CW - 12);
     allLines.push(...wrapped);
   });
 
-  const computedBoxH = Math.max(38, allLines.length * 4.5 + 10);
+  const computedBoxH = Math.max(48, allLines.length * 4.8 + 8);
   doc.setFillColor(248, 250, 252); // Slate 50
   doc.setDrawColor(226, 232, 240); // Slate 200
   doc.roundedRect(ML, curY, CW, computedBoxH, 3, 3, "FD");
 
-  // Left Amber Stripe
+  // Left Amber Accent Stripe
   doc.setFillColor(217, 119, 6);
   doc.rect(ML, curY, 3.5, computedBoxH, "F");
 
@@ -172,13 +173,21 @@ export async function exportTransactionsToPDF(
   doc.setTextColor(51, 65, 85); // Slate 700
 
   let textY = curY + 7;
-  [p1, p2, p3, p4].forEach((p) => {
+  paragraphs.forEach((p) => {
     const lines = doc.splitTextToSize(p, CW - 12);
     doc.text(lines, ML + 7, textY);
-    textY += lines.length * 4.5 + 1;
+    textY += lines.length * 4.8 + 2;
   });
 
-  // ── PAGE 2: CHARTS ─────────────────────────────────────────────────────────
+  curY += computedBoxH + 10;
+
+  // Sign-off Stamp on Page 1
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text("Laporan ini disusun otomatis oleh AI Financial Engine Kedai Nyamleng POS.", ML, curY);
+
+  // ── PAGE 2: VISUAL ANALYTICS & CHARTS ─────────────────────────────────────────
   doc.addPage();
   curY = 16;
 
@@ -249,12 +258,12 @@ export async function exportTransactionsToPDF(
       },
     },
     900,
-    360
+    340
   );
 
-  const lineH = (CW * 360) / 900;
+  const lineH = (CW * 340) / 900;
   doc.addImage(lineChartImg, "PNG", ML, curY, CW, lineH);
-  curY += lineH + 10;
+  curY += lineH + 12;
 
   // ── 4. Doughnut Chart — Proporsi Omzet Produk ──────────────────────────────
   const productMap: Record<string, { qty: number; revenue: number }> = {};
@@ -287,14 +296,10 @@ export async function exportTransactionsToPDF(
     pieData.push(otherRev);
   }
 
-  if (curY + 65 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text("3. Donut Chart — Proporsi Omzet Produk Terlaris", ML, curY);
+  doc.text("4. Donut Chart — Proporsi Omzet Produk Terlaris", ML, curY);
   curY += 4;
 
   const pieImg = await renderChartToBase64(
@@ -316,22 +321,21 @@ export async function exportTransactionsToPDF(
       },
     },
     900,
-    340
+    320
   );
 
-  const pieH = (CW * 340) / 900;
+  const pieH = (CW * 320) / 900;
   doc.addImage(pieImg, "PNG", ML, curY, CW, pieH);
-  curY += pieH + 8;
+
+  // ── PAGE 3: DETAILED TABLES ──────────────────────────────────────────────────
+  doc.addPage();
+  curY = 16;
 
   // ── 5. Product Performance Table ────────────────────────────────────────────
-  if (curY + 40 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text("4. Tabel Analisis Performa Produk & Kontribusi Omzet", ML, curY);
+  doc.text("5. Tabel Analisis Performa Produk & Kontribusi Omzet", ML, curY);
   curY += 4;
 
   autoTable(doc, {
@@ -360,14 +364,10 @@ export async function exportTransactionsToPDF(
   curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
   // ── 6. Full Transaction History Audit Table ─────────────────────────────────
-  if (curY + 40 > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text("5. Rincian Audit Seluruh Transaksi Nota", ML, curY);
+  doc.text("6. Rincian Audit Seluruh Transaksi Nota", ML, curY);
   curY += 4;
 
   autoTable(doc, {
