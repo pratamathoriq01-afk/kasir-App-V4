@@ -14,7 +14,7 @@ const COLORS = {
   ROW_WHITE: "FFFFFF",
   TEXT_MAIN: "1E293B",
   TEXT_MUTED: "64748B",
-  BORDER: "E2E8F0",       // Light gray cell border
+  BORDER: "1E293B",       // Dark Slate — solid visible black border
 };
 
 const IDR = (val: number) =>

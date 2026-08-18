@@ -144,51 +144,24 @@ export default function LaporanPage() {
         <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => {
+              const dayOffset = (d: number, h: number) => new Date(Date.now() - d * 86400000 - h * 3600000).toISOString();
               const demo = [
-                {
-                  id: `trx-demo-1`,
-                  orderNumber: "ORD-101",
-                  customerName: "Budi Santoso",
-                  orderType: "dine-in" as const,
-                  tableNumber: "02",
-                  subtotal: 45000,
-                  discountType: null,
-                  discountValue: 0,
-                  discountAmount: 0,
-                  tax: 4500,
-                  total: 49500,
-                  hppTotal: 22000,
-                  netProfit: 23000,
-                  cashReceived: 50000,
-                  change: 500,
-                  createdAt: new Date().toISOString(),
-                  items: [
-                    { id: "i1", menuItemId: "m1", nameSnapshot: "Nasi Goreng Nyamleng", priceSnapshot: 25000, hppSnapshot: 12000, qty: 1 },
-                    { id: "i2", menuItemId: "m4", nameSnapshot: "Es Teh Manis Jumbo", priceSnapshot: 10000, hppSnapshot: 4000, qty: 2 }
-                  ]
-                },
-                {
-                  id: `trx-demo-2`,
-                  orderNumber: "ORD-102",
-                  customerName: "Siti Rahma",
-                  orderType: "takeaway" as const,
-                  tableNumber: "-",
-                  subtotal: 60000,
-                  discountType: "percent" as const,
-                  discountValue: 10,
-                  discountAmount: 6000,
-                  tax: 5400,
-                  total: 59400,
-                  hppTotal: 28000,
-                  netProfit: 26000,
-                  cashReceived: 100000,
-                  change: 40600,
-                  createdAt: new Date(Date.now() - 3600000).toISOString(),
-                  items: [
-                    { id: "i3", menuItemId: "m3", nameSnapshot: "Ayam Geprek Sambal Korek", priceSnapshot: 28000, hppSnapshot: 14000, qty: 2 },
-                    { id: "i4", menuItemId: "m6", nameSnapshot: "Kopi Tubruk Malang", priceSnapshot: 12000, hppSnapshot: 5000, qty: 1 }
-                  ]
-                }
+                // Hari ini
+                { id: `trx-demo-1`, orderNumber: "ORD-101", customerName: "Budi Santoso", orderType: "dine-in" as const, tableNumber: "02", subtotal: 45000, discountType: null, discountValue: 0, discountAmount: 0, tax: 4500, total: 49500, hppTotal: 22000, netProfit: 23000, cashReceived: 50000, change: 500, createdAt: dayOffset(0, 0), items: [{ id: "i1", menuItemId: "m1", nameSnapshot: "Nasi Goreng Nyamleng", priceSnapshot: 25000, hppSnapshot: 12000, qty: 1 }, { id: "i2", menuItemId: "m4", nameSnapshot: "Es Teh Manis Jumbo", priceSnapshot: 10000, hppSnapshot: 4000, qty: 2 }] },
+                { id: `trx-demo-2`, orderNumber: "ORD-102", customerName: "Siti Rahma", orderType: "takeaway" as const, tableNumber: "-", subtotal: 60000, discountType: "percent" as const, discountValue: 10, discountAmount: 6000, tax: 5400, total: 59400, hppTotal: 28000, netProfit: 26000, cashReceived: 100000, change: 40600, createdAt: dayOffset(0, 2), items: [{ id: "i3", menuItemId: "m3", nameSnapshot: "Ayam Geprek Sambal Korek", priceSnapshot: 28000, hppSnapshot: 14000, qty: 2 }, { id: "i4", menuItemId: "m6", nameSnapshot: "Kopi Tubruk Malang", priceSnapshot: 12000, hppSnapshot: 5000, qty: 1 }] },
+                // 1 hari lalu
+                { id: `trx-demo-3`, orderNumber: "ORD-103", customerName: "Ahmad Rizki", orderType: "dine-in" as const, tableNumber: "05", subtotal: 72000, discountType: null, discountValue: 0, discountAmount: 0, tax: 7200, total: 79200, hppTotal: 34000, netProfit: 38000, cashReceived: 80000, change: 800, createdAt: dayOffset(1, 1), items: [{ id: "i5", menuItemId: "m2", nameSnapshot: "Pisang Goreng Keju", priceSnapshot: 18000, hppSnapshot: 8000, qty: 2 }, { id: "i6", menuItemId: "m5", nameSnapshot: "Tahu Crispy Sambal Kecap", priceSnapshot: 16000, hppSnapshot: 7000, qty: 2 }] },
+                { id: `trx-demo-4`, orderNumber: "ORD-104", customerName: "Lina Kusuma", orderType: "takeaway" as const, tableNumber: "-", subtotal: 35000, discountType: null, discountValue: 0, discountAmount: 0, tax: 3500, total: 38500, hppTotal: 15000, netProfit: 20000, cashReceived: 40000, change: 1500, createdAt: dayOffset(1, 3), items: [{ id: "i7", menuItemId: "m6", nameSnapshot: "Kopi Tubruk Malang", priceSnapshot: 12000, hppSnapshot: 5000, qty: 1 }, { id: "i8", menuItemId: "m4", nameSnapshot: "Es Jeruk Peras", priceSnapshot: 8000, hppSnapshot: 3000, qty: 2 }] },
+                // 2 hari lalu
+                { id: `trx-demo-5`, orderNumber: "ORD-105", customerName: "Wahyu Hendra", orderType: "dine-in" as const, tableNumber: "03", subtotal: 88000, discountType: "fixed" as const, discountValue: 8000, discountAmount: 8000, tax: 8000, total: 88000, hppTotal: 42000, netProfit: 38000, cashReceived: 90000, change: 2000, createdAt: dayOffset(2, 0), items: [{ id: "i9", menuItemId: "m1", nameSnapshot: "Nasi Goreng Nyamleng", priceSnapshot: 25000, hppSnapshot: 12000, qty: 2 }, { id: "i10", menuItemId: "m3", nameSnapshot: "Ayam Geprek Sambal Korek", priceSnapshot: 28000, hppSnapshot: 14000, qty: 1 }] },
+                // 3 hari lalu
+                { id: `trx-demo-6`, orderNumber: "ORD-106", customerName: "Dewi Kartika", orderType: "takeaway" as const, tableNumber: "-", subtotal: 52000, discountType: null, discountValue: 0, discountAmount: 0, tax: 5200, total: 57200, hppTotal: 25000, netProfit: 27000, cashReceived: 60000, change: 2800, createdAt: dayOffset(3, 2), items: [{ id: "i11", menuItemId: "m2", nameSnapshot: "Pisang Goreng Keju", priceSnapshot: 18000, hppSnapshot: 8000, qty: 2 }, { id: "i12", menuItemId: "m6", nameSnapshot: "Kopi Tubruk Malang", priceSnapshot: 12000, hppSnapshot: 5000, qty: 1 }] },
+                { id: `trx-demo-7`, orderNumber: "ORD-107", customerName: "Rudi Setiawan", orderType: "dine-in" as const, tableNumber: "01", subtotal: 104000, discountType: null, discountValue: 0, discountAmount: 0, tax: 10400, total: 114400, hppTotal: 52000, netProfit: 52000, cashReceived: 120000, change: 5600, createdAt: dayOffset(3, 5), items: [{ id: "i13", menuItemId: "m1", nameSnapshot: "Nasi Goreng Nyamleng", priceSnapshot: 25000, hppSnapshot: 12000, qty: 2 }, { id: "i14", menuItemId: "m3", nameSnapshot: "Ayam Geprek Sambal Korek", priceSnapshot: 28000, hppSnapshot: 14000, qty: 1 }, { id: "i15", menuItemId: "m5", nameSnapshot: "Tahu Crispy Sambal Kecap", priceSnapshot: 16000, hppSnapshot: 7000, qty: 1 }] },
+                // 5 hari lalu
+                { id: `trx-demo-8`, orderNumber: "ORD-108", customerName: "Fani Maulida", orderType: "takeaway" as const, tableNumber: "-", subtotal: 40000, discountType: null, discountValue: 0, discountAmount: 0, tax: 4000, total: 44000, hppTotal: 18000, netProfit: 22000, cashReceived: 50000, change: 6000, createdAt: dayOffset(5, 1), items: [{ id: "i16", menuItemId: "m4", nameSnapshot: "Es Jeruk Peras", priceSnapshot: 8000, hppSnapshot: 3000, qty: 2 }, { id: "i17", menuItemId: "m5", nameSnapshot: "Tahu Crispy Sambal Kecap", priceSnapshot: 16000, hppSnapshot: 7000, qty: 1 }] },
+                { id: `trx-demo-9`, orderNumber: "ORD-109", customerName: "Hendra Gunawan", orderType: "dine-in" as const, tableNumber: "04", subtotal: 96000, discountType: "percent" as const, discountValue: 5, discountAmount: 4800, tax: 9120, total: 100320, hppTotal: 46000, netProfit: 45320, cashReceived: 110000, change: 9680, createdAt: dayOffset(5, 4), items: [{ id: "i18", menuItemId: "m2", nameSnapshot: "Pisang Goreng Keju", priceSnapshot: 18000, hppSnapshot: 8000, qty: 2 }, { id: "i19", menuItemId: "m1", nameSnapshot: "Nasi Goreng Nyamleng", priceSnapshot: 25000, hppSnapshot: 12000, qty: 2 }] },
+                // 6 hari lalu
+                { id: `trx-demo-10`, orderNumber: "ORD-110", customerName: "Putri Amalia", orderType: "takeaway" as const, tableNumber: "-", subtotal: 66000, discountType: null, discountValue: 0, discountAmount: 0, tax: 6600, total: 72600, hppTotal: 31000, netProfit: 35000, cashReceived: 80000, change: 7400, createdAt: dayOffset(6, 2), items: [{ id: "i20", menuItemId: "m3", nameSnapshot: "Ayam Geprek Sambal Korek", priceSnapshot: 28000, hppSnapshot: 14000, qty: 2 }, { id: "i21", menuItemId: "m6", nameSnapshot: "Kopi Tubruk Malang", priceSnapshot: 12000, hppSnapshot: 5000, qty: 1 }] },
               ];
               const updated = [...transactions, ...demo];
               setTransactions(updated);
