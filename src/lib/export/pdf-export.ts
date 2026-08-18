@@ -140,46 +140,53 @@ export async function exportTransactionsToPDF(
 
   curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 
-  curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
-
   // ── 2. AI Executive Summary & Audit Insight Box ─────────────────────────────
-  const boxHeight = 44;
-  doc.setFillColor(248, 250, 252); // Slate 50
-  doc.setDrawColor(226, 232, 240); // Slate 200
-  doc.roundedRect(ML, curY, CW, boxHeight, 3, 3, "FD");
-
-  // Left Amber Accent Stripe
-  doc.setFillColor(217, 119, 6); // Amber 600
-  doc.rect(ML, curY, 3.5, boxHeight, "F");
-
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(15, 23, 42); // Slate 900
-  doc.text("🤖 ANALISIS STRATEGIS AI & AUDIT KEUANGAN (SAK EMKM)", ML + 7, curY + 7);
+  doc.text("2. Analisis Strategis AI & Recommendations", ML, curY);
+  curY += 4;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(51, 65, 85); // Slate 700
+  const p1 = `• OMZET & PROFITABILITAS: Total omzet Rp ${totalRevenue.toLocaleString("id-ID")} menghasilkan Net Profit Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Evaluasi bisnis: ${gpmPct >= 30 ? "Sangat Sehat & Profitabel" : "Stabil"}.`;
+  const p2 = `• KONTROL HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari omzet). Bahan baku terjaga efisien di bawah ambang batas 50%.`;
+  const p3 = `• TRAFIK & AOV: Rata-rata belanja per nota (AOV) sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.`;
+  const p4 = `• REKOMENDASI AI: Pertahankan promosi bundling menu margin tinggi (>50%) & lakukan evaluasi berkala pada item HPP tinggi.`;
 
-  const p1 = `• OLEH OMZET & PROFITABILITAS: Omzet terealisasi Rp ${totalRevenue.toLocaleString("id-ID")} dengan Net Profit Rp ${totalNetProfit.toLocaleString("id-ID")} (GPM ${gpmPct.toFixed(1)}%). Kondisi finansial: ${gpmPct >= 30 ? "Sangat Sehat & Profitabel" : "Stabil"}.`;
-  const p2 = `• PENGENDALIAN HPP: Biaya modal HPP sebesar Rp ${totalHpp.toLocaleString("id-ID")} (${hppPct.toFixed(1)}% dari total omzet). Penggunaan bahan baku terkendali efisien.`;
-  const p3 = `• TRAFIK & AOV: Rata-rata belanja nota (AOV) sebesar Rp ${avgOrderValue.toLocaleString("id-ID")} dari total ${txCount} transaksi berhasil.`;
-  const p4 = `• REKOMENDASI STRATEGIS: Pertahankan promo bundling menu margin tinggi (>50%) dan lakukan audit berkala pada item ber-HPP tinggi.`;
-
-  let lineY = curY + 14;
+  const allLines: string[] = [];
   [p1, p2, p3, p4].forEach((p) => {
-    const lines = doc.splitTextToSize(p, CW - 12);
-    doc.text(lines, ML + 7, lineY);
-    lineY += lines.length * 4 + 1.5;
+    const wrapped = doc.splitTextToSize(p, CW - 12);
+    allLines.push(...wrapped);
   });
 
-  curY += boxHeight + 8;
+  const computedBoxH = Math.max(38, allLines.length * 4.5 + 10);
+  doc.setFillColor(248, 250, 252); // Slate 50
+  doc.setDrawColor(226, 232, 240); // Slate 200
+  doc.roundedRect(ML, curY, CW, computedBoxH, 3, 3, "FD");
+
+  // Left Amber Stripe
+  doc.setFillColor(217, 119, 6);
+  doc.rect(ML, curY, 3.5, computedBoxH, "F");
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85); // Slate 700
+
+  let textY = curY + 7;
+  [p1, p2, p3, p4].forEach((p) => {
+    const lines = doc.splitTextToSize(p, CW - 12);
+    doc.text(lines, ML + 7, textY);
+    textY += lines.length * 4.5 + 1;
+  });
+
+  // ── PAGE 2: CHARTS ─────────────────────────────────────────────────────────
+  doc.addPage();
+  curY = 16;
 
   // ── 3. Line Chart — Tren Omzet & Laba Harian ───────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text("2. Grafik Tren Omzet & Laba Harian", ML, curY);
+  doc.text("3. Grafik Tren Omzet & Laba Harian", ML, curY);
   curY += 4;
 
   const dailyMap: Record<string, { omzet: number; laba: number; hpp: number }> = {};
@@ -246,10 +253,6 @@ export async function exportTransactionsToPDF(
   );
 
   const lineH = (CW * 360) / 900;
-  if (curY + lineH > 270) {
-    doc.addPage();
-    curY = 16;
-  }
   doc.addImage(lineChartImg, "PNG", ML, curY, CW, lineH);
   curY += lineH + 10;
 
