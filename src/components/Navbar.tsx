@@ -210,11 +210,11 @@ export default function Navbar() {
                     href={link.href}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-150 transform active:scale-95 cursor-pointer select-none ${
                       isActive
-                        ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 scale-[1.02]"
+                        ? "bg-emerald-700 text-white dark:bg-amber-400 dark:text-slate-950 shadow-md shadow-emerald-900/30 dark:shadow-amber-500/25 scale-[1.02]"
                         : "text-slate-300 hover:text-white hover:bg-slate-800/80 active:bg-slate-800"
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-slate-950" : "text-amber-400"}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white dark:text-slate-950" : "text-amber-400"}`} />
                     <span className="hidden sm:inline">{link.label}</span>
                     <span className="sm:hidden">{mobileLabel}</span>
                   </Link>

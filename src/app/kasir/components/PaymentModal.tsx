@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useCartStore } from "@/store/cart-store";
-import { X, DollarSign, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { DollarSign, CheckCircle } from "lucide-react";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -22,8 +25,6 @@ export default function PaymentModal({
   const [customInput, setCustomInput] = useState<string>(
     cashReceived ? String(cashReceived) : ""
   );
-
-  if (!isOpen) return null;
 
   const handleCashShortcut = (amount: number) => {
     setCashReceived(amount);
@@ -46,92 +47,85 @@ export default function PaymentModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-card text-card-foreground border-border rounded-3xl">
         {/* Header */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+        <DialogHeader className="p-4 bg-slate-900 text-white flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+            <div className="p-2 rounded-xl bg-primary/20 text-primary-foreground">
               <DollarSign className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-base">Pembayaran Tunai</h3>
+            <DialogTitle className="font-bold text-base text-white">Pembayaran Tunai</DialogTitle>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6 space-y-4">
           {/* Customer Name Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+            <label className="block text-xs font-bold text-muted-foreground mb-1">
               Nama Pemesan / Pelanggan
             </label>
-            <input
+            <Input
               type="text"
               placeholder="misal: Mas Budi / Pelanggan 1"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+              className="h-9 text-xs font-semibold bg-background border-input"
             />
           </div>
           {/* Total Tagihan Box */}
-          <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200/80 text-center">
-            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider block">
+          <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 text-center">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider block">
               Total Tagihan
             </span>
-            <span className="text-3xl font-black text-amber-600 font-mono mt-1 block">
+            <span className="text-3xl font-black text-primary font-mono mt-1 block">
               Rp {total.toLocaleString("id-ID")}
             </span>
           </div>
 
           {/* Cash Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">
               Nominal Tunai Diterima (Rp)
             </label>
-            <input
+            <Input
               type="text"
               inputMode="numeric"
               placeholder="0"
               value={customInput}
               onChange={(e) => handleInputChange(e.target.value)}
-              className="w-full text-center text-xl font-bold font-mono py-2.5 px-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-slate-900"
+              className="w-full text-center text-xl font-bold font-mono h-12 bg-background border-input"
             />
           </div>
 
           {/* Quick Shortcuts */}
           <div>
-            <span className="block text-xs font-semibold text-slate-500 mb-2">
+            <span className="block text-xs font-semibold text-muted-foreground mb-2">
               Nominal Cepat:
             </span>
             <div className="grid grid-cols-3 gap-2">
               {shortcuts.map((sc, idx) => (
-                <button
+                <Button
                   key={idx}
+                  type="button"
+                  variant={cashReceived === sc.value ? "default" : "outline"}
+                  size="sm"
                   onClick={() => handleCashShortcut(sc.value)}
-                  className={`py-2 px-2 text-xs font-bold rounded-xl border transition-all ${
-                    cashReceived === sc.value
-                      ? "bg-amber-500 text-white border-amber-600 shadow-xs"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
+                  className="h-9 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {sc.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
           {/* Kembalian Box */}
-          <div className="bg-slate-100 rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Kembalian:</span>
+          <div className="bg-muted/50 rounded-2xl p-3.5 border border-border flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">Kembalian:</span>
             <span
               className={`text-lg font-bold font-mono ${
-                cashReceived >= total ? "text-emerald-600" : "text-slate-400"
+                cashReceived >= total ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
               }`}
             >
               Rp {change.toLocaleString("id-ID")}
@@ -140,23 +134,27 @@ export default function PaymentModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-          <button
+        <div className="p-4 bg-muted/30 border-t border-border flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl text-sm transition-colors"
+            className="flex-1 h-10 font-semibold cursor-pointer"
           >
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             disabled={cashReceived < total || total === 0}
             onClick={onConfirmPayment}
-            className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-1.5"
+            className="flex-1 h-10 font-bold gap-1.5 cursor-pointer"
           >
             <CheckCircle className="w-4 h-4" />
             <span>Selesai & Cetak</span>
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
+

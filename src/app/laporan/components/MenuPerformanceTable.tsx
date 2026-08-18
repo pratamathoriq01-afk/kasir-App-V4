@@ -1,6 +1,7 @@
 "use client";
 
 import { Transaction } from "@/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface MenuPerformanceTableProps {
   transactions: Transaction[];
@@ -32,54 +33,52 @@ export default function MenuPerformanceTable({ transactions }: MenuPerformanceTa
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden transition-colors">
-      <div className="p-4 bg-slate-50/80 dark:bg-slate-900/90 border-b border-border flex items-center justify-between">
+      <div className="p-4 bg-muted/40 border-b border-border flex items-center justify-between">
         <h3 className="font-bold text-foreground text-sm">Analisis Performa Per Menu</h3>
         <span className="text-xs text-muted-foreground font-medium">Diurutkan Berdasarkan Omzet</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-100/70 dark:bg-slate-900/60 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              <th className="py-3 px-4">Nama Menu</th>
-              <th className="py-3 px-4 text-center">Terjual (Qty)</th>
-              <th className="py-3 px-4">Total Omzet (Rp)</th>
-              <th className="py-3 px-4">Total HPP (Rp)</th>
-              <th className="py-3 px-4 text-right">Laba Bersih (Rp)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-xs font-medium">
-            {sortedList.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-6 text-muted-foreground">
-                  Belum ada data item terjual dalam periode ini.
-                </td>
-              </tr>
-            ) : (
-              sortedList.map((item, idx) => {
-                const profit = item.revenue - item.hpp;
-                return (
-                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="py-3 px-4 font-bold text-foreground">{item.name}</td>
-                    <td className="py-3 px-4 text-center font-mono font-bold text-foreground">
-                      {item.qty}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
-                      Rp {item.revenue.toLocaleString("id-ID")}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-muted-foreground">
-                      Rp {item.hpp.toLocaleString("id-ID")}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      +Rp {profit.toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="font-extrabold text-xs">Nama Menu</TableHead>
+            <TableHead className="font-extrabold text-xs text-center">Terjual (Qty)</TableHead>
+            <TableHead className="font-extrabold text-xs">Total Omzet (Rp)</TableHead>
+            <TableHead className="font-extrabold text-xs">Total HPP (Rp)</TableHead>
+            <TableHead className="font-extrabold text-xs text-right">Laba Bersih (Rp)</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedList.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                Belum ada data item terjual dalam periode ini.
+              </TableCell>
+            </TableRow>
+          ) : (
+            sortedList.map((item, idx) => {
+              const profit = item.revenue - item.hpp;
+              return (
+                <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
+                  <TableCell className="font-bold text-foreground">{item.name}</TableCell>
+                  <TableCell className="text-center font-mono font-bold text-foreground">
+                    {item.qty}
+                  </TableCell>
+                  <TableCell className="font-mono font-bold text-primary">
+                    Rp {item.revenue.toLocaleString("id-ID")}
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground">
+                    Rp {item.hpp.toLocaleString("id-ID")}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    +Rp {profit.toLocaleString("id-ID")}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

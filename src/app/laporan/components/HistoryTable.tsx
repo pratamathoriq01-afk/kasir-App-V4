@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Transaction } from "@/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 interface HistoryTableProps {
@@ -21,91 +24,95 @@ export default function HistoryTable({
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden transition-colors">
-      <div className="p-4 bg-slate-50/80 dark:bg-slate-900/90 border-b border-border flex items-center justify-between">
+      <div className="p-4 bg-muted/40 border-b border-border flex items-center justify-between">
         <h3 className="font-bold text-foreground text-sm">Tabel Riwayat Transaksi</h3>
         <span className="text-xs text-muted-foreground font-medium">{transactions.length} Transaksi</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-100/70 dark:bg-slate-900/60 border-b border-border text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              <th className="py-3 px-4">Nota / Waktu</th>
-              <th className="py-3 px-4">Customer</th>
-              <th className="py-3 px-4">Tipe Pesanan</th>
-              <th className="py-3 px-4">Omzet Total</th>
-              <th className="py-3 px-4">Laba Bersih</th>
-              <th className="py-3 px-4 text-center">Detail</th>
-              <th className="py-3 px-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-xs">
-            {transactions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Belum ada riwayat transaksi.
-                </td>
-              </tr>
-            ) : (
-              transactions.map((t) => {
-                const isExpanded = expandedId === t.id;
-                return (
-                  <tr key={t.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                    <td colSpan={7} className="p-0">
-                      <div className="flex items-center justify-between py-3 px-4 border-b border-border min-w-[640px]">
-                        <div className="w-44">
-                          <span className="font-bold font-mono text-foreground block">
-                            {t.orderNumber}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(t.createdAt).toLocaleString("id-ID")}
-                          </span>
-                        </div>
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="font-extrabold text-xs">Nota / Waktu</TableHead>
+            <TableHead className="font-extrabold text-xs">Customer</TableHead>
+            <TableHead className="font-extrabold text-xs">Tipe Pesanan</TableHead>
+            <TableHead className="font-extrabold text-xs">Omzet Total</TableHead>
+            <TableHead className="font-extrabold text-xs">Laba Bersih</TableHead>
+            <TableHead className="font-extrabold text-xs text-center">Detail</TableHead>
+            <TableHead className="font-extrabold text-xs text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Belum ada riwayat transaksi.
+              </TableCell>
+            </TableRow>
+          ) : (
+            transactions.map((t) => {
+              const isExpanded = expandedId === t.id;
+              return (
+                <React.Fragment key={t.id}>
+                  <TableRow className="hover:bg-muted/40 transition-colors">
+                    <TableCell className="py-3">
+                      <span className="font-bold font-mono text-foreground block">
+                        {t.orderNumber}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(t.createdAt).toLocaleString("id-ID")}
+                      </span>
+                    </TableCell>
 
-                        <div className="w-32 font-semibold text-foreground">
-                          {t.customerName || "Pelanggan"}
-                        </div>
+                    <TableCell className="font-semibold text-foreground">
+                      {t.customerName || "Pelanggan"}
+                    </TableCell>
 
-                        <div className="w-32">
-                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
-                            {t.orderType}{" "}
-                            {t.orderType === "dine-in" ? `(${t.tableNumber})` : ""}
-                          </span>
-                        </div>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px] font-bold uppercase">
+                        {t.orderType}{" "}
+                        {t.orderType === "dine-in" ? `(${t.tableNumber})` : ""}
+                      </Badge>
+                    </TableCell>
 
-                        <div className="w-32 font-bold font-mono text-amber-600 dark:text-amber-400">
-                          Rp {t.total.toLocaleString("id-ID")}
-                        </div>
+                    <TableCell className="font-bold font-mono text-primary">
+                      Rp {t.total.toLocaleString("id-ID")}
+                    </TableCell>
 
-                        <div className="w-32 font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          +Rp {t.netProfit.toLocaleString("id-ID")}
-                        </div>
+                    <TableCell className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      +Rp {t.netProfit.toLocaleString("id-ID")}
+                    </TableCell>
 
-                        <div className="w-20 text-center">
-                          <button
-                            onClick={() => toggleExpand(t.id)}
-                            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => toggleExpand(t.id)}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </TableCell>
 
-                        <div className="w-16 text-right">
-                          <button
-                            onClick={() => onDeleteTransaction(t.id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => onDeleteTransaction(t.id)}
+                        className="text-muted-foreground hover:text-destructive cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
 
-                      {isExpanded && (
-                        <div className="p-4 bg-slate-50/90 dark:bg-slate-900/90 border-b border-border space-y-2">
+                  {isExpanded && (
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableCell colSpan={7} className="p-4">
+                        <div className="space-y-2">
                           <h4 className="font-bold text-[11px] text-muted-foreground uppercase tracking-wider">
                             Rincian Item Transaksi:
                           </h4>
@@ -126,15 +133,15 @@ export default function HistoryTable({
                             ))}
                           </div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
