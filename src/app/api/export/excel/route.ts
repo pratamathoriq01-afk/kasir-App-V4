@@ -150,52 +150,64 @@ export async function GET(request: Request) {
     // SHEET 1: 🤖 AI EXECUTIVE INSIGHT (Tab Color: Amber)
     // ============================================================
     const ws1 = workbook.addWorksheet("🤖 AI Executive Insight", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
     });
     ws1.properties.tabColor = { argb: COLORS.AMBER };
-    addStoreHeader(ws1, "EXECUTIVE SUMMARY & STRATEGIC AI INSIGHTS", 4, COLORS.AMBER);
-    [3, 28, 62, 18].forEach((w, i) => ws1.getColumn(i + 1).width = w);
+    addStoreHeader(ws1, "EXECUTIVE SUMMARY & STRATEGIC AI INSIGHTS", 5, COLORS.AMBER);
+    [3, 32, 28, 28, 22].forEach((w, i) => ws1.getColumn(i + 1).width = w);
 
     // KPI Scorecard Cards Block
     const kpiCards = [
       ["💰 Total Omzet Kotor", IDR(totalRevenue), "Termasuk PPN 10%"],
-      ["🏭 Total HPP Bahan", IDR(totalHPP), `${hppPct.toFixed(1)}% dari Omzet`],
+      ["🏭 Total HPP Bahan Modal", IDR(totalHPP), `${hppPct.toFixed(1)}% dari Omzet`],
       ["📈 Laba Bersih (Net Profit)", IDR(totalNetProfit), `GPM ${gpmPct.toFixed(1)}% (${gpmPct >= 30 ? "EXCELLENT" : "STABIL"})`],
       ["💵 Rata-Rata Belanja (AOV)", IDR(avgOrderValue), `Dari ${totalTrx} Transaksi`],
     ];
 
     kpiCards.forEach((card, idx) => {
       const rIdx = 6 + idx * 3;
-      ws1.mergeCells(rIdx, 2, rIdx, 4);
+      ws1.mergeCells(rIdx, 2, rIdx, 5);
       const headerCell = ws1.getCell(rIdx, 2);
       headerCell.value = card[0];
-      headerCell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: "FFFFFF" } };
+      headerCell.font = { bold: true, size: 10, name: "Calibri", color: { argb: "FFFFFF" } };
       headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
       headerCell.alignment = { vertical: "middle", indent: 1 };
 
-      ws1.mergeCells(rIdx + 1, 2, rIdx + 1, 3);
+      ws1.mergeCells(rIdx + 1, 2, rIdx + 1, 4);
       const valCell = ws1.getCell(rIdx + 1, 2);
       valCell.value = card[1];
-      valCell.font = { bold: true, size: 14, name: "Calibri", color: { argb: COLORS.TEXT_MAIN } };
+      valCell.font = { bold: true, size: 13, name: "Calibri", color: { argb: COLORS.NAVY } };
       valCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.ROW_ALT } };
       valCell.alignment = { vertical: "middle", indent: 1 };
+      valCell.border = {
+        top: { style: "thin", color: { argb: COLORS.BORDER } },
+        bottom: { style: "thin", color: { argb: COLORS.BORDER } },
+        left: { style: "thin", color: { argb: COLORS.BORDER } },
+        right: { style: "thin", color: { argb: COLORS.BORDER } },
+      };
 
-      const subCell = ws1.getCell(rIdx + 1, 4);
+      const subCell = ws1.getCell(rIdx + 1, 5);
       subCell.value = card[2];
-      subCell.font = { bold: true, size: 9, name: "Calibri", color: { argb: COLORS.TEXT_GREEN } };
+      subCell.font = { bold: true, size: 9.5, name: "Calibri", color: { argb: COLORS.TEXT_GREEN } };
       subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.FILL_GREEN } };
       subCell.alignment = { horizontal: "center", vertical: "middle" };
+      subCell.border = {
+        top: { style: "thin", color: { argb: COLORS.BORDER } },
+        bottom: { style: "thin", color: { argb: COLORS.BORDER } },
+        left: { style: "thin", color: { argb: COLORS.BORDER } },
+        right: { style: "thin", color: { argb: COLORS.BORDER } },
+      };
     });
 
     // ============================================================
     // SHEET 2: ⚖️ AUDIT & KEPATUHAN EMKM (Tab Color: Slate Navy)
     // ============================================================
     const ws2 = workbook.addWorksheet("⚖️ Audit & Kepatuhan EMKM", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
     });
     ws2.properties.tabColor = { argb: COLORS.NAVY };
     addStoreHeader(ws2, "CHECKLIST AUDIT KEUANGAN & KEPATUHAN SAK EMKM", 5, COLORS.NAVY);
-    [3, 30, 40, 22, 24].forEach((w, i) => ws2.getColumn(i + 1).width = w);
+    [3, 35, 42, 22, 26].forEach((w, i) => ws2.getColumn(i + 1).width = w);
 
     // Header
     const hRow2 = ws2.getRow(6);
@@ -205,8 +217,14 @@ export async function GET(request: Request) {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
       cell.font = { bold: true, color: { argb: "FFFFFF" }, size: 10, name: "Calibri" };
       cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin", color: { argb: COLORS.BORDER } },
+        bottom: { style: "medium", color: { argb: COLORS.NAVY } },
+        left: { style: "thin", color: { argb: COLORS.BORDER } },
+        right: { style: "thin", color: { argb: COLORS.BORDER } },
+      };
     });
-    hRow2.height = 26;
+    hRow2.height = 28;
 
     const auditChecks = [
       ["Rekonsiliasi Omzet vs Physical Cash", "Kesesuaian total nota dengan fisik kasir", IDR(totalRevenue), "100% MATCH ✅"],
@@ -225,6 +243,12 @@ export async function GET(request: Request) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: idx % 2 === 0 ? COLORS.ROW_ALT : COLORS.ROW_WHITE } };
         cell.font = { size: 9.5, name: "Calibri" };
         cell.alignment = { vertical: "middle" };
+        cell.border = {
+          top: { style: "thin", color: { argb: COLORS.BORDER } },
+          bottom: { style: "thin", color: { argb: COLORS.BORDER } },
+          left: { style: "thin", color: { argb: COLORS.BORDER } },
+          right: { style: "thin", color: { argb: COLORS.BORDER } },
+        };
         if (colNum === 2) cell.font = { bold: true, size: 9.5, name: "Calibri" };
         if (colNum === 5) {
           cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -238,7 +262,7 @@ export async function GET(request: Request) {
     // SHEET 3: 📊 KPI DASHBOARD (Tab Color: Sky Blue)
     // ============================================================
     const ws3 = workbook.addWorksheet("📊 KPI Dashboard", {
-      views: [{ showGridLines: false }],
+      views: [{ showGridLines: true }],
     });
     ws3.properties.tabColor = { argb: COLORS.BLUE };
     addStoreHeader(ws3, "DASHBOARD INDIKATOR KINERJA UTAMA (KPI)", 5, COLORS.BLUE);
@@ -251,8 +275,14 @@ export async function GET(request: Request) {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.NAVY } };
       cell.font = { bold: true, color: { argb: "FFFFFF" }, size: 10, name: "Calibri" };
       cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin", color: { argb: COLORS.BORDER } },
+        bottom: { style: "medium", color: { argb: COLORS.NAVY } },
+        left: { style: "thin", color: { argb: COLORS.BORDER } },
+        right: { style: "thin", color: { argb: COLORS.BORDER } },
+      };
     });
-    hRow3.height = 26;
+    hRow3.height = 28;
 
     const kpiData = [
       ["💰 Total Omzet Penjualan (Kotor)", IDR(totalRevenue), "Baseline", "NORMAL"],
