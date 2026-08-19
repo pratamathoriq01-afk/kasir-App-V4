@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -27,31 +28,52 @@ export async function GET() {
     whatsapp: "085113661387",
     city: "Kota Malang",
     province: "Jawa Timur",
+    isOpen: true,
+    openTime: "08:00",
+    closeTime: "22:00",
+    isAutoSchedule: true,
+    closedReason: "Kedai sedang istirahat / tutup sementara.",
     googleClientId: process.env.GOOGLE_CLIENT_ID || "",
     googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/oauth2callback",
   };
 
   try {
-    const prismaClient = prisma as any;
-    if (!prismaClient || !prismaClient.storeSettings) {
-      return jsonWithCors(fallbackSettings);
-    }
+    // 1. Try Supabase direct query for instant realtime data
+    const { data: supaData, error: supaErr } = await supabase
+      .from("StoreSettings")
+      .select("*")
+      .eq("id", "default")
+      .single();
 
-    let settings = await prismaClient.storeSettings.findUnique({
-      where: { id: "default" },
-    });
-
-    if (!settings) {
-      settings = await prismaClient.storeSettings.create({
-        data: fallbackSettings,
+    if (!supaErr && supaData) {
+      return jsonWithCors({
+        ...fallbackSettings,
+        ...supaData,
+        googleClientSecret: undefined,
+        openaiApiKey: undefined,
+        geminiApiKey: undefined,
+        anthropicApiKey: undefined,
+        groqApiKey: undefined,
+        deepseekApiKey: undefined,
       });
     }
 
-    return jsonWithCors({
-      ...fallbackSettings,
-      ...settings,
-      googleClientSecret: undefined, // Never expose secret to client
-    });
+    // 2. Try Prisma fallback
+    const prismaClient = prisma as any;
+    if (prismaClient && prismaClient.storeSettings) {
+      const settings = await prismaClient.storeSettings.findUnique({
+        where: { id: "default" },
+      });
+      if (settings) {
+        return jsonWithCors({
+          ...fallbackSettings,
+          ...settings,
+          googleClientSecret: undefined,
+        });
+      }
+    }
+
+    return jsonWithCors(fallbackSettings);
   } catch (error) {
     console.error("Error GET /api/settings:", error);
     return jsonWithCors(fallbackSettings, 200);
@@ -60,37 +82,45 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const prismaClient = prisma as any;
     const body = await request.json();
 
-    if (!prismaClient || !prismaClient.storeSettings) {
-      return jsonWithCors({ message: "Mock settings updated" });
+    const updatePayload = {
+      id: "default",
+      storeName: body.storeName || "Kedai Nyamleng",
+      address: body.address || "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
+      whatsapp: body.whatsapp || "085113661387",
+      city: body.city || "Kota Malang",
+      province: body.province || "Jawa Timur",
+      isOpen: typeof body.isOpen === "boolean" ? body.isOpen : true,
+      openTime: body.openTime || "08:00",
+      closeTime: body.closeTime || "22:00",
+      isAutoSchedule: typeof body.isAutoSchedule === "boolean" ? body.isAutoSchedule : true,
+      closedReason: body.closedReason || "Kedai sedang istirahat / tutup sementara.",
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 1. Update Supabase table directly
+    try {
+      await supabase.from("StoreSettings").upsert(updatePayload);
+    } catch (e) {
+      console.warn("Supabase upsert warning:", e);
     }
 
-    const updated = await prismaClient.storeSettings.upsert({
-      where: { id: "default" },
-      update: {
-        storeName: body.storeName || "Kedai Nyamleng",
-        address: body.address || "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
-        whatsapp: body.whatsapp || "085113661387",
-        city: body.city || "Kota Malang",
-        province: body.province || "Jawa Timur",
-        googleClientId: body.googleClientId || process.env.GOOGLE_CLIENT_ID,
-        googleRedirectUri: body.googleRedirectUri || process.env.GOOGLE_REDIRECT_URI,
-      },
-      create: {
-        id: "default",
-        storeName: body.storeName || "Kedai Nyamleng",
-        address: body.address || "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
-        whatsapp: body.whatsapp || "085113661387",
-        city: body.city || "Kota Malang",
-        province: body.province || "Jawa Timur",
-        googleClientId: body.googleClientId || process.env.GOOGLE_CLIENT_ID,
-        googleRedirectUri: body.googleRedirectUri || process.env.GOOGLE_REDIRECT_URI,
-      },
-    });
+    // 2. Update Prisma if available
+    try {
+      const prismaClient = prisma as any;
+      if (prismaClient && prismaClient.storeSettings) {
+        await prismaClient.storeSettings.upsert({
+          where: { id: "default" },
+          update: updatePayload,
+          create: updatePayload,
+        });
+      }
+    } catch (e) {
+      console.warn("Prisma upsert warning:", e);
+    }
 
-    return jsonWithCors(updated);
+    return jsonWithCors(updatePayload);
   } catch (error) {
     console.error("Error PUT /api/settings:", error);
     return jsonWithCors({ error: "Gagal meng-update pengaturan kedai." }, 500);

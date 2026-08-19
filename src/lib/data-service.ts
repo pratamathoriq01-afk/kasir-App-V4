@@ -1,4 +1,4 @@
-import { MenuItem, Transaction, Voucher, AddOn } from "@/types";
+import { MenuItem, Transaction, Voucher, AddOn, StoreSettings } from "@/types";
 import { supabase } from "./supabase";
 
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
@@ -6,6 +6,21 @@ const ADDONS_STORAGE_KEY = "kedainyamleng_addons_v4";
 const CATEGORIES_STORAGE_KEY = "kedainyamleng_categories_v4";
 const TRANSACTIONS_STORAGE_KEY = "kedainyamleng_transactions_v4";
 const VOUCHERS_STORAGE_KEY = "kedainyamleng_vouchers_v4";
+const STORE_SETTINGS_STORAGE_KEY = "kedainyamleng_store_settings_v4";
+
+export const DEFAULT_STORE_SETTINGS: StoreSettings = {
+  id: "default",
+  storeName: "Kedai Nyamleng",
+  address: "Jl. Laksada Adi Sucipto Gg.14 No 42, Kelurahan Blimbing, Kecamatan Blimbing, Kota Malang, Jawa Timur",
+  whatsapp: "085113661387",
+  city: "Kota Malang",
+  province: "Jawa Timur",
+  isOpen: true,
+  openTime: "08:00",
+  closeTime: "22:00",
+  isAutoSchedule: true,
+  closedReason: "Kedai sedang istirahat / tutup sementara.",
+};
 
 export const DEFAULT_CATEGORIES = [
   "Menu Ayam Nyamleng",
@@ -27,7 +42,7 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
 }
 
 export function broadcastPOSSync(
-  type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED" | "ADDONS_UPDATED" | "CATEGORY_UPDATED",
+  type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED" | "ADDONS_UPDATED" | "CATEGORY_UPDATED" | "STORE_SETTINGS_UPDATED",
   payload?: any
 ) {
   if (typeof window === "undefined") return;
@@ -485,5 +500,99 @@ export async function deleteCategoryOptimistic(
 
   return { categories: updatedCategories, items: updatedItems };
 }
+
+// ---------------------------------------------------------------------------
+// Store Operational Settings Services (Realtime Sync & Persistence)
+// ---------------------------------------------------------------------------
+
+export function getStoredStoreSettings(): StoreSettings {
+  if (typeof window === "undefined") return DEFAULT_STORE_SETTINGS;
+  try {
+    const raw = localStorage.getItem(STORE_SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_STORE_SETTINGS;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_STORE_SETTINGS, ...parsed };
+  } catch {
+    return DEFAULT_STORE_SETTINGS;
+  }
+}
+
+export function saveStoreSettings(settings: StoreSettings): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORE_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (err) {
+    console.warn("Error saving store settings to localStorage:", err);
+  }
+}
+
+export async function fetchStoreSettingsFromDB(): Promise<StoreSettings> {
+  try {
+    // 1. Direct Supabase Query (0ms latency)
+    const { data: supaData, error: supaErr } = await supabase
+      .from("StoreSettings")
+      .select("*")
+      .eq("id", "default")
+      .single();
+
+    if (!supaErr && supaData) {
+      const merged: StoreSettings = {
+        ...DEFAULT_STORE_SETTINGS,
+        ...supaData,
+        isOpen: typeof supaData.isOpen === "boolean" ? supaData.isOpen : true,
+        openTime: supaData.openTime || "08:00",
+        closeTime: supaData.closeTime || "22:00",
+        isAutoSchedule: typeof supaData.isAutoSchedule === "boolean" ? supaData.isAutoSchedule : true,
+        closedReason: supaData.closedReason || "Kedai sedang istirahat / tutup sementara.",
+      };
+      saveStoreSettings(merged);
+      return merged;
+    }
+
+    // 2. REST API Fallback
+    const res = await fetch("/api/settings", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      const merged: StoreSettings = {
+        ...DEFAULT_STORE_SETTINGS,
+        ...data,
+      };
+      saveStoreSettings(merged);
+      return merged;
+    }
+  } catch (err) {
+    console.warn("fetchStoreSettingsFromDB error:", err);
+  }
+  return getStoredStoreSettings();
+}
+
+export async function saveStoreSettingsOptimistic(
+  updatedFields: Partial<StoreSettings>,
+  currentSettings?: StoreSettings
+): Promise<StoreSettings> {
+  const current = currentSettings || getStoredStoreSettings();
+  const merged: StoreSettings = {
+    ...current,
+    ...updatedFields,
+    id: "default",
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 1. 0ms Optimistic Save to local storage
+  saveStoreSettings(merged);
+
+  // 2. Broadcast immediately across POS tabs and digital menu
+  broadcastPOSSync("STORE_SETTINGS_UPDATED", merged);
+
+  // 3. Background persist to REST API and Supabase
+  fetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(merged),
+  }).catch((err) => console.warn("Background saveStoreSettings error:", err));
+
+  return merged;
+}
+
 
 

@@ -29,7 +29,8 @@ import IncomingOrdersDrawer from "./components/IncomingOrdersDrawer";
 import MenuFormModal from "@/app/menu/components/MenuFormModal";
 import AddOnPickerModal from "./components/AddOnPickerModal";
 import AddOnManagementModal from "@/app/menu/components/AddOnManagementModal";
-import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck, Plus, UtensilsCrossed } from "lucide-react";
+import StoreOperationalModal from "@/app/menu/components/StoreOperationalModal";
+import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck, Plus, UtensilsCrossed, Clock, Store } from "lucide-react";
 
 export default function KasirPage() {
   // Initialize with cached local items for instant 0ms initial render without blank screen
@@ -42,6 +43,9 @@ export default function KasirPage() {
   // Quick Menu Modal (Core POS Menu Management)
   const [isMenuModalOpen, setIsMenuModalOpen] = useState<boolean>(false);
   const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null);
+
+  // Store Operational Hours Modal
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState<boolean>(false);
 
   // Add-On Selection Modal & Management Modal
   const [selectedMenuItemForAddOns, setSelectedMenuItemForAddOns] = useState<MenuItem | null>(null);
@@ -414,6 +418,17 @@ export default function KasirPage() {
             <span className="hidden sm:inline">Add-On</span>
           </button>
 
+          {/* Jam Operasional / Store Status Button */}
+          <button
+            type="button"
+            onClick={() => setIsStoreModalOpen(true)}
+            className="py-1 px-2 sm:py-1.5 sm:px-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+            title="Atur Jam Buka / Tutup Operasional Kedai"
+          >
+            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Jam Toko</span>
+          </button>
+
           {/* Audio Alert Trigger */}
           <button
             type="button"
@@ -629,6 +644,12 @@ export default function KasirPage() {
         onRefresh={loadDigitalOrders}
         onPrintReceipt={handlePrintReceipt}
         onUpdateStatus={handleUpdateOrderStatus}
+      />
+
+      {/* Store Operational Hours & Status Modal */}
+      <StoreOperationalModal
+        isOpen={isStoreModalOpen}
+        onClose={() => setIsStoreModalOpen(false)}
       />
     </div>
   );

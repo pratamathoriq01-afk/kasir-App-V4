@@ -15,12 +15,13 @@ import MenuFormModal from "./components/MenuFormModal";
 import VoucherManagementModal from "./components/VoucherManagementModal";
 import AddOnManagementModal from "./components/AddOnManagementModal";
 import CategoryManagementModal from "./components/CategoryManagementModal";
+import StoreOperationalModal from "./components/StoreOperationalModal";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles, Settings2, Layers } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles, Settings2, Layers, Clock, Store } from "lucide-react";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
@@ -31,6 +32,7 @@ export default function MenuPage() {
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   const loadMenu = () => {
@@ -106,6 +108,15 @@ export default function MenuPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setIsStoreModalOpen(true)}
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+          >
+            <Clock className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
+            <span className="truncate">Jam Operasional</span>
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => setIsCategoryModalOpen(true)}
@@ -522,6 +533,12 @@ export default function MenuPage() {
           setStoredCategories(newCats);
           if (updatedItems) setMenuItems(updatedItems);
         }}
+      />
+
+      {/* Store Operational Hours & Status Modal */}
+      <StoreOperationalModal
+        isOpen={isStoreModalOpen}
+        onClose={() => setIsStoreModalOpen(false)}
       />
     </div>
   );

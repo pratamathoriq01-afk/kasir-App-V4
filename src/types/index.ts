@@ -99,3 +99,21 @@ export interface StoreInfo {
   city: string;
   phone: string;
 }
+
+export interface StoreSettings {
+  id: string;
+  storeName: string;
+  address: string;
+  whatsapp: string;
+  city: string;
+  province: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+  isAutoSchedule: boolean;
+  closedReason: string;
+  googleClientId?: string | null;
+  googleRedirectUri?: string | null;
+  updatedAt?: string | Date;
+}
+
