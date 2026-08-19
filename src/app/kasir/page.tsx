@@ -269,8 +269,10 @@ export default function KasirPage() {
   const handleCloseReceipt = () => {
     setIsReceiptModalOpen(false);
     setCompletedTransaction(null);
-    clearCart();
-    setMobileTab("menu");
+    if (items.length > 0) {
+      clearCart();
+      setMobileTab("menu");
+    }
   };
 
   return (

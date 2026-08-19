@@ -58,7 +58,7 @@ export default function ReceiptModal({
   const handleBluetoothPrint = () => executePrint(printViaWebBluetooth, "Bluetooth");
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 my-4">
         {/* Header */}
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between">

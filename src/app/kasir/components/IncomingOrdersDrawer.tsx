@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Printer, CheckCircle2, Clock, Utensils, RefreshCw, ShoppingBag, ArrowRight, Check, Sparkles, AlertCircle } from "lucide-react";
 
+import { printViaWebUSB } from "@/lib/printer/usb-printer";
+import { printViaWebSerial } from "@/lib/printer/serial-printer";
+import { printViaWebBluetooth } from "@/lib/printer/bluetooth-printer";
+
 interface IncomingOrdersDrawerProps {
   isOpen: boolean;
   orders: Transaction[];
@@ -28,10 +32,28 @@ export default function IncomingOrdersDrawer({
   const [activeTab, setActiveTab] = useState<"NEW_ORDER" | "IN_PROCESSED" | "ORDER_FINISH">("NEW_ORDER");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [printingId, setPrintingId] = useState<string | null>(null);
 
   const showNotificationToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const handleDirectPrint = async (trx: Transaction, mode: "customer" | "kitchen") => {
+    const id = trx.id || trx.orderNumber;
+    setPrintingId(`${id}-${mode}`);
+    showNotificationToast(`🖨️ Mencetak ${mode === "kitchen" ? "Nota Dapur" : "Struk"} #${trx.orderNumber}...`);
+    try {
+      const success = await printViaWebUSB(trx, mode);
+      if (!success) {
+        onPrintReceipt(trx);
+      }
+    } catch (err) {
+      console.warn("Direct thermal print notice:", err);
+      onPrintReceipt(trx);
+    } finally {
+      setPrintingId(null);
+    }
   };
 
   // Filter 3 Tabs
@@ -277,16 +299,38 @@ export default function IncomingOrdersDrawer({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {/* Print Receipt Action */}
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {/* Direct 1-Click Print Kitchen Note */}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => onPrintReceipt(trx)}
-                          className="h-8 font-bold text-xs gap-1.5 cursor-pointer"
-                          title="Cetak Struk Dapur/Kasir"
+                          disabled={printingId === `${trx.id || trx.orderNumber}-kitchen`}
+                          onClick={() => handleDirectPrint(trx, "kitchen")}
+                          className="h-8 font-bold text-[11px] gap-1 px-2 cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-border"
+                          title="Cetak Cepat Nota Dapur (1-Click)"
                         >
-                          <Printer className="w-3.5 h-3.5" />
+                          {printingId === `${trx.id || trx.orderNumber}-kitchen` ? (
+                            <RefreshCw className="w-3 h-3 animate-spin text-indigo-500" />
+                          ) : (
+                            <Printer className="w-3 h-3 text-indigo-500" />
+                          )}
+                          <span>Dapur</span>
+                        </Button>
+
+                        {/* Direct 1-Click Print Customer Receipt */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={printingId === `${trx.id || trx.orderNumber}-customer`}
+                          onClick={() => handleDirectPrint(trx, "customer")}
+                          className="h-8 font-bold text-[11px] gap-1 px-2 cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-border"
+                          title="Cetak Cepat Struk Customer (1-Click)"
+                        >
+                          {printingId === `${trx.id || trx.orderNumber}-customer` ? (
+                            <RefreshCw className="w-3 h-3 animate-spin text-amber-500" />
+                          ) : (
+                            <Printer className="w-3 h-3 text-amber-500" />
+                          )}
                           <span>Struk</span>
                         </Button>
 
@@ -296,7 +340,7 @@ export default function IncomingOrdersDrawer({
                             size="sm"
                             onClick={() => handleActionClick(trx, "IN_PROCESSED")}
                             disabled={processingId === (trx.id || trx.orderNumber)}
-                            className="h-8 font-black text-xs gap-1.5 cursor-pointer"
+                            className="h-8 font-black text-xs gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                           >
                             {processingId === (trx.id || trx.orderNumber) ? (
                               <>
@@ -316,7 +360,7 @@ export default function IncomingOrdersDrawer({
                           <Button
                             size="sm"
                             onClick={() => handleActionClick(trx, "ORDER_FINISH")}
-                            className="h-8 font-black text-xs gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
+                            className="h-8 font-black text-xs gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                           >
                             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                             <span>Selesai</span>
