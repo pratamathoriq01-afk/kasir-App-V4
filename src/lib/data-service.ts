@@ -3,8 +3,18 @@ import { supabase } from "./supabase";
 
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
 const ADDONS_STORAGE_KEY = "kedainyamleng_addons_v4";
+const CATEGORIES_STORAGE_KEY = "kedainyamleng_categories_v4";
 const TRANSACTIONS_STORAGE_KEY = "kedainyamleng_transactions_v4";
 const VOUCHERS_STORAGE_KEY = "kedainyamleng_vouchers_v4";
+
+export const DEFAULT_CATEGORIES = [
+  "Menu Ayam Nyamleng",
+  "Menu Ikan Nyamleng",
+  "Menu Minuman",
+  "Menu Alacarte",
+  "Cemilan & Snack",
+  "Paket Hemat",
+];
 
 // Cross-tab / Cross-window broadcast channel for 0ms instant sync
 let posBroadcastChannel: BroadcastChannel | null = null;
@@ -16,7 +26,10 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
   }
 }
 
-export function broadcastPOSSync(type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED" | "ADDONS_UPDATED", payload?: any) {
+export function broadcastPOSSync(
+  type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED" | "ADDONS_UPDATED" | "CATEGORY_UPDATED",
+  payload?: any
+) {
   if (typeof window === "undefined") return;
   try {
     if (posBroadcastChannel) {
@@ -346,4 +359,131 @@ export async function deleteAddOnOptimistic(id: string): Promise<boolean> {
 
   return true;
 }
+
+// -------------------------------------------------------------
+// DYNAMIC CATEGORY / WADAH MANAGEMENT (0ms Realtime Sync)
+// -------------------------------------------------------------
+
+export function getStoredCategories(): string[] {
+  if (typeof window === "undefined") return DEFAULT_CATEGORIES;
+  try {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    const existingMenu = getStoredMenuItems();
+    const menuCategories = existingMenu.map((m) => m.category || "Menu Alacarte").filter(Boolean);
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Merge with any categories present in current items
+        const merged = Array.from(new Set([...parsed, ...menuCategories]));
+        return merged;
+      }
+    }
+    const merged = Array.from(new Set([...DEFAULT_CATEGORIES, ...menuCategories]));
+    return merged;
+  } catch (e) {
+    console.warn("Failed reading categories from localStorage:", e);
+    return DEFAULT_CATEGORIES;
+  }
+}
+
+export function saveCategories(categories: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const clean = Array.from(new Set(categories.map((c) => c.trim()).filter(Boolean)));
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(clean));
+    broadcastPOSSync("CATEGORY_UPDATED", { categories: clean });
+  } catch (e) {
+    console.warn("Failed saving categories to localStorage:", e);
+  }
+}
+
+export async function addNewCategoryOptimistic(catName: string): Promise<string[]> {
+  const current = getStoredCategories();
+  const trimmed = catName.trim();
+  if (!trimmed || current.includes(trimmed)) return current;
+
+  const updated = [...current, trimmed];
+  saveCategories(updated);
+  return updated;
+}
+
+export async function renameCategoryOptimistic(
+  oldName: string,
+  newName: string,
+  currentItems: MenuItem[]
+): Promise<{ categories: string[]; items: MenuItem[] }> {
+  const current = getStoredCategories();
+  const trimmedOld = oldName.trim();
+  const trimmedNew = newName.trim();
+  if (!trimmedNew || trimmedOld === trimmedNew) return { categories: current, items: currentItems };
+
+  // 1. Update category list
+  const updatedCategories = current.map((c) => (c === trimmedOld ? trimmedNew : c));
+  saveCategories(updatedCategories);
+
+  // 2. 0ms Optimistic update for all menu items belonging to old category
+  const updatedItems = currentItems.map((item) =>
+    item.category === trimmedOld ? { ...item, category: trimmedNew } : item
+  );
+  saveMenuItems(updatedItems);
+  broadcastPOSSync("MENU_UPDATED", updatedItems);
+
+  // 3. Background async batch update in Supabase PostgreSQL Cloud
+  try {
+    const { error } = await supabase
+      .from("MenuItem")
+      .update({ category: trimmedNew, updatedAt: new Date().toISOString() })
+      .eq("category", trimmedOld);
+
+    if (error) {
+      console.warn("Supabase category rename fallback:", error);
+      // Update individual items via REST if needed
+      for (const it of currentItems) {
+        if (it.category === trimmedOld) {
+          fetch("/api/menu", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...it, category: trimmedNew }),
+          }).catch((e) => console.warn("Fallback single item rename error:", e));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Background category rename error:", err);
+  }
+
+  return { categories: updatedCategories, items: updatedItems };
+}
+
+export async function deleteCategoryOptimistic(
+  catNameToDelete: string,
+  fallbackCat: string = "Menu Alacarte",
+  currentItems: MenuItem[]
+): Promise<{ categories: string[]; items: MenuItem[] }> {
+  const current = getStoredCategories();
+  const trimmed = catNameToDelete.trim();
+  const updatedCategories = current.filter((c) => c !== trimmed);
+  saveCategories(updatedCategories);
+
+  // Move items in deleted category to fallbackCat
+  const updatedItems = currentItems.map((item) =>
+    item.category === trimmed ? { ...item, category: fallbackCat } : item
+  );
+  saveMenuItems(updatedItems);
+  broadcastPOSSync("MENU_UPDATED", updatedItems);
+
+  // Background update in Supabase
+  try {
+    await supabase
+      .from("MenuItem")
+      .update({ category: fallbackCat, updatedAt: new Date().toISOString() })
+      .eq("category", trimmed);
+  } catch (err) {
+    console.warn("Background delete category error:", err);
+  }
+
+  return { categories: updatedCategories, items: updatedItems };
+}
+
 

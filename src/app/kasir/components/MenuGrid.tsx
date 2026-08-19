@@ -1,12 +1,12 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MenuItem } from "@/types";
 import { useCartStore } from "@/store/cart-store";
+import { getStoredCategories, subscribePOSSync } from "@/lib/data-service";
+import CategoryManagementModal from "@/app/menu/components/CategoryManagementModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, ArrowDownAZ, ArrowUpAZ, ArrowDown10, ArrowUp10, Utensils, Edit2 } from "lucide-react";
+import { Search, Plus, ArrowDownAZ, ArrowUpAZ, ArrowDown10, ArrowUp10, Utensils, Edit2, Layers, Settings2 } from "lucide-react";
 
 interface MenuGridProps {
   items: MenuItem[];
@@ -32,7 +32,19 @@ export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem
   const [activeCategory, setActiveCategory] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc" | "price_low" | "price_high">("default");
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
+  const [storedCategories, setStoredCategories] = useState<string[]>(() => getStoredCategories());
   const addItem = useCartStore((state) => state.addItem);
+
+  useEffect(() => {
+    setStoredCategories(getStoredCategories());
+    const unsubscribe = subscribePOSSync((type) => {
+      if (type === "CATEGORY_UPDATED" || type === "MENU_UPDATED") {
+        setStoredCategories(getStoredCategories());
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const handleCardClick = (item: MenuItem) => {
     if (onSelectItem) {
@@ -42,26 +54,10 @@ export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem
     }
   };
 
-  // Extract all distinct categories
-  const knownPresets = [
-    "Menu Ayam Nyamleng",
-    "Menu Ikan Nyamleng",
-    "Menu Minuman",
-    "Menu Alacarte",
-    "Cemilan & Snack",
-    "Paket Hemat",
-    "Dessert",
-  ];
-
+  // Merge stored categories with any category found in current items
   const presentCategories = Array.from(new Set(items.map((i) => i.category || "Menu Alacarte"))).filter(Boolean);
-  
-  // Order categories: presets first if they exist in items, then other custom categories
-  const sortedCategories = [
-    ...knownPresets.filter((p) => presentCategories.includes(p)),
-    ...presentCategories.filter((p) => !knownPresets.includes(p)),
-  ];
-
-  const categories = ["Semua", ...sortedCategories];
+  const distinctCategories = Array.from(new Set([...storedCategories, ...presentCategories]));
+  const categories = ["Semua", ...distinctCategories];
 
   // Filter items
   let filteredItems = items.filter((item) => {
@@ -162,6 +158,17 @@ export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem
               </button>
             );
           })}
+
+          {/* Quick Category / Wadah Management Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+            title="Kelola / Ganti Nama Wadah Kategori"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Atur Wadah</span>
+          </button>
         </div>
       </div>
 
@@ -232,6 +239,19 @@ export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem
           </div>
         )}
       </div>
+
+      {/* Category / Wadah Management Modal */}
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setStoredCategories(getStoredCategories());
+        }}
+        menuItems={items}
+        onCategoriesChange={(newCats) => {
+          setStoredCategories(newCats);
+        }}
+      />
     </div>
   );
 }

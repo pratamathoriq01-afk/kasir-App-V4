@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check } from "lucide-react";
 
+import { getStoredCategories, addNewCategoryOptimistic } from "@/lib/data-service";
+
 interface MenuFormModalProps {
   isOpen: boolean;
   itemToEdit: MenuItem | null;
@@ -14,15 +16,18 @@ interface MenuFormModalProps {
   onSave: (item: MenuItem) => void;
 }
 
-const CATEGORY_PRESETS = [
-  { label: "🍗 Menu Ayam Nyamleng", val: "Menu Ayam Nyamleng" },
-  { label: "🐟 Menu Ikan Nyamleng", val: "Menu Ikan Nyamleng" },
-  { label: "🥤 Menu Minuman", val: "Menu Minuman" },
-  { label: "🍱 Menu Alacarte", val: "Menu Alacarte" },
-  { label: "🍟 Cemilan & Snack", val: "Cemilan & Snack" },
-  { label: "📦 Paket Hemat", val: "Paket Hemat" },
-  { label: "🍰 Dessert", val: "Dessert" },
-];
+const CATEGORY_ICONS: Record<string, string> = {
+  "Menu Ayam Nyamleng": "🍗",
+  "Menu Ikan Nyamleng": "🐟",
+  "Menu Minuman": "🥤",
+  "Menu Alacarte": "🍱",
+  "Cemilan & Snack": "🍟",
+  "Paket Hemat": "📦",
+  Dessert: "🍰",
+  Makanan: "🍽️",
+  Minuman: "🥤",
+  Cemilan: "🍟",
+};
 
 export default function MenuFormModal({
   isOpen,
@@ -30,8 +35,9 @@ export default function MenuFormModal({
   onClose,
   onSave,
 }: MenuFormModalProps) {
+  const [availableCategories, setAvailableCategories] = useState<string[]>(() => getStoredCategories());
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Makanan");
+  const [category, setCategory] = useState("Menu Ayam Nyamleng");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryInput, setCustomCategoryInput] = useState("");
 
@@ -48,9 +54,12 @@ export default function MenuFormModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const cats = getStoredCategories();
+    setAvailableCategories(cats);
+
     if (itemToEdit) {
       setName(itemToEdit.name);
-      const isPreset = CATEGORY_PRESETS.some((p) => p.val === itemToEdit.category);
+      const isPreset = cats.includes(itemToEdit.category);
       if (isPreset) {
         setCategory(itemToEdit.category);
         setIsCustomCategory(false);
@@ -66,7 +75,7 @@ export default function MenuFormModal({
       setIsActive(itemToEdit.isActive);
     } else {
       setName("");
-      setCategory("Makanan");
+      setCategory(cats[0] || "Menu Ayam Nyamleng");
       setIsCustomCategory(false);
       setCustomCategoryInput("");
       setPriceStr("15.000");
@@ -128,8 +137,12 @@ export default function MenuFormModal({
     }
 
     const finalCategory = isCustomCategory
-      ? (customCategoryInput.trim() || "Makanan")
+      ? (customCategoryInput.trim() || "Menu Alacarte")
       : category;
+
+    if (isCustomCategory && customCategoryInput.trim()) {
+      addNewCategoryOptimistic(customCategoryInput.trim());
+    }
 
     const newItem: MenuItem = {
       id: itemToEdit ? itemToEdit.id : `menu-${Date.now()}`,
@@ -262,19 +275,20 @@ export default function MenuFormModal({
               />
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {CATEGORY_PRESETS.map((cat) => (
+                {availableCategories.map((cat) => (
                   <button
-                    key={cat.val}
+                    key={cat}
                     type="button"
-                    onClick={() => setCategory(cat.val)}
+                    onClick={() => setCategory(cat)}
                     className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                      category === cat.val
+                      category === cat
                         ? "bg-slate-900 text-amber-400 shadow-xs border border-slate-900"
                         : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
                     }`}
                   >
-                    <span>{cat.label}</span>
-                    {category === cat.val && <Check className="w-3 h-3 text-amber-400" />}
+                    <span>{CATEGORY_ICONS[cat] || "🍽️"}</span>
+                    <span>{cat}</span>
+                    {category === cat && <Check className="w-3 h-3 text-amber-400" />}
                   </button>
                 ))}
               </div>

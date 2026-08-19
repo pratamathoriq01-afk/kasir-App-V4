@@ -7,37 +7,42 @@ import {
   getStoredMenuItems,
   saveMenuItemOptimistic,
   deleteMenuItemOptimistic,
+  getStoredCategories,
   broadcastPOSSync,
   subscribePOSSync,
 } from "@/lib/data-service";
 import MenuFormModal from "./components/MenuFormModal";
 import VoucherManagementModal from "./components/VoucherManagementModal";
 import AddOnManagementModal from "./components/AddOnManagementModal";
+import CategoryManagementModal from "./components/CategoryManagementModal";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles, Settings2, Layers } from "lucide-react";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
+  const [storedCategories, setStoredCategories] = useState<string[]>(() => getStoredCategories());
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   const loadMenu = () => {
     fetchMenuItemsFromDB().then((items) => setMenuItems(items));
+    setStoredCategories(getStoredCategories());
   };
 
   useEffect(() => {
     loadMenu();
 
     const unsubscribe = subscribePOSSync((type) => {
-      if (type === "MENU_UPDATED") {
+      if (type === "MENU_UPDATED" || type === "CATEGORY_UPDATED") {
         loadMenu();
       }
     });
@@ -70,12 +75,7 @@ export default function MenuPage() {
   const dynamicCategories = Array.from(
     new Set([
       "Semua",
-      "Menu Ayam Nyamleng",
-      "Menu Ikan Nyamleng",
-      "Menu Minuman",
-      "Menu Alacarte",
-      "Cemilan & Snack",
-      "Paket Hemat",
+      ...storedCategories,
       ...menuItems.map((m) => m.category || "Menu Alacarte"),
     ])
   ).filter(Boolean);
@@ -106,6 +106,15 @@ export default function MenuPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20"
+          >
+            <Layers className="w-4 h-4 text-blue-500 stroke-[2.5]" />
+            <span className="truncate">Kelola Wadah</span>
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => setIsAddOnModalOpen(true)}
@@ -209,6 +218,16 @@ export default function MenuPage() {
               {cat}
             </button>
           ))}
+
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+            title="Kelola / Ganti Nama Wadah Kategori"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Atur Wadah</span>
+          </button>
         </div>
       </div>
 
@@ -489,6 +508,20 @@ export default function MenuPage() {
       <AddOnManagementModal
         isOpen={isAddOnModalOpen}
         onClose={() => setIsAddOnModalOpen(false)}
+      />
+
+      {/* Category / Wadah Management Modal */}
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setStoredCategories(getStoredCategories());
+        }}
+        menuItems={menuItems}
+        onCategoriesChange={(newCats, updatedItems) => {
+          setStoredCategories(newCats);
+          if (updatedItems) setMenuItems(updatedItems);
+        }}
       />
     </div>
   );
