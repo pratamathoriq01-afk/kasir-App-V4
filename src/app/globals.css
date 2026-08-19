@@ -5,46 +5,48 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
+  --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #166534;
+  --primary: #15803d;
   --primary-foreground: #ffffff;
-  --secondary: #f8fafc;
+  --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
+  --muted: #f1f5f9;
   --muted-foreground: #64748b;
   --accent: #d97706;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #166534;
+  --ring: #15803d;
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: #111415;
-  --foreground: #e2e2e5;
-  --card: #1e2022;
-  --card-foreground: #e2e2e5;
-  --popover: #1e2022;
-  --popover-foreground: #e2e2e5;
-  --primary: #f2ca50;
-  --primary-foreground: #3c2f00;
-  --secondary: #454749;
-  --secondary-foreground: #c6c6c9;
-  --muted: #1a1c1e;
-  --muted-foreground: #d0c5af;
-  --accent: #d4af37;
-  --accent-foreground: #554300;
-  --destructive: #ffb4ab;
-  --border: #333537;
-  --input: #282a2c;
-  --ring: #f2ca50;
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #f59e0b;
+  --primary-foreground: #090d16;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #fbbf24;
+  --accent-foreground: #090d16;
+  --destructive: #f87171;
+  --destructive-foreground: #090d16;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #f59e0b;
 }
 
 body {
@@ -106,6 +108,7 @@ body {
 @theme inline {
   --font-heading: var(--font-plus-jakarta), Inter, sans-serif;
   --font-sans: var(--font-plus-jakarta), Inter, sans-serif;
+  --font-mono: var(--font-space-mono), monospace;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
