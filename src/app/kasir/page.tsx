@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, getStoredMenuItems, saveMenuItemOptimistic, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
