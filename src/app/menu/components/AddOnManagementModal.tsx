@@ -139,7 +139,7 @@ export default function AddOnManagementModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-3xl w-[96vw] sm:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card text-card-foreground border-border rounded-3xl shadow-2xl"
+        className="w-[96vw] sm:w-[94vw] md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card text-card-foreground border-border rounded-3xl shadow-2xl"
       >
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 p-4 sm:p-5 text-white flex items-center justify-between shrink-0 border-b border-emerald-600/30">
@@ -164,7 +164,7 @@ export default function AddOnManagementModal({
                   resetForm();
                   setIsFormOpen(true);
                 }}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs h-9 px-3.5 gap-1.5 rounded-xl cursor-pointer shadow-sm"
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm h-10 px-4 gap-2 rounded-xl cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>+ Add-On Baru</span>
@@ -182,33 +182,34 @@ export default function AddOnManagementModal({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {/* Add / Edit Form Card */}
           {isFormOpen && (
             <form
               onSubmit={handleSave}
-              className="p-4 sm:p-5 bg-muted/40 border border-primary/30 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm"
+              className="p-4 sm:p-6 bg-muted/40 border border-primary/30 rounded-2xl space-y-5 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm"
             >
-              <div className="flex items-center justify-between border-b border-border pb-2.5">
-                <h4 className="font-black text-xs sm:text-sm text-foreground flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <h4 className="font-black text-sm sm:text-base text-foreground flex items-center gap-2">
                   <Tag className="w-4 h-4 text-primary" />
-                  <span>{editingId ? "Edit Data Add-On" : "Tambah Add-On Baru"}</span>
+                  <span>{editingId ? "Edit Data Add-On" : "Form Tambah Add-On Baru"}</span>
                 </h4>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={resetForm}
-                  className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground cursor-pointer rounded-lg"
+                  className="h-9 px-4 text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer rounded-xl"
                 >
                   Batal
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                {/* Nama Add On */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold text-foreground">
+              {/* Responsive Form Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+                {/* Nama Add On (Full Width on Desktop) */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-foreground block">
                     Nama Add-On / Topping <span className="text-destructive">*</span>
                   </label>
                   <Input
@@ -216,14 +217,17 @@ export default function AddOnManagementModal({
                     placeholder="Contoh: Ekstra Sambal Bawang, Telur Dadar Crispy, Level Pedas 3..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="font-bold text-xs sm:text-sm text-foreground bg-background h-10 rounded-xl"
+                    className="font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
+                  <span className="text-xs text-muted-foreground block">
+                    Nama opsi topping yang dapat dipilih pembeli di Kasir POS dan Menu Digital.
+                  </span>
                 </div>
 
                 {/* Harga Jual */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    Harga Jual (Rp) <span className="text-destructive">*</span>
+                  <label className="text-xs font-bold text-foreground block">
+                    Harga Jual Tambahan (Rp) <span className="text-destructive">*</span>
                   </label>
                   <Input
                     type="number"
@@ -231,39 +235,43 @@ export default function AddOnManagementModal({
                     placeholder="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="font-mono font-bold text-xs sm:text-sm text-foreground bg-background h-10 rounded-xl"
+                    className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
                   <span className="text-xs text-muted-foreground block">
-                    Isi 0 jika gratis (misal pilihan level pedas).
+                    Isi 0 jika gratis (misal opsi pilihan level pedas).
                   </span>
                 </div>
 
                 {/* Modal HPP */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">Modal HPP (Rp)</label>
+                  <label className="text-xs font-bold text-foreground block">
+                    Modal HPP (Rp)
+                  </label>
                   <Input
                     type="number"
                     min="0"
                     placeholder="0"
                     value={hpp}
                     onChange={(e) => setHpp(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="font-mono font-bold text-xs sm:text-sm text-foreground bg-background h-10 rounded-xl"
+                    className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
                   <span className="text-xs text-muted-foreground block">
-                    Digunakan untuk kalkulasi laba bersih akurat.
+                    Digunakan untuk kalkulasi laba bersih akurat per topping.
                   </span>
                 </div>
 
                 {/* Kategori Wadah Berlakunya */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">Berlaku Untuk Wadah Kategori</label>
+                  <label className="text-xs font-bold text-foreground block">
+                    Berlaku Untuk Wadah Kategori
+                  </label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="bg-background font-bold text-xs h-10 rounded-xl">
+                    <SelectTrigger className="bg-background font-bold text-sm h-11 rounded-xl w-full">
                       <SelectValue placeholder="Pilih Wadah" />
                     </SelectTrigger>
                     <SelectContent>
                       {CATEGORY_PRESETS.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="font-bold text-xs">
+                        <SelectItem key={cat} value={cat} className="font-bold text-xs sm:text-sm">
                           {cat}
                         </SelectItem>
                       ))}
@@ -273,12 +281,14 @@ export default function AddOnManagementModal({
 
                 {/* Status Toggle */}
                 <div className="space-y-1.5 flex flex-col justify-end">
-                  <label className="text-xs font-bold text-foreground">Status Ketersediaan</label>
+                  <label className="text-xs font-bold text-foreground block">
+                    Status Ketersediaan
+                  </label>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsActive(!isActive)}
-                    className={`justify-between text-xs font-bold h-10 rounded-xl bg-background cursor-pointer ${
+                    className={`justify-between text-xs sm:text-sm font-bold h-11 rounded-xl bg-background cursor-pointer w-full ${
                       isActive ? "text-emerald-600 border-emerald-500/40" : "text-rose-500 border-rose-500/40"
                     }`}
                   >
@@ -288,12 +298,22 @@ export default function AddOnManagementModal({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2.5 border-t border-border">
-                <Button type="button" variant="outline" size="sm" onClick={resetForm} className="cursor-pointer rounded-xl h-9 px-4 text-xs">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resetForm}
+                  className="cursor-pointer rounded-xl h-11 px-6 text-xs sm:text-sm font-bold"
+                >
                   Batal
                 </Button>
-                <Button type="submit" size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold cursor-pointer rounded-xl h-9 px-5 text-xs shadow-sm">
-                  Simpan Add-On
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold cursor-pointer rounded-xl h-11 px-8 text-xs sm:text-sm shadow-sm"
+                >
+                  {editingId ? "Update Data Add-On ✨" : "Simpan Add-On ✨"}
                 </Button>
               </div>
             </form>
@@ -309,7 +329,7 @@ export default function AddOnManagementModal({
                 key={cat}
                 type="button"
                 onClick={() => setSelectedFilterCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer text-xs ${
+                className={`px-3.5 py-2 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer text-xs ${
                   selectedFilterCategory === cat
                     ? "bg-primary text-primary-foreground shadow-xs ring-1 ring-primary/40 font-extrabold"
                     : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
@@ -320,7 +340,7 @@ export default function AddOnManagementModal({
             ))}
           </div>
 
-          {/* Add-On List */}
+          {/* Add-On List (Roomy 1/2/3 Columns) */}
           {filteredAddOns.length === 0 ? (
             <div className="text-center py-12 bg-muted/20 border border-dashed border-border rounded-2xl p-6">
               <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
@@ -330,22 +350,24 @@ export default function AddOnManagementModal({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredAddOns.map((addon) => (
                 <div
                   key={addon.id}
-                  className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
                     addon.isActive
-                      ? "bg-card border-border hover:border-primary/50 shadow-xs"
+                      ? "bg-card border-border hover:border-primary/50 shadow-xs hover:shadow-md"
                       : "bg-muted/30 border-border/60 opacity-60"
                   }`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h5 className="font-black text-sm text-foreground truncate">{addon.name}</h5>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h5 className="font-black text-sm sm:text-base text-foreground leading-snug">
+                        {addon.name}
+                      </h5>
                       <Badge
                         variant="outline"
-                        className={`text-xs px-2 py-0.2 font-extrabold uppercase ${
+                        className={`text-xs px-2.5 py-0.5 font-extrabold uppercase ${
                           addon.isActive
                             ? "text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
                             : "text-rose-500 border-rose-500/30 bg-rose-500/10"
@@ -355,8 +377,8 @@ export default function AddOnManagementModal({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-1.5 text-xs">
-                      <span className="font-mono font-black text-primary text-xs sm:text-sm">
+                    <div className="p-2.5 bg-muted/40 rounded-xl border border-border flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-mono font-black text-primary text-sm sm:text-base">
                         {addon.price > 0 ? `+ Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis (Rp 0)"}
                       </span>
                       {addon.hpp > 0 && (
@@ -364,45 +386,54 @@ export default function AddOnManagementModal({
                           HPP: Rp {addon.hpp.toLocaleString("id-ID")}
                         </span>
                       )}
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md font-semibold truncate max-w-[140px]">
-                        {addon.category || "Semua"}
+                    </div>
+
+                    <div>
+                      <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md font-semibold inline-block">
+                        Wadah: {addon.category || "Semua"}
                       </span>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleToggleStatus(addon)}
-                      className={`w-8 h-8 rounded-lg cursor-pointer ${
-                        addon.isActive ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-foreground hover:bg-muted"
-                      }`}
-                      title={addon.isActive ? "Nonaktifkan" : "Aktifkan"}
-                    >
-                      {addon.isActive ? <Check className="w-4 h-4 stroke-[2.5]" /> : <X className="w-4 h-4" />}
-                    </Button>
+                  <div className="pt-2 border-t border-border flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-mono">
+                      ID: {addon.id.slice(0, 10)}...
+                    </span>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(addon)}
-                      className="w-8 h-8 rounded-lg text-primary hover:bg-primary/10 cursor-pointer"
-                      title="Edit Add-On"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleStatus(addon)}
+                        className={`w-8 h-8 rounded-lg cursor-pointer ${
+                          addon.isActive ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-foreground hover:bg-muted"
+                        }`}
+                        title={addon.isActive ? "Nonaktifkan" : "Aktifkan"}
+                      >
+                        {addon.isActive ? <Check className="w-4 h-4 stroke-[2.5]" /> : <X className="w-4 h-4" />}
+                      </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(addon.id, addon.name)}
-                      className="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                      title="Hapus Add-On"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(addon)}
+                        className="w-8 h-8 rounded-lg text-primary hover:bg-primary/10 cursor-pointer"
+                        title="Edit Add-On"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(addon.id, addon.name)}
+                        className="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                        title="Hapus Add-On"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -410,13 +441,15 @@ export default function AddOnManagementModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground shrink-0">
-          <span>Total: <strong className="text-foreground">{addOns.length} Add-On</strong> terdaftar</span>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer font-bold h-9 px-5 rounded-xl text-xs">
-            Tutup
-          </Button>
-        </div>
+        {/* Modal Bottom Bar */}
+        {!isFormOpen && (
+          <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs sm:text-sm text-muted-foreground shrink-0">
+            <span>Total: <strong className="text-foreground">{addOns.length} Add-On</strong> terdaftar</span>
+            <Button variant="outline" onClick={onClose} className="cursor-pointer font-bold h-10 px-6 rounded-xl text-xs sm:text-sm">
+              Tutup
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

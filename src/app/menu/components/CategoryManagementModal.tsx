@@ -115,7 +115,7 @@ export default function CategoryManagementModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-lg w-[96vw] sm:w-full p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl"
+        className="w-[96vw] sm:w-[92vw] md:max-w-2xl lg:max-w-3xl p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl"
       >
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 text-white p-4 sm:p-5 flex items-center justify-between border-b border-emerald-600/30">

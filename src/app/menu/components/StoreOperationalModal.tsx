@@ -145,7 +145,7 @@ export default function StoreOperationalModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] max-w-xl p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl animate-in fade-in zoom-in-95 duration-200"
+        className="w-[96vw] sm:w-[92vw] md:max-w-2xl lg:max-w-3xl p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 p-4 sm:p-5 text-white flex items-center justify-between border-b border-emerald-600/30">
