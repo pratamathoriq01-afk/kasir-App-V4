@@ -208,6 +208,7 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    prefetch={true}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-150 transform active:scale-95 cursor-pointer select-none ${
                       isActive
                         ? "bg-emerald-700 text-white dark:bg-amber-400 dark:text-slate-950 shadow-md shadow-emerald-900/30 dark:shadow-amber-500/25 scale-[1.02]"

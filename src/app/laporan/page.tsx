@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Transaction } from "@/types";
-import { fetchTransactionsFromDB, saveTransactions } from "@/lib/data-service";
+import { fetchTransactionsFromDB, getStoredTransactions, saveTransactions, subscribePOSSync } from "@/lib/data-service";
 import { exportTransactionsToPDF } from "@/lib/export/pdf-export";
 import StatsCards from "./components/StatsCards";
 import SalesTrendChart from "./components/SalesTrendChart";
@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, RotateCcw, Calendar, Loader2, Sparkles, Sheet as SheetIcon } from "lucide-react";
 
 export default function LaporanPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => getStoredTransactions());
   const [periodFilter, setPeriodFilter] = useState<"today" | "7days" | "month" | "all">("all");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
@@ -69,12 +69,15 @@ export default function LaporanPage() {
   };
 
   useEffect(() => {
-    const loadData = () => {
-      fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
-    };
-    loadData();
-    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
-    return () => clearInterval(interval);
+    fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
+
+    const unsubscribe = subscribePOSSync((type) => {
+      if (type === "TRANSACTION_UPDATED") {
+        fetchTransactionsFromDB().then((trxs) => setTransactions(trxs));
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredTransactions = transactions.filter((t) => {

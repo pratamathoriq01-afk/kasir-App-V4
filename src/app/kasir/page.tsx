@@ -229,30 +229,10 @@ export default function KasirPage() {
     }
   };
 
-  // High-Frequency Background Poller fallback (Every 300ms)
+  // Lightweight fallback interval (Every 5s) - Supabase WebSocket Stream handles instant real-time push
   useEffect(() => {
-    let worker: Worker | null = null;
-    if (typeof window !== "undefined" && "Worker" in window) {
-      try {
-        worker = new Worker("/poller-worker.js");
-        worker.onmessage = () => {
-          loadDigitalOrders();
-        };
-        worker.postMessage("start");
-      } catch {
-        // Worker fallback silently
-      }
-    }
-
-    const interval = setInterval(loadDigitalOrders, 300);
-
-    return () => {
-      clearInterval(interval);
-      if (worker) {
-        worker.postMessage("stop");
-        worker.terminate();
-      }
-    };
+    const interval = setInterval(loadDigitalOrders, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const totalItemsCount = items.reduce((sum, item) => sum + item.qty, 0);
