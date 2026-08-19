@@ -3,11 +3,15 @@ import { MenuItem, Transaction, Voucher } from "@/types";
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
 const TRANSACTIONS_STORAGE_KEY = "kedainyamleng_transactions_v4";
 
+import { supabase } from "./supabase";
+
 export function getStoredMenuItems(): MenuItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(MENU_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -30,8 +34,22 @@ export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
       }
     }
   } catch (e) {
-    console.warn("Failed to fetch menu from DB API:", e);
+    console.warn("Failed to fetch menu from API, trying Supabase direct client:", e);
   }
+
+  try {
+    const { data, error } = await supabase
+      .from("MenuItem")
+      .select("*")
+      .order("createdAt", { ascending: true });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      saveMenuItems(data as MenuItem[]);
+      return data as MenuItem[];
+    }
+  } catch (e) {
+    console.warn("Direct Supabase menu fetch notice:", e);
+  }
+
   return getStoredMenuItems();
 }
 
