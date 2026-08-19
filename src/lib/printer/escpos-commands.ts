@@ -174,6 +174,10 @@ export async function buildCustomerReceiptESCPOS(
     parts.push(encBytes(`${item.nameSnapshot}\n`));
     parts.push(ESC_BOLD_OFF);
 
+    if (item.addOnsSnapshot) {
+      parts.push(encBytes(`  + ${item.addOnsSnapshot}\n`));
+    }
+
     const qtyPrice = `${item.qty}x Rp ${item.priceSnapshot.toLocaleString("id-ID")}`;
     const subtotal = `Rp ${(item.qty * item.priceSnapshot).toLocaleString("id-ID")}`;
     const leftPad  = padRight(`  ${qtyPrice}`, 20);
@@ -244,6 +248,9 @@ export async function buildKitchenReceiptESCPOS(
     parts.push(encBytes(`${item.qty}x `));
     parts.push(encBytes(`${item.nameSnapshot.toUpperCase()}\n`));
     parts.push(ESC_BOLD_OFF);
+    if (item.addOnsSnapshot) {
+      parts.push(encBytes(`   * Add-On: ${item.addOnsSnapshot}\n`));
+    }
   }
 
   parts.push(encBytes(divider("-", CHARS_PER_LINE)));

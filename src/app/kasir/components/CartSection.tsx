@@ -194,72 +194,93 @@ export default function CartSection({ onOpenPaymentModal }: CartSectionProps) {
             </p>
           </div>
         ) : (
-          items.map((item) => (
-            <div
-              key={item.menuItem.id}
-              className="bg-muted/40 p-2.5 rounded-xl border border-border flex items-center justify-between gap-2"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                {item.menuItem.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.menuItem.imageUrl}
-                    alt={item.menuItem.name}
-                    className="w-9 h-9 rounded-lg object-cover shrink-0 border border-border"
-                  />
-                ) : (
-                  <span className="text-xl shrink-0">
-                    {item.menuItem.category === "Makanan"
-                      ? "🍽️"
-                      : item.menuItem.category === "Minuman"
-                      ? "🥤"
-                      : "🍟"}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <h4 className="font-semibold text-foreground text-xs truncate">
-                    {item.menuItem.name}
-                  </h4>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Rp {item.menuItem.price.toLocaleString("id-ID")}
-                  </span>
-                </div>
-              </div>
+          items.map((item) => {
+            const lineId = item.id || item.menuItem.id;
+            const addOnsExtra = (item.selectedAddOns || []).reduce((s, a) => s + (a.price || 0), 0);
+            const unitPrice = Number(item.menuItem.price) + addOnsExtra;
 
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="flex items-center border border-border rounded-xl bg-background overflow-hidden shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => updateQty(item.menuItem.id, item.qty - 1)}
-                    className="w-7 h-7 flex items-center justify-center hover:bg-muted text-foreground transition-colors active:scale-95 cursor-pointer"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-7 text-center text-xs font-bold text-foreground font-mono">
-                    {item.qty}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => updateQty(item.menuItem.id, item.qty + 1)}
-                    className="w-7 h-7 flex items-center justify-center hover:bg-muted text-foreground transition-colors active:scale-95 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+            return (
+              <div
+                key={lineId}
+                className="bg-muted/40 p-2.5 rounded-xl border border-border flex items-center justify-between gap-2"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  {item.menuItem.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.menuItem.imageUrl}
+                      alt={item.menuItem.name}
+                      className="w-9 h-9 rounded-lg object-cover shrink-0 border border-border"
+                    />
+                  ) : (
+                    <span className="text-xl shrink-0">
+                      {item.menuItem.category === "Makanan"
+                        ? "🍽️"
+                        : item.menuItem.category === "Minuman"
+                        ? "🥤"
+                        : "🍟"}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-foreground text-xs truncate">
+                      {item.menuItem.name}
+                    </h4>
+
+                    {/* Add-On Chips Display */}
+                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {item.selectedAddOns.map((addon) => (
+                          <span
+                            key={addon.id}
+                            className="text-[9.5px] bg-primary/15 text-primary font-extrabold px-1.5 py-0.2 rounded-md"
+                          >
+                            + {addon.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Rp {unitPrice.toLocaleString("id-ID")}
+                    </span>
+                  </div>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => removeItem(item.menuItem.id)}
-                  className="text-muted-foreground hover:text-destructive cursor-pointer"
-                  title="Hapus menu dari keranjang"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {/* Quantity Controls */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex items-center border border-border rounded-xl bg-background overflow-hidden shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => updateQty(lineId, item.qty - 1)}
+                      className="w-7 h-7 flex items-center justify-center hover:bg-muted text-foreground transition-colors active:scale-95 cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-7 text-center text-xs font-bold text-foreground font-mono">
+                      {item.qty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateQty(lineId, item.qty + 1)}
+                      className="w-7 h-7 flex items-center justify-center hover:bg-muted text-foreground transition-colors active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => removeItem(lineId)}
+                    className="text-muted-foreground hover:text-destructive cursor-pointer"
+                    title="Hapus menu dari keranjang"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

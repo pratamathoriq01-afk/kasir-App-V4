@@ -12,6 +12,7 @@ import {
 } from "@/lib/data-service";
 import MenuFormModal from "./components/MenuFormModal";
 import VoucherManagementModal from "./components/VoucherManagementModal";
+import AddOnManagementModal from "./components/AddOnManagementModal";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   const loadMenu = () => {
@@ -103,7 +105,16 @@ export default function MenuPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setIsAddOnModalOpen(true)}
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+          >
+            <Sparkles className="w-4 h-4 text-amber-500 stroke-[2.5]" />
+            <span className="truncate">Kelola Add-On</span>
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => setIsVoucherModalOpen(true)}
@@ -472,6 +483,12 @@ export default function MenuPage() {
       <VoucherManagementModal
         isOpen={isVoucherModalOpen}
         onClose={() => setIsVoucherModalOpen(false)}
+      />
+
+      {/* Add-On Management Modal */}
+      <AddOnManagementModal
+        isOpen={isAddOnModalOpen}
+        onClose={() => setIsAddOnModalOpen(false)}
       />
     </div>
   );

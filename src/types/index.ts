@@ -12,9 +12,22 @@ export interface MenuItem {
   updatedAt?: string | Date;
 }
 
+export interface AddOn {
+  id: string;
+  name: string;
+  price: number;
+  hpp: number;
+  category?: string | null; // "Semua" | "Menu Ayam Nyamleng" | "Menu Ikan Nyamleng" | "Menu Minuman" | "Menu Alacarte"
+  isActive: boolean;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
 export interface CartItem {
+  id?: string;
   menuItem: MenuItem;
   qty: number;
+  selectedAddOns?: AddOn[];
   notes?: string;
 }
 
@@ -26,6 +39,7 @@ export interface TransactionItem {
   priceSnapshot: number;
   hppSnapshot: number;
   qty: number;
+  addOnsSnapshot?: string | null;
 }
 
 export interface Transaction {

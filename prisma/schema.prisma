@@ -49,15 +49,27 @@ model Transaction {
 }
 
 model TransactionItem {
-  id            String      @id @default(cuid())
-  transactionId String
-  menuItemId    String?
-  nameSnapshot  String
-  priceSnapshot Int
-  hppSnapshot   Int
-  qty           Int
-  menuItem      MenuItem?   @relation(fields: [menuItemId], references: [id])
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  id             String      @id @default(cuid())
+  transactionId  String
+  menuItemId     String?
+  nameSnapshot   String
+  priceSnapshot  Int
+  hppSnapshot    Int
+  qty            Int
+  addOnsSnapshot String?
+  menuItem       MenuItem?   @relation(fields: [menuItemId], references: [id])
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model AddOn {
+  id        String   @id @default(cuid())
+  name      String
+  price     Int      @default(0)
+  hpp       Int      @default(0)
+  category  String?  @default("Semua")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MonthlyArchive {

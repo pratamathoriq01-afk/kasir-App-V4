@@ -10,6 +10,7 @@ import { Search, Plus, ArrowDownAZ, ArrowUpAZ, ArrowDown10, ArrowUp10, Utensils,
 
 interface MenuGridProps {
   items: MenuItem[];
+  onSelectItem?: (item: MenuItem) => void;
   onEditItem?: (item: MenuItem) => void;
   onAddNewItem?: () => void;
 }
@@ -27,11 +28,19 @@ const CATEGORY_ICONS: Record<string, string> = {
   Cemilan: "🍟",
 };
 
-export default function MenuGrid({ items, onEditItem, onAddNewItem }: MenuGridProps) {
+export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem }: MenuGridProps) {
   const [activeCategory, setActiveCategory] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc" | "price_low" | "price_high">("default");
   const addItem = useCartStore((state) => state.addItem);
+
+  const handleCardClick = (item: MenuItem) => {
+    if (onSelectItem) {
+      onSelectItem(item);
+    } else {
+      addItem(item);
+    }
+  };
 
   // Extract all distinct categories
   const knownPresets = [
@@ -202,7 +211,7 @@ export default function MenuGrid({ items, onEditItem, onAddNewItem }: MenuGridPr
                   <MenuCard
                     key={item.id}
                     item={item}
-                    onAdd={() => addItem(item)}
+                    onAdd={() => handleCardClick(item)}
                     onEdit={onEditItem ? () => onEditItem(item) : undefined}
                   />
                 ))}
@@ -216,7 +225,7 @@ export default function MenuGrid({ items, onEditItem, onAddNewItem }: MenuGridPr
               <MenuCard
                 key={item.id}
                 item={item}
-                onAdd={() => addItem(item)}
+                onAdd={() => handleCardClick(item)}
                 onEdit={onEditItem ? () => onEditItem(item) : undefined}
               />
             ))}

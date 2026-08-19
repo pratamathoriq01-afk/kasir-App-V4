@@ -1,7 +1,8 @@
-import { MenuItem, Transaction, Voucher } from "@/types";
+import { MenuItem, Transaction, Voucher, AddOn } from "@/types";
 import { supabase } from "./supabase";
 
 const MENU_STORAGE_KEY = "kedainyamleng_menu_v4";
+const ADDONS_STORAGE_KEY = "kedainyamleng_addons_v4";
 const TRANSACTIONS_STORAGE_KEY = "kedainyamleng_transactions_v4";
 const VOUCHERS_STORAGE_KEY = "kedainyamleng_vouchers_v4";
 
@@ -15,7 +16,7 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
   }
 }
 
-export function broadcastPOSSync(type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED", payload?: any) {
+export function broadcastPOSSync(type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | "VOUCHER_UPDATED" | "ADDONS_UPDATED", payload?: any) {
   if (typeof window === "undefined") return;
   try {
     if (posBroadcastChannel) {
@@ -255,3 +256,94 @@ export function getNextOrderNumber(): string {
   const count = trxs.length + 1;
   return `#${String(count).padStart(3, "0")}`;
 }
+
+export function getStoredAddOns(): AddOn[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(ADDONS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveAddOns(addons: AddOn[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ADDONS_STORAGE_KEY, JSON.stringify(addons));
+}
+
+export async function fetchAddOnsFromDB(): Promise<AddOn[]> {
+  try {
+    const { data, error } = await supabase
+      .from("AddOn")
+      .select("*")
+      .order("name", { ascending: true });
+    if (!error && Array.isArray(data)) {
+      saveAddOns(data as AddOn[]);
+      return data as AddOn[];
+    }
+  } catch (e) {
+    console.warn("Direct Supabase AddOn fetch notice:", e);
+  }
+
+  try {
+    const res = await fetch(`/api/addons?t=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        saveAddOns(data);
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn("API AddOn fetch notice:", e);
+  }
+
+  return getStoredAddOns();
+}
+
+export async function saveAddOnOptimistic(addon: AddOn): Promise<AddOn> {
+  const current = getStoredAddOns();
+  const exists = current.find((a) => a.id === addon.id);
+  const updated = exists ? current.map((a) => (a.id === addon.id ? addon : a)) : [addon, ...current];
+  saveAddOns(updated);
+  broadcastPOSSync("ADDONS_UPDATED", addon);
+
+  // Background async persistence to Supabase
+  try {
+    const { error } = await supabase.from("AddOn").upsert(addon, { onConflict: "id" });
+    if (error) {
+      fetch("/api/addons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addon),
+      }).catch((e) => console.warn("API AddOn fallback save note:", e));
+    }
+  } catch (err) {
+    console.warn("Background AddOn save error:", err);
+  }
+
+  return addon;
+}
+
+export async function deleteAddOnOptimistic(id: string): Promise<boolean> {
+  const current = getStoredAddOns();
+  const updated = current.filter((a) => a.id !== id);
+  saveAddOns(updated);
+  broadcastPOSSync("ADDONS_UPDATED", { deletedId: id });
+
+  // Background async delete
+  try {
+    const { error } = await supabase.from("AddOn").delete().eq("id", id);
+    if (error) {
+      fetch(`/api/addons?id=${id}`, { method: "DELETE" }).catch((e) => console.warn("API AddOn fallback delete note:", e));
+    }
+  } catch (err) {
+    console.warn("Background AddOn delete error:", err);
+  }
+
+  return true;
+}
+

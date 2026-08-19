@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MenuItem, Transaction } from "@/types";
-import { fetchMenuItemsFromDB, getStoredMenuItems, saveMenuItemOptimistic, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
+import { MenuItem, Transaction, AddOn } from "@/types";
+import {
+  fetchMenuItemsFromDB,
+  getStoredMenuItems,
+  saveMenuItemOptimistic,
+  addTransaction,
+  getNextOrderNumber,
+  subscribePOSSync,
+  fetchAddOnsFromDB,
+  getStoredAddOns,
+} from "@/lib/data-service";
 import { supabase } from "@/lib/supabase";
 import {
   playNotificationChime,
@@ -18,11 +27,14 @@ import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
 import IncomingOrdersDrawer from "./components/IncomingOrdersDrawer";
 import MenuFormModal from "@/app/menu/components/MenuFormModal";
+import AddOnPickerModal from "./components/AddOnPickerModal";
+import AddOnManagementModal from "@/app/menu/components/AddOnManagementModal";
 import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck, Plus, UtensilsCrossed } from "lucide-react";
 
 export default function KasirPage() {
   // Initialize with cached local items for instant 0ms initial render without blank screen
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
+  const [availableAddOns, setAvailableAddOns] = useState<AddOn[]>(() => getStoredAddOns());
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
@@ -30,6 +42,11 @@ export default function KasirPage() {
   // Quick Menu Modal (Core POS Menu Management)
   const [isMenuModalOpen, setIsMenuModalOpen] = useState<boolean>(false);
   const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null);
+
+  // Add-On Selection Modal & Management Modal
+  const [selectedMenuItemForAddOns, setSelectedMenuItemForAddOns] = useState<MenuItem | null>(null);
+  const [isAddOnPickerOpen, setIsAddOnPickerOpen] = useState<boolean>(false);
+  const [isAddOnManagementOpen, setIsAddOnManagementOpen] = useState<boolean>(false);
 
   // Real-time Incoming Digital Orders State
   const [digitalOrders, setDigitalOrders] = useState<Transaction[]>([]);
@@ -43,6 +60,7 @@ export default function KasirPage() {
 
   const {
     items,
+    addItem,
     customerName,
     orderType,
     tableNumber,
@@ -63,9 +81,14 @@ export default function KasirPage() {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
   };
 
+  const loadAddOns = () => {
+    fetchAddOnsFromDB().then((loaded) => setAvailableAddOns(loaded));
+  };
+
   // 1. Core Supabase Realtime WebSocket Connection (0ms Instant Latency)
   useEffect(() => {
     loadMenu();
+    loadAddOns();
     loadDigitalOrders();
     unlockAudioContext();
     requestPushNotificationPermission();
@@ -90,17 +113,29 @@ export default function KasirPage() {
           loadMenu();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "AddOn" },
+        () => {
+          loadAddOns();
+        }
+      )
       .subscribe();
 
     const handleWindowFocus = () => {
       loadMenu();
+      loadAddOns();
       loadDigitalOrders();
     };
     window.addEventListener("focus", handleWindowFocus);
 
-    const unsubscribeBroadcast = subscribePOSSync((type) => {
+    const unsubscribe = subscribePOSSync((type) => {
       if (type === "MENU_UPDATED") {
+        setMenuItems(getStoredMenuItems());
         loadMenu();
+      } else if (type === "ADDONS_UPDATED") {
+        setAvailableAddOns(getStoredAddOns());
+        loadAddOns();
       } else if (type === "TRANSACTION_UPDATED") {
         loadDigitalOrders();
       }
@@ -109,7 +144,7 @@ export default function KasirPage() {
     return () => {
       supabase.removeChannel(realtimeChannel);
       window.removeEventListener("focus", handleWindowFocus);
-      unsubscribeBroadcast();
+      unsubscribe();
     };
   }, []);
 
@@ -269,14 +304,20 @@ export default function KasirPage() {
       orderNotes: "KASIR_CONFIRMED",
       paymentStatus: "PAID",
       paymentMethod: "CASH",
-      items: items.map((item) => ({
-        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        menuItemId: item.menuItem.id,
-        nameSnapshot: item.menuItem.name,
-        priceSnapshot: item.menuItem.price,
-        hppSnapshot: item.menuItem.hpp,
-        qty: item.qty,
-      })),
+      items: items.map((item) => {
+        const addOnsExtra = (item.selectedAddOns || []).reduce((s, a) => s + (a.price || 0), 0);
+        const addOnsHpp = (item.selectedAddOns || []).reduce((s, a) => s + (a.hpp || 0), 0);
+        const addOnsText = (item.selectedAddOns || []).map((a) => a.name).join(", ");
+        return {
+          id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          menuItemId: item.menuItem.id,
+          nameSnapshot: item.menuItem.name,
+          priceSnapshot: Number(item.menuItem.price) + addOnsExtra,
+          hppSnapshot: Number(item.menuItem.hpp) + addOnsHpp,
+          qty: item.qty,
+          addOnsSnapshot: addOnsText || null,
+        };
+      }),
     };
 
     addTransaction(newTrx);
@@ -360,6 +401,17 @@ export default function KasirPage() {
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
             <span className="hidden sm:inline">+ Menu Baru</span>
+          </button>
+
+          {/* Quick Add-On Management Button */}
+          <button
+            type="button"
+            onClick={() => setIsAddOnManagementOpen(true)}
+            className="py-1 px-2 sm:py-1.5 sm:px-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+            title="Kelola Daftar Add-On & Topping"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Add-On</span>
           </button>
 
           {/* Audio Alert Trigger */}
@@ -458,6 +510,10 @@ export default function KasirPage() {
         >
           <MenuGrid
             items={menuItems}
+            onSelectItem={(item) => {
+              setSelectedMenuItemForAddOns(item);
+              setIsAddOnPickerOpen(true);
+            }}
             onEditItem={(item) => {
               setItemToEdit(item);
               setIsMenuModalOpen(true);
@@ -519,6 +575,36 @@ export default function KasirPage() {
           setItemToEdit(null);
         }}
         onSave={handleSaveItemFromPOS}
+      />
+
+      {/* Add-On Picker Modal (Triggered on Menu Item Selection) */}
+      <AddOnPickerModal
+        isOpen={isAddOnPickerOpen}
+        menuItem={selectedMenuItemForAddOns}
+        availableAddOns={availableAddOns}
+        onConfirm={(item, selectedAddOns) => {
+          addItem(item, selectedAddOns);
+          setIsAddOnPickerOpen(false);
+          setSelectedMenuItemForAddOns(null);
+        }}
+        onDirectAdd={(item) => {
+          addItem(item);
+          setIsAddOnPickerOpen(false);
+          setSelectedMenuItemForAddOns(null);
+        }}
+        onClose={() => {
+          setIsAddOnPickerOpen(false);
+          setSelectedMenuItemForAddOns(null);
+        }}
+      />
+
+      {/* Add-On Management Modal (Core POS Toppings Management) */}
+      <AddOnManagementModal
+        isOpen={isAddOnManagementOpen}
+        onClose={() => {
+          setIsAddOnManagementOpen(false);
+          setAvailableAddOns(getStoredAddOns());
+        }}
       />
 
       {/* Payment Dialog */}

@@ -152,6 +152,11 @@ export default function ReceiptModal({
                   {transaction.items.map((item, idx) => (
                     <div key={idx} className="text-[11px]">
                       <div className="font-bold">{item.nameSnapshot}</div>
+                      {item.addOnsSnapshot && (
+                        <div className="text-[9.5px] text-amber-700 font-bold pl-1">
+                          + {item.addOnsSnapshot}
+                        </div>
+                      )}
                       <div className="flex justify-between text-[10px] text-slate-600">
                         <span>{item.qty}x Rp {item.priceSnapshot.toLocaleString("id-ID")}</span>
                         <span className="font-bold text-slate-800">Rp {(item.qty * item.priceSnapshot).toLocaleString("id-ID")}</span>
@@ -209,10 +214,17 @@ export default function ReceiptModal({
                 </div>
                 <div className="space-y-2 py-2 border-b border-slate-300">
                   {transaction.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs font-bold">
-                      <span className="w-4 h-4 rounded-sm border-2 border-slate-600 block shrink-0" />
-                      <span className="text-amber-700 font-black text-base">{item.qty}x</span>
-                      <span className="uppercase">{item.nameSnapshot}</span>
+                    <div key={idx} className="flex flex-col gap-0.5 text-xs font-bold">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-sm border-2 border-slate-600 block shrink-0" />
+                        <span className="text-amber-700 font-black text-base">{item.qty}x</span>
+                        <span className="uppercase">{item.nameSnapshot}</span>
+                      </div>
+                      {item.addOnsSnapshot && (
+                        <span className="text-[10px] text-slate-500 font-bold pl-6">
+                          * Add-On: {item.addOnsSnapshot}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
