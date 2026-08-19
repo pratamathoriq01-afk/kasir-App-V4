@@ -17,11 +17,10 @@ import AddOnManagementModal from "./components/AddOnManagementModal";
 import CategoryManagementModal from "./components/CategoryManagementModal";
 import StoreOperationalModal from "./components/StoreOperationalModal";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles, Settings2, Layers, Clock, Store } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Ticket, Sparkles, Settings2, Layers, Clock } from "lucide-react";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
@@ -97,13 +96,15 @@ export default function MenuPage() {
   const countAlacarte = menuItems.filter((m) => m.category === "Menu Alacarte").length;
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Header Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Kelola Menu &amp; Produk</h1>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+            Kelola Menu &amp; Produk
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Atur daftar makanan, minuman, HPP/modal, serta harga jual Kedai Nyamleng.
+            Atur daftar makanan, minuman, modal HPP, margin laba, serta harga jual Kedai Nyamleng.
           </p>
         </div>
 
@@ -111,7 +112,7 @@ export default function MenuPage() {
           <Button
             variant="outline"
             onClick={() => setIsStoreModalOpen(true)}
-            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl"
           >
             <Clock className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
             <span className="truncate">Jam Operasional</span>
@@ -120,7 +121,7 @@ export default function MenuPage() {
           <Button
             variant="outline"
             onClick={() => setIsCategoryModalOpen(true)}
-            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20"
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-xl"
           >
             <Layers className="w-4 h-4 text-blue-500 stroke-[2.5]" />
             <span className="truncate">Kelola Wadah</span>
@@ -129,7 +130,7 @@ export default function MenuPage() {
           <Button
             variant="outline"
             onClick={() => setIsAddOnModalOpen(true)}
-            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl"
           >
             <Sparkles className="w-4 h-4 text-amber-500 stroke-[2.5]" />
             <span className="truncate">Kelola Add-On</span>
@@ -138,7 +139,7 @@ export default function MenuPage() {
           <Button
             variant="outline"
             onClick={() => setIsVoucherModalOpen(true)}
-            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0"
+            className="flex-1 sm:flex-initial h-10 px-3.5 text-xs font-bold gap-2 cursor-pointer shrink-0 rounded-xl"
           >
             <Ticket className="w-4 h-4 text-amber-500 stroke-[2.5]" />
             <span className="truncate">Voucher Digital</span>
@@ -149,67 +150,67 @@ export default function MenuPage() {
               setEditingItem(null);
               setIsModalOpen(true);
             }}
-            className="flex-1 sm:flex-initial h-10 px-4 text-xs font-bold gap-2 cursor-pointer shrink-0"
+            className="flex-1 sm:flex-initial h-10 px-4 text-xs font-black gap-2 cursor-pointer shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-sm"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span className="truncate">Tambah Menu</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span className="truncate">+ Tambah Menu</span>
           </Button>
         </div>
       </div>
 
       {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary font-bold text-base">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex items-center gap-3.5 transition-colors">
+          <div className="p-3 rounded-2xl bg-primary/10 text-primary font-bold text-lg">
             📋
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Total Menu</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{menuItems.length} Item</h3>
+            <span className="text-xs text-muted-foreground font-semibold block">Total Menu</span>
+            <h3 className="text-base sm:text-lg font-black text-foreground font-mono">{menuItems.length} Item</h3>
           </div>
         </div>
 
-        <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">
+        <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex items-center gap-3.5 transition-colors">
+          <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-lg">
             🍗
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Ayam Nyamleng</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{countAyam} Item</h3>
+            <span className="text-xs text-muted-foreground font-semibold block">Ayam Nyamleng</span>
+            <h3 className="text-base sm:text-lg font-black text-foreground font-mono">{countAyam} Item</h3>
           </div>
         </div>
 
-        <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Coffee className="w-4 h-4" />
+        <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex items-center gap-3.5 transition-colors">
+          <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 text-lg">
+            <Coffee className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Minuman</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{countMinuman} Item</h3>
+            <span className="text-xs text-muted-foreground font-semibold block">Minuman Segar</span>
+            <h3 className="text-base sm:text-lg font-black text-foreground font-mono">{countMinuman} Item</h3>
           </div>
         </div>
 
-        <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+        <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex items-center gap-3.5 transition-colors">
+          <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-lg">
             🍱
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Alacarte & Lainnya</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{countAlacarte + countIkan} Item</h3>
+            <span className="text-xs text-muted-foreground font-semibold block">Alacarte &amp; Lainnya</span>
+            <h3 className="text-base sm:text-lg font-black text-foreground font-mono">{countAlacarte + countIkan} Item</h3>
           </div>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
+      <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3.5 transition-colors">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Cari nama menu..."
+            placeholder="Cari nama menu / kategori..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-xs bg-background border-input font-medium"
+            className="pl-9 h-10 text-xs sm:text-sm bg-background border-input font-medium rounded-xl"
           />
         </div>
 
@@ -220,9 +221,9 @@ export default function MenuPage() {
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 activeCategory === cat
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-xs ring-1 ring-primary/40 font-extrabold"
                   : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
               }`}
             >
@@ -233,7 +234,7 @@ export default function MenuPage() {
           <button
             type="button"
             onClick={() => setIsCategoryModalOpen(true)}
-            className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+            className="px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
             title="Kelola / Ganti Nama Wadah Kategori"
           >
             <Settings2 className="w-3.5 h-3.5" />
@@ -243,9 +244,9 @@ export default function MenuPage() {
       </div>
 
       {/* Mobile Card List View (< md screens) */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-3.5">
         {filteredItems.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center text-muted-foreground">
+          <div className="bg-card rounded-2xl border border-border p-8 text-center text-muted-foreground text-xs font-bold">
             Belum ada menu dalam kategori ini.
           </div>
         ) : (
@@ -256,28 +257,28 @@ export default function MenuPage() {
             return (
               <div
                 key={item.id}
-                className="bg-card p-3.5 rounded-2xl border border-border shadow-xs space-y-3 transition-colors"
+                className="bg-card p-4 rounded-2xl border border-border shadow-xs space-y-3.5 transition-colors"
               >
                 {/* Header Row */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-lg overflow-hidden shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-xl overflow-hidden shrink-0">
                       {item.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={item.imageUrl}
                           alt={item.name}
-                          className="w-10 h-10 object-cover rounded-xl"
+                          className="w-12 h-12 object-cover rounded-2xl"
                         />
                       ) : (
-                        <span className="text-lg">
+                        <span>
                           {item.category === "Makanan" ? "🍽️" : item.category === "Minuman" ? "🥤" : "🍟"}
                         </span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-foreground text-sm truncate">{item.name}</h4>
-                      <span className="text-[10px] text-muted-foreground font-mono">ID: {item.id}</span>
+                      <h4 className="font-extrabold text-foreground text-sm truncate">{item.name}</h4>
+                      <span className="text-xs text-muted-foreground font-mono">ID: {item.id}</span>
                     </div>
                   </div>
 
@@ -287,7 +288,7 @@ export default function MenuPage() {
                     variant="outline"
                     size="xs"
                     onClick={() => handleToggleStatus(item.id)}
-                    className={`shrink-0 h-6 px-2.5 rounded-full text-[10px] font-bold cursor-pointer ${
+                    className={`shrink-0 h-7 px-3 rounded-full text-xs font-bold cursor-pointer ${
                       item.isActive
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                         : "bg-muted text-muted-foreground border-border"
@@ -306,22 +307,22 @@ export default function MenuPage() {
                 </div>
 
                 {/* Pricing & Profit Grid */}
-                <div className="grid grid-cols-3 gap-2 bg-muted/40 p-2.5 rounded-xl text-xs border border-border">
+                <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-2xl text-xs border border-border text-center">
                   <div>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Harga Jual</span>
-                    <span className="font-black font-mono text-primary">
+                    <span className="text-xs text-muted-foreground font-bold block mb-0.5">Harga Jual</span>
+                    <span className="font-black font-mono text-primary text-xs sm:text-sm">
                       Rp {item.price.toLocaleString("id-ID")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">HPP / Modal</span>
-                    <span className="font-semibold font-mono text-muted-foreground">
+                    <span className="text-xs text-muted-foreground font-bold block mb-0.5">HPP / Modal</span>
+                    <span className="font-semibold font-mono text-muted-foreground text-xs sm:text-sm">
                       Rp {item.hpp.toLocaleString("id-ID")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider block">Margin Laba</span>
-                    <span className="font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs text-muted-foreground font-bold block mb-0.5">Margin Laba</span>
+                    <span className="font-extrabold font-mono text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">
                       {marginPct}%
                     </span>
                   </div>
@@ -329,11 +330,11 @@ export default function MenuPage() {
 
                 {/* Footer Action Buttons */}
                 <div className="flex items-center justify-between pt-1 border-t border-border">
-                  <Badge variant="secondary" className="text-[10px] font-semibold">
+                  <Badge variant="secondary" className="text-xs font-bold px-2.5 py-0.5">
                     {item.category}
                   </Badge>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <Button
                       variant="ghost"
                       size="icon-xs"
@@ -341,7 +342,7 @@ export default function MenuPage() {
                         setEditingItem(item);
                         setIsModalOpen(true);
                       }}
-                      className="text-muted-foreground hover:text-primary cursor-pointer"
+                      className="text-muted-foreground hover:text-primary cursor-pointer w-8 h-8 rounded-lg"
                       title="Edit menu"
                     >
                       <Edit3 className="w-4 h-4" />
@@ -350,7 +351,7 @@ export default function MenuPage() {
                       variant="ghost"
                       size="icon-xs"
                       onClick={() => handleDeleteItem(item.id)}
-                      className="text-muted-foreground hover:text-destructive cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive cursor-pointer w-8 h-8 rounded-lg"
                       title="Hapus menu"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -369,7 +370,7 @@ export default function MenuPage() {
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="font-extrabold text-xs">Menu / Produk</TableHead>
-              <TableHead className="font-extrabold text-xs">Kategori</TableHead>
+              <TableHead className="font-extrabold text-xs">Wadah Kategori</TableHead>
               <TableHead className="font-extrabold text-xs text-right">Harga Jual</TableHead>
               <TableHead className="font-extrabold text-xs text-right">HPP / Modal</TableHead>
               <TableHead className="font-extrabold text-xs text-right">Laba / Margin</TableHead>
@@ -380,7 +381,7 @@ export default function MenuPage() {
           <TableBody>
             {filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="p-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="p-8 text-center text-muted-foreground text-xs font-bold">
                   Belum ada menu dalam kategori ini.
                 </TableCell>
               </TableRow>
@@ -394,15 +395,15 @@ export default function MenuPage() {
                     key={item.id}
                     className="hover:bg-muted/40 transition-colors group"
                   >
-                    <TableCell className="p-3.5">
+                    <TableCell className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center text-base overflow-hidden shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-lg overflow-hidden shrink-0">
                           {item.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={item.imageUrl}
                               alt={item.name}
-                              className="w-9 h-9 object-cover rounded-xl"
+                              className="w-10 h-10 object-cover rounded-xl"
                             />
                           ) : (
                             <span>
@@ -415,42 +416,42 @@ export default function MenuPage() {
                           )}
                         </div>
                         <div>
-                          <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">
+                          <h4 className="font-bold text-foreground text-xs sm:text-sm group-hover:text-primary transition-colors">
                             {item.name}
                           </h4>
-                          <span className="text-[10px] text-muted-foreground font-mono">
+                          <span className="text-xs text-muted-foreground font-mono">
                             ID: {item.id}
                           </span>
                         </div>
                       </div>
                     </TableCell>
 
-                    <TableCell className="p-3.5">
-                      <Badge variant="secondary" className="font-bold text-[11px]">
+                    <TableCell className="p-4">
+                      <Badge variant="secondary" className="font-bold text-xs">
                         {item.category}
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="p-3.5 text-right font-black font-mono text-primary text-sm">
+                    <TableCell className="p-4 text-right font-black font-mono text-primary text-xs sm:text-sm">
                       Rp {item.price.toLocaleString("id-ID")}
                     </TableCell>
 
-                    <TableCell className="p-3.5 text-right font-medium font-mono text-muted-foreground">
+                    <TableCell className="p-4 text-right font-medium font-mono text-muted-foreground text-xs sm:text-sm">
                       Rp {item.hpp.toLocaleString("id-ID")}
                     </TableCell>
 
-                    <TableCell className="p-3.5 text-right font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                    <TableCell className="p-4 text-right font-extrabold font-mono text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">
                       <div>Rp {profit.toLocaleString("id-ID")}</div>
-                      <div className="text-[10px] font-normal text-emerald-600/80 dark:text-emerald-400/80">({marginPct}%)</div>
+                      <div className="text-xs font-normal text-emerald-600/80 dark:text-emerald-400/80">({marginPct}%)</div>
                     </TableCell>
 
-                    <TableCell className="p-3.5 text-center">
+                    <TableCell className="p-4 text-center">
                       <Button
                         type="button"
                         variant="outline"
                         size="xs"
                         onClick={() => handleToggleStatus(item.id)}
-                        className={`inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-bold cursor-pointer ${
+                        className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-bold cursor-pointer ${
                           item.isActive
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                             : "bg-muted text-muted-foreground border-border"
@@ -468,8 +469,8 @@ export default function MenuPage() {
                       </Button>
                     </TableCell>
 
-                    <TableCell className="p-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
+                    <TableCell className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <Button
                           variant="ghost"
                           size="icon-xs"
@@ -477,7 +478,7 @@ export default function MenuPage() {
                             setEditingItem(item);
                             setIsModalOpen(true);
                           }}
-                          className="text-muted-foreground hover:text-primary cursor-pointer"
+                          className="text-muted-foreground hover:text-primary cursor-pointer w-8 h-8 rounded-lg"
                           title="Edit menu"
                         >
                           <Edit3 className="w-4 h-4" />
@@ -486,7 +487,7 @@ export default function MenuPage() {
                           variant="ghost"
                           size="icon-xs"
                           onClick={() => handleDeleteItem(item.id)}
-                          className="text-muted-foreground hover:text-destructive cursor-pointer"
+                          className="text-muted-foreground hover:text-destructive cursor-pointer w-8 h-8 rounded-lg"
                           title="Hapus menu"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -543,4 +544,3 @@ export default function MenuPage() {
     </div>
   );
 }
-

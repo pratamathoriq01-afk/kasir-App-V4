@@ -5,8 +5,8 @@ import { MenuItem } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
+import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X } from "lucide-react";
 import { getStoredCategories, addNewCategoryOptimistic } from "@/lib/data-service";
 
 interface MenuFormModalProps {
@@ -48,7 +48,7 @@ export default function MenuFormModal({
   const [isActive, setIsActive] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Flexible Margin Target
+  // Target Margin Percentage State
   const [targetMargin, setTargetMargin] = useState<number>(45);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,34 +160,49 @@ export default function MenuFormModal({
   };
 
   const marginPercent = numPrice > 0 ? Math.round(((numPrice - numHpp) / numPrice) * 100) : 0;
+  const profitAmount = numPrice - numHpp;
+  const taxAmount = Math.round((numPrice * taxPercent) / 100);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl">
-        {/* Header */}
-        <DialogHeader className="p-4 bg-slate-950 text-white flex flex-row items-center justify-between space-y-0 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-amber-500 text-slate-950">
-              <ImageIcon className="w-5 h-5 stroke-[2.5]" />
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-xl w-[96vw] sm:w-full p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl flex flex-col max-h-[90vh]"
+      >
+        {/* Header Banner */}
+        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 p-4 sm:p-5 text-white flex items-center justify-between shrink-0 border-b border-emerald-600/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+              <ImageIcon className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="font-extrabold text-base text-white">
-                {itemToEdit ? `Edit Menu: ${itemToEdit.name}` : "✨ Tambah Menu Baru"}
+              <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
+                {itemToEdit ? `Edit Menu: ${itemToEdit.name}` : "Tambah Menu Baru"}
               </DialogTitle>
-              <p className="text-[11px] text-slate-400">
-                Data otomatis tersinkronisasi realtime ke Kasir POS, Supabase DB, &amp; Menu Digital.
+              <p className="text-xs text-emerald-100 font-medium">
+                Tersinkronisasi otomatis ke Kasir POS, Supabase DB &amp; Menu Digital.
               </p>
             </div>
           </div>
-        </DialogHeader>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
 
         {/* Form Body - Scrollable Container */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs overflow-y-auto max-h-[75vh]">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Image Upload Area */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-900 dark:text-slate-100">Foto / Gambar Menu</label>
-              <span className="text-[10px] text-slate-500 font-normal">(opsional)</span>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground">
+                Foto / Gambar Menu Produk
+              </label>
+              <span className="text-xs text-muted-foreground font-medium">(Opsional)</span>
             </div>
 
             <div
@@ -197,31 +212,35 @@ export default function MenuFormModal({
               onDrop={handleDrop}
               className={`relative border-2 border-dashed rounded-2xl transition-all cursor-pointer overflow-hidden ${
                 isDragging
-                  ? "border-amber-500 bg-amber-50"
-                  : "border-slate-300 hover:border-amber-500 hover:bg-slate-50"
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/60 hover:bg-muted/40 bg-muted/20"
               }`}
             >
               {imageUrl ? (
-                <div className="relative">
+                <div className="relative group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
-                    alt="Preview"
-                    className="w-full h-28 object-cover"
+                    alt="Preview Menu"
+                    className="w-full h-32 object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-1 text-xs">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2 text-xs backdrop-blur-xs">
                     <Upload className="w-4 h-4" />
-                    <span>Ganti Foto</span>
+                    <span>Ganti Foto Menu</span>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 text-center flex flex-col items-center justify-center gap-1 text-slate-500">
-                  <div className="p-2 bg-amber-100 text-amber-900 rounded-xl">
+                <div className="p-4 text-center flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
+                  <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
                     <Upload className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">Klik atau seret foto menu ke sini</span>
-                    <span className="text-[10px] text-slate-400">JPG, PNG, WebP — Semua ukuran diterima</span>
+                    <span className="font-bold text-foreground block text-xs">
+                      Klik atau seret foto menu ke area ini
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Mendukung format JPG, PNG, WebP (Rasio 1:1 atau 16:9 disarankan)
+                    </span>
                   </div>
                 </div>
               )}
@@ -236,41 +255,41 @@ export default function MenuFormModal({
             </div>
           </div>
 
-          {/* Menu Name */}
-          <div>
-            <label className="block font-bold text-slate-900 dark:text-slate-100 mb-1">
-              Nama Menu Produk <span className="text-rose-500">*</span>
+          {/* Menu Name Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground">
+              Nama Menu Produk <span className="text-destructive">*</span>
             </label>
-            <input
+            <Input
               type="text"
-              placeholder="Contoh: Nasi Bakar Cumi Pedas"
+              placeholder="Contoh: Ayam Bakar Bumbu Madu Nyamleng"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-white text-slate-950 font-bold placeholder:text-slate-400 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+              className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl"
               required
             />
           </div>
 
           {/* Category Selector with Quick Chips */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="font-bold text-slate-900 dark:text-slate-100">Kategori Menu</label>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground">Wadah Kategori</label>
               <button
                 type="button"
                 onClick={() => setIsCustomCategory(!isCustomCategory)}
-                className="text-[11px] font-bold text-amber-700 hover:text-amber-800 underline cursor-pointer"
+                className="text-xs font-bold text-primary hover:underline cursor-pointer"
               >
-                {isCustomCategory ? "Pilih dari Preset" : "+ Ketik Kategori Kustom"}
+                {isCustomCategory ? "Pilih dari Preset Wadah" : "+ Ketik Wadah Baru"}
               </button>
             </div>
 
             {isCustomCategory ? (
-              <input
+              <Input
                 type="text"
-                placeholder="Ketik kategori baru (contoh: Paket Sarapan)"
+                placeholder="Ketik nama wadah baru (contoh: Aneka Sambal & Lalapan)"
                 value={customCategoryInput}
                 onChange={(e) => setCustomCategoryInput(e.target.value)}
-                className="w-full px-3 py-2 bg-white text-slate-950 font-bold placeholder:text-slate-400 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl"
                 required
               />
             ) : (
@@ -280,90 +299,106 @@ export default function MenuFormModal({
                     key={cat}
                     type="button"
                     onClick={() => setCategory(cat)}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       category === cat
-                        ? "bg-slate-900 text-amber-400 shadow-xs border border-slate-900"
-                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                        ? "bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/40"
+                        : "bg-muted/60 text-muted-foreground hover:text-foreground border border-border hover:bg-muted"
                     }`}
                   >
                     <span>{CATEGORY_ICONS[cat] || "🍽️"}</span>
                     <span>{cat}</span>
-                    {category === cat && <Check className="w-3 h-3 text-amber-400" />}
+                    {category === cat && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Target Margin Smart Calculator Box */}
-          <div className="p-3 bg-amber-50/70 dark:bg-slate-800/60 rounded-2xl border border-amber-300/80 dark:border-slate-700 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
-                  🎯 Target Margin Keuntungan (%)
-                </span>
-                <span className="text-[10px] text-slate-500">Pilih persen margin untuk menghitung harga jual otomatis</span>
+          {/* Target Margin Smart Calculator Card */}
+          <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/5 rounded-2xl border border-amber-500/30 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-amber-500 text-slate-950">
+                  <Calculator className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs text-amber-950 dark:text-amber-200 block">
+                    Target Margin Keuntungan (%)
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Hitung rekomendasi harga jual otomatis dari modal HPP
+                  </span>
+                </div>
               </div>
-              <div className="relative w-20">
-                <input
+
+              <div className="relative w-24 shrink-0">
+                <Input
                   type="number"
                   value={targetMargin || ""}
                   onChange={(e) => handleTargetMarginChange(Number(e.target.value))}
                   placeholder="45"
-                  className="w-full py-1.5 pl-2 pr-6 text-xs font-black text-center bg-white text-slate-950 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 outline-none"
+                  className="h-9 text-xs sm:text-sm font-black font-mono text-center pr-7 bg-background rounded-xl"
                   min={0}
                   max={99}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-amber-700">%</span>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-black text-amber-600 dark:text-amber-400 select-none">
+                  %
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[10.5px] font-semibold pt-1 border-t border-amber-200/60">
-              <span className="text-slate-600 dark:text-slate-400 font-bold">Preset Cepat:</span>
-              <div className="flex gap-1 overflow-x-auto">
-                {[25, 35, 45, 50, 60, 70].map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => handleTargetMarginChange(m)}
-                    className={`h-6 text-[10px] font-bold px-2 rounded-lg cursor-pointer transition-all ${
-                      targetMargin === m
-                        ? "bg-amber-500 text-slate-950 font-black shadow-xs"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-amber-100"
-                    }`}
-                  >
-                    {m}%
-                  </button>
-                ))}
-              </div>
+            {/* Quick Presets Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-amber-500/20">
+              <span className="text-xs font-bold text-muted-foreground shrink-0 mr-1">
+                Preset Cepat:
+              </span>
+              {[25, 35, 45, 50, 60, 70].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => handleTargetMarginChange(m)}
+                  className={`h-7 px-2.5 text-xs font-bold rounded-lg cursor-pointer transition-all ${
+                    targetMargin === m
+                      ? "bg-amber-500 text-slate-950 font-black shadow-xs"
+                      : "bg-background border border-border text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {m}%
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Price & HPP Grid */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block font-bold text-slate-900 dark:text-slate-100 mb-1">
-                Harga Jual (Rp) <span className="text-rose-500">*</span>
+          {/* Pricing & HPP Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                Harga Jual (Rp) <span className="text-destructive">*</span>
               </label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 font-bold font-mono text-slate-700 text-xs select-none">Rp</span>
-                <input
+                <span className="absolute left-3 font-bold font-mono text-muted-foreground text-xs select-none">
+                  Rp
+                </span>
+                <Input
                   type="text"
                   inputMode="numeric"
                   value={priceStr}
                   onChange={(e) => setPriceStr(formatNumber(e.target.value))}
-                  className="w-full pl-9 pr-3 py-2 bg-white text-slate-950 font-mono font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                  className="pl-9 pr-3 h-10 text-xs sm:text-sm font-mono font-black bg-background rounded-xl text-primary"
                   required
                 />
               </div>
             </div>
-            <div>
-              <label className="block font-bold text-slate-900 dark:text-slate-100 mb-1">
-                HPP / Modal (Rp) <span className="text-rose-500">*</span>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                HPP / Modal Porsi (Rp) <span className="text-destructive">*</span>
               </label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 font-bold font-mono text-slate-700 text-xs select-none">Rp</span>
-                <input
+                <span className="absolute left-3 font-bold font-mono text-muted-foreground text-xs select-none">
+                  Rp
+                </span>
+                <Input
                   type="text"
                   inputMode="numeric"
                   value={hppStr}
@@ -375,7 +410,7 @@ export default function MenuFormModal({
                       setPriceStr(formatNumber(Math.round(rawHpp / (1 - targetMargin / 100))));
                     }
                   }}
-                  className="w-full pl-9 pr-3 py-2 bg-white text-slate-950 font-mono font-black border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                  className="pl-9 pr-3 h-10 text-xs sm:text-sm font-mono font-bold bg-background rounded-xl"
                   required
                 />
               </div>
@@ -383,33 +418,39 @@ export default function MenuFormModal({
           </div>
 
           {/* Tax Selector */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-900 dark:text-slate-100">Pajak / PPN (%)</label>
-              <span className="text-[10px] text-slate-500">berlaku untuk harga jual</span>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground">Pajak Restoran / PPN (%)</label>
+              <span className="text-xs text-muted-foreground font-medium">
+                Dihitung dari subtotal pesanan
+              </span>
             </div>
-            <div className="flex items-center gap-1.5">
+
+            <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <input
+                <Input
                   type="number"
                   value={taxPercent}
                   onChange={(e) => setTaxPercent(Number(e.target.value))}
-                  className="w-full pl-3 pr-6 py-2 text-xs font-black bg-white text-slate-950 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 outline-none shadow-xs"
+                  className="h-10 text-xs sm:text-sm font-mono font-bold pr-7 bg-background rounded-xl"
                   min={0}
                   max={100}
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">%</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-xs select-none">
+                  %
+                </span>
               </div>
+
               <div className="flex gap-1">
                 {[0, 5, 10, 11].map((pct) => (
                   <button
                     key={pct}
                     type="button"
                     onClick={() => setTaxPercent(pct)}
-                    className={`h-8 text-xs font-bold px-2.5 rounded-xl cursor-pointer transition-all ${
+                    className={`h-10 px-3 text-xs font-bold rounded-xl cursor-pointer transition-all ${
                       taxPercent === pct
-                        ? "bg-slate-900 text-white font-black"
-                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                        ? "bg-primary text-primary-foreground font-black shadow-xs"
+                        : "bg-muted border border-border text-foreground hover:bg-muted/80"
                     }`}
                   >
                     {pct}%
@@ -419,57 +460,69 @@ export default function MenuFormModal({
             </div>
           </div>
 
-          {/* Live Calculation Summary */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 grid grid-cols-3 gap-1 text-center">
+          {/* Live Calculation Summary Breakdown Card */}
+          <div className="p-3.5 bg-muted/40 rounded-2xl border border-border grid grid-cols-3 gap-2 text-center">
             <div>
-              <span className="text-[9.5px] text-slate-500 uppercase font-bold block">Laba Per Porsi</span>
-              <span className="font-black text-emerald-600 dark:text-emerald-400 text-xs">
-                Rp {(numPrice - numHpp).toLocaleString("id-ID")}
+              <span className="text-xs text-muted-foreground font-bold block mb-0.5">
+                Laba Per Porsi
+              </span>
+              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">
+                Rp {profitAmount.toLocaleString("id-ID")}
               </span>
             </div>
+
             <div>
-              <span className="text-[9.5px] text-slate-500 uppercase font-bold block">Margin Bersih</span>
-              <span className={`font-black text-xs ${marginPercent >= 40 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600"}`}>
+              <span className="text-xs text-muted-foreground font-bold block mb-0.5">
+                Margin Bersih
+              </span>
+              <span className={`font-mono font-black text-xs sm:text-sm ${
+                marginPercent >= 40 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+              }`}>
                 {marginPercent}%
               </span>
             </div>
+
             <div>
-              <span className="text-[9.5px] text-slate-500 uppercase font-bold block">Pajak / Porsi</span>
-              <span className="font-black text-slate-900 dark:text-slate-100 text-xs">
-                Rp {Math.round((numPrice * taxPercent) / 100).toLocaleString("id-ID")}
+              <span className="text-xs text-muted-foreground font-bold block mb-0.5">
+                Pajak Terkumpul
+              </span>
+              <span className="font-mono font-bold text-foreground text-xs sm:text-sm">
+                Rp {taxAmount.toLocaleString("id-ID")}
               </span>
             </div>
           </div>
 
           {/* Active Status Checkbox */}
-          <label className="flex items-center gap-2 pt-0.5 cursor-pointer">
+          <label className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/20 border border-border cursor-pointer">
             <input
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 cursor-pointer"
+              className="w-4 h-4 rounded-md border-border text-primary accent-primary cursor-pointer"
             />
-            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-              Tampilkan menu ini di Halaman Kasir POS &amp; Menu Digital (Status Aktif)
+            <span className="text-xs font-bold text-foreground">
+              Tampilkan menu ini di Kasir POS &amp; Menu Digital (Status Aktif)
             </span>
           </label>
 
-          {/* Sticky Action Footer Buttons */}
-          <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 shrink-0">
-            <button
+          {/* Action Footer Buttons */}
+          <div className="pt-2 border-t border-border flex items-center justify-end gap-2 shrink-0">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="h-10 font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition-all"
+              className="h-10 px-5 text-xs font-bold rounded-xl cursor-pointer"
             >
               Batal
-            </button>
-            <button
+            </Button>
+
+            <Button
               type="submit"
-              className="h-10 font-black text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl gap-1.5 flex items-center justify-center shadow-md shadow-amber-500/20 cursor-pointer transition-all"
+              className="h-10 px-6 text-xs font-extrabold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer"
             >
               <Save className="w-4 h-4 stroke-[2.5]" />
-              <span>Simpan Menu ✨</span>
-            </button>
+              <span>Simpan Menu</span>
+            </Button>
           </div>
         </form>
       </DialogContent>

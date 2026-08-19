@@ -12,6 +12,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Layers, Plus, Edit2, Trash2, Check, X, Sparkles, FolderPlus, Utensils } from "lucide-react";
 
 interface CategoryManagementModalProps {
@@ -112,29 +113,40 @@ export default function CategoryManagementModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md w-full p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-lg w-[96vw] sm:w-full p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl"
+      >
         {/* Header Banner */}
-        <div className="bg-slate-900 text-white p-4 sm:p-5 flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-2xl bg-amber-500/20 text-amber-400 font-bold">
+        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 text-white p-4 sm:p-5 flex items-center justify-between border-b border-emerald-600/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <DialogTitle className="text-base sm:text-lg font-black text-white">
+              <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
                 Kelola Wadah Kategori Menu
               </DialogTitle>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-emerald-100 font-medium">
                 Atur nama wadah, tambah kategori baru, atau ganti nama secara fleksibel.
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
 
-        <div className="p-4 sm:p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-          {/* Add Category Input Form */}
-          <form onSubmit={handleAddCategory} className="bg-muted/40 p-3 rounded-2xl border border-border/80 space-y-2">
+        <div className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Add Category Input Form Card */}
+          <form onSubmit={handleAddCategory} className="bg-muted/40 p-4 rounded-2xl border border-border space-y-2.5 shadow-2xs">
             <label className="block text-xs font-bold text-foreground">
-              ➕ Tambah Wadah Kategori Baru
+              Tambah Wadah Kategori Baru
             </label>
             <div className="flex gap-2">
               <Input
@@ -142,34 +154,34 @@ export default function CategoryManagementModal({
                 placeholder="Contoh: Menu Bebek Presto, Aneka Sambal..."
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                className="h-9 text-xs bg-background font-bold"
+                className="h-10 text-xs sm:text-sm bg-background font-bold rounded-xl"
               />
               <Button
                 type="submit"
                 disabled={!newCatName.trim() || isProcessing}
-                className="h-9 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shrink-0 cursor-pointer rounded-xl"
+                className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs shrink-0 cursor-pointer rounded-xl shadow-sm gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <Plus className="w-4 h-4 stroke-[3]" />
                 <span>Tambah</span>
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Wadah baru akan langsung muncul pada filter Kasir POS, Menu Page, &amp; Menu Digital.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Wadah baru akan langsung muncul pada filter Kasir POS, Kelola Menu, &amp; Menu Digital.
             </p>
           </form>
 
           {/* List of Existing Categories */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-extrabold text-foreground">
+              <span className="text-xs sm:text-sm font-extrabold text-foreground">
                 Daftar Wadah Aktif ({categories.length})
               </span>
-              <span className="text-[10px] text-muted-foreground">
-                Klik ✏️ untuk ganti nama wadah
+              <span className="text-xs text-muted-foreground">
+                Klik ikon ✏️ untuk ganti nama
               </span>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {categories.map((cat, index) => {
                 const count = menuItems.filter((m) => m.category === cat).length;
                 const isEditing = editingCatIndex === index;
@@ -177,10 +189,10 @@ export default function CategoryManagementModal({
                 return (
                   <div
                     key={cat + index}
-                    className="p-2.5 bg-card hover:bg-muted/30 border border-border rounded-xl flex items-center justify-between gap-2 transition-all shadow-2xs"
+                    className="p-3 bg-card hover:bg-muted/30 border border-border rounded-2xl flex items-center justify-between gap-3 transition-all shadow-xs"
                   >
                     {isEditing ? (
-                      <div className="flex items-center gap-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-1">
                         <Input
                           type="text"
                           value={editValue}
@@ -190,22 +202,22 @@ export default function CategoryManagementModal({
                             if (e.key === "Escape") setEditingCatIndex(null);
                           }}
                           autoFocus
-                          className="h-8 text-xs font-bold bg-background"
+                          className="h-9 text-xs sm:text-sm font-bold bg-background rounded-xl"
                         />
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => handleSaveRename(cat)}
-                          className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer shrink-0"
+                          className="h-9 w-9 text-emerald-600 hover:bg-emerald-500/10 cursor-pointer shrink-0 rounded-xl"
                           title="Simpan Nama Baru"
                         >
-                          <Check className="w-4 h-4 stroke-[2.5]" />
+                          <Check className="w-4 h-4 stroke-[3]" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => setEditingCatIndex(null)}
-                          className="h-8 w-8 text-rose-500 hover:bg-rose-500/10 cursor-pointer shrink-0"
+                          className="h-9 w-9 text-rose-500 hover:bg-rose-500/10 cursor-pointer shrink-0 rounded-xl"
                           title="Batal"
                         >
                           <X className="w-4 h-4" />
@@ -213,14 +225,14 @@ export default function CategoryManagementModal({
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                          <span className="text-xs font-bold text-foreground truncate">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="text-xs sm:text-sm font-bold text-foreground truncate">
                             {cat}
                           </span>
-                          <span className="px-1.5 py-0.2 text-[10px] font-black rounded-md bg-muted text-muted-foreground font-mono shrink-0">
+                          <Badge variant="secondary" className="font-mono text-xs font-bold shrink-0">
                             {count} menu
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
@@ -228,19 +240,19 @@ export default function CategoryManagementModal({
                             size="icon"
                             variant="ghost"
                             onClick={() => handleStartEdit(index, cat)}
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer rounded-lg"
                             title="Ganti Nama Wadah Ini"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => handleDeleteCategory(cat)}
-                            className="h-7 w-7 text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                            className="h-8 w-8 text-rose-500 hover:bg-rose-500/10 cursor-pointer rounded-lg"
                             title="Hapus Wadah"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </>
@@ -253,11 +265,11 @@ export default function CategoryManagementModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3.5 bg-muted/30 border-t border-border flex justify-end">
+        <div className="p-4 bg-muted/30 border-t border-border flex justify-end">
           <Button
             type="button"
             onClick={onClose}
-            className="h-9 px-5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer"
+            className="h-10 px-6 font-bold text-xs rounded-xl cursor-pointer"
           >
             Selesai
           </Button>
