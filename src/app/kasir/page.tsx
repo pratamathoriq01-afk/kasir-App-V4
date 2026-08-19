@@ -227,11 +227,7 @@ export default function KasirPage() {
 
   const totalItemsCount = items.reduce((sum, item) => sum + item.qty, 0);
 
-  const handleConfirmPayment = async (
-    paymentMethod: "CASH" | "QRIS" | "DEBIT",
-    amountPaid: number,
-    changeAmount: number
-  ) => {
+  const handleConfirmPayment = async () => {
     const orderNumber = getNextOrderNumber();
     const subtotal = getSubtotal();
     const discountAmount = getDiscountAmount();
@@ -239,6 +235,8 @@ export default function KasirPage() {
     const total = getTotal();
     const hppTotal = getHppTotal();
     const netProfit = getNetProfit();
+    const paid = cashReceived || total;
+    const changeAmount = getChange();
 
     const newTrx: Transaction = {
       id: `trx-${Date.now()}`,
@@ -254,13 +252,13 @@ export default function KasirPage() {
       total,
       hppTotal,
       netProfit,
-      cashReceived: amountPaid,
+      cashReceived: paid,
       change: changeAmount,
       createdAt: new Date().toISOString(),
       orderStatus: "ORDER_FINISH",
       orderNotes: "KASIR_CONFIRMED",
       paymentStatus: "PAID",
-      paymentMethod,
+      paymentMethod: "CASH",
       items: items.map((item) => ({
         id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         menuItemId: item.menuItem.id,
@@ -289,7 +287,7 @@ export default function KasirPage() {
     setIsReceiptModalOpen(true);
   };
 
-  const handleUpdateOrderStatus = (trxId: string, status: "IN_PROCESSED" | "ORDER_FINISH") => {
+  const handleUpdateOrderStatus = (trxId: string, status: "IN_PROCESSED" | "ORDER_FINISH" | "CANCELLED") => {
     setDigitalOrders((prev) =>
       prev.map((t) =>
         t.id === trxId || t.orderNumber === trxId
