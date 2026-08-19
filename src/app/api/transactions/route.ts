@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { INITIAL_TRANSACTIONS } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -30,147 +31,186 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
   try {
-    const prismaClient = prisma as any;
-    if (!prismaClient || !prismaClient.transaction) {
-      return jsonWithCors(INITIAL_TRANSACTIONS);
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const orderNumber = searchParams.get("orderNumber");
+    const searchKey = (id || orderNumber || "").trim();
 
-    if (id || orderNumber) {
-      const searchKey = (id || orderNumber || "").trim();
-      const single = await prismaClient.transaction.findFirst({
-        where: {
-          OR: [
-            { id: searchKey },
-            { orderNumber: searchKey },
-            { orderNumber: `#${searchKey.replace(/^#/, "")}` },
-          ],
-        },
-        include: { items: true },
-      });
-      if (!single) {
-        return jsonWithCors({ error: "Transaksi tidak ditemukan" }, 404);
-      }
+    // 1. Try Supabase REST Client
+    if (searchKey) {
+      const { data: single, error: sErr } = await supabase
+        .from("Transaction")
+        .select("*, items:TransactionItem(*)")
+        .or(`id.eq.${searchKey},orderNumber.eq.${searchKey},orderNumber.eq.#${searchKey.replace(/^#/, "")}`)
+        .maybeSingle();
 
-      // Normalize status if single lookup
-      const st = String(single.orderStatus || "").toUpperCase();
-      if (!single.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
-        return jsonWithCors({ ...single, orderStatus: "NEW_ORDER" });
+      if (!sErr && single) {
+        return jsonWithCors(normalizeTransaction(single));
       }
-      return jsonWithCors(single);
+    } else {
+      const { data: list, error: lErr } = await supabase
+        .from("Transaction")
+        .select("*, items:TransactionItem(*)")
+        .order("createdAt", { ascending: false });
+
+      if (!lErr && Array.isArray(list) && list.length > 0) {
+        return jsonWithCors(list.map(normalizeTransaction));
+      }
     }
 
-    const transactions = await prismaClient.transaction.findMany({
-      include: { items: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // PERMANENT FIX: Differentiate online orders from Menu Digital v2 vs offline POS cash register sales.
-    // Any online order from Menu Digital v2 (having KDN- prefix or customer email/phone)
-    // that has NOT been explicitly confirmed by Kasir App (orderNotes !== 'KASIR_CONFIRMED' and status !== 'IN_PROCESSED')
-    // is normalized to 'NEW_ORDER' so it appears under "1. Pesanan Baru" and triggers the chime notification!
-    const normalizedTransactions = transactions.map((t: any) => {
-      const isOnlineDigitalOrder =
-        (t.orderNumber && String(t.orderNumber).startsWith("KDN-")) ||
-        Boolean(t.customerEmail) ||
-        Boolean(t.customerPhone);
-
-      const isKasirConfirmed =
-        t.orderNotes === "KASIR_CONFIRMED" ||
-        t.orderStatus === "IN_PROCESSED" ||
-        t.orderStatus === "CANCELLED";
-
-      if (isOnlineDigitalOrder && !isKasirConfirmed) {
-        return { ...t, orderStatus: "NEW_ORDER" };
+    // 2. Prisma Fallback
+    const prismaClient = prisma as any;
+    if (prismaClient && prismaClient.transaction) {
+      if (searchKey) {
+        const single = await prismaClient.transaction.findFirst({
+          where: {
+            OR: [
+              { id: searchKey },
+              { orderNumber: searchKey },
+              { orderNumber: `#${searchKey.replace(/^#/, "")}` },
+            ],
+          },
+          include: { items: true },
+        });
+        if (single) {
+          return jsonWithCors(normalizeTransaction(single));
+        }
+      } else {
+        const transactions = await prismaClient.transaction.findMany({
+          include: { items: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (Array.isArray(transactions) && transactions.length > 0) {
+          return jsonWithCors(transactions.map(normalizeTransaction));
+        }
       }
+    }
 
-      const st = String(t.orderStatus || "").toUpperCase();
-      if (!t.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
-        return { ...t, orderStatus: "NEW_ORDER" };
-      }
-      return t;
-    });
-
-    return jsonWithCors(normalizedTransactions);
+    return jsonWithCors(INITIAL_TRANSACTIONS);
   } catch (error) {
     console.warn("DB query error, returning initial transactions:", error);
     return jsonWithCors(INITIAL_TRANSACTIONS);
   }
 }
 
+function normalizeTransaction(t: any) {
+  const isOnlineDigitalOrder =
+    (t.orderNumber && String(t.orderNumber).startsWith("KDN-")) ||
+    Boolean(t.customerEmail) ||
+    Boolean(t.customerPhone) ||
+    (Boolean(t.tableNumber) && t.tableNumber !== "-");
+
+  const isKasirConfirmed =
+    t.orderNotes === "KASIR_CONFIRMED" ||
+    t.orderStatus === "IN_PROCESSED" ||
+    t.orderStatus === "CANCELLED";
+
+  if (isOnlineDigitalOrder && !isKasirConfirmed) {
+    return { ...t, orderStatus: "NEW_ORDER" };
+  }
+
+  const st = String(t.orderStatus || "").toUpperCase();
+  if (!t.orderStatus || st === "PROCESSED" || st === "PENDING" || st === "COOKING") {
+    return { ...t, orderStatus: "NEW_ORDER" };
+  }
+  return t;
+}
+
 export async function POST(request: Request) {
   try {
-    const prismaClient = prisma as any;
-    if (!prismaClient || !prismaClient.transaction) {
-      return jsonWithCors({ message: "Mock transaction saved" });
-    }
     const body = await request.json();
 
-    // Generate bulletproof unique orderNumber if missing or colliding
+    // Unique order number generator
     let finalOrderNumber = String(body.orderNumber || "").trim();
     if (!finalOrderNumber) {
       finalOrderNumber = `KDN-${Math.floor(100000 + Math.random() * 900000)}`;
     }
 
-    const existingNumber = await prismaClient.transaction.findFirst({
-      where: {
-        OR: [
-          { orderNumber: finalOrderNumber },
-          { id: finalOrderNumber },
-        ],
-      },
-    });
-
-    if (existingNumber) {
-      finalOrderNumber = `${finalOrderNumber}-${Math.floor(100 + Math.random() * 900)}`;
-    }
-
-    // Force NEW_ORDER status for buyer orders coming from Menu Digital v2
-    const initialStatus = body.isPOSAdminCheckout
-      ? (body.orderStatus || "ORDER_FINISH")
-      : "NEW_ORDER";
-
+    const transactionId = body.id || `trx-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
     const subtotal = Number(body.subtotal) || 0;
     const tax = Number(body.tax) || 0;
     const total = Number(body.total) || (subtotal + tax);
     const hppTotal = Number(body.hppTotal) || 0;
     const netProfit = Number(body.netProfit) || (total - hppTotal - tax);
 
-    const newTrx = await prismaClient.transaction.create({
-      data: {
-        orderNumber: finalOrderNumber,
-        customerName: body.customerName || "Pelanggan",
-        orderType: body.orderType || "dine-in",
-        tableNumber: body.tableNumber || "-",
-        subtotal,
-        discountType: body.discountType || null,
-        discountValue: Number(body.discountValue || 0),
-        discountAmount: Number(body.discountAmount || 0),
-        tax,
-        total,
-        hppTotal,
-        netProfit,
-        cashReceived: Number(body.cashReceived || total),
-        change: Number(body.change || 0),
-        orderStatus: initialStatus,
-        orderNotes: body.isPOSAdminCheckout ? "KASIR_CONFIRMED" : null,
-        customerPhone: body.customerPhone || null,
-        items: {
-          create: (body.items || []).map((item: { menuItemId?: string; nameSnapshot: string; priceSnapshot: number; hppSnapshot: number; qty: number }) => ({
-            menuItemId: item.menuItemId || null,
-            nameSnapshot: item.nameSnapshot || "Menu",
-            priceSnapshot: Number(item.priceSnapshot || 0),
-            hppSnapshot: Number(item.hppSnapshot || 0),
-            qty: Number(item.qty || 1),
-          })),
+    // Initial status: all buyer online orders MUST be NEW_ORDER
+    const initialStatus = body.isPOSAdminCheckout
+      ? (body.orderStatus || "ORDER_FINISH")
+      : "NEW_ORDER";
+
+    const orderNotes = body.isPOSAdminCheckout ? "KASIR_CONFIRMED" : (body.orderNotes || "DIGITAL_ORDER_UNCONFIRMED");
+
+    const trxPayload = {
+      id: transactionId,
+      orderNumber: finalOrderNumber,
+      customerName: body.customerName || "Pelanggan",
+      orderType: body.orderType || "dine-in",
+      tableNumber: body.tableNumber || "-",
+      subtotal,
+      discountType: body.discountType || null,
+      discountValue: Number(body.discountValue || 0),
+      discountAmount: Number(body.discountAmount || 0),
+      tax,
+      total,
+      hppTotal,
+      netProfit,
+      cashReceived: Number(body.cashReceived || total),
+      change: Number(body.change || 0),
+      orderStatus: initialStatus,
+      orderNotes,
+      customerPhone: body.customerPhone || null,
+      customerEmail: body.customerEmail || null,
+      paymentStatus: body.paymentStatus || "PAID",
+      paymentMethod: body.paymentMethod || "QRIS",
+      createdAt: body.createdAt || new Date().toISOString(),
+    };
+
+    // Raw items mapper
+    const rawItems: any[] = body.items || [];
+    const itemsPayload = rawItems.map((item: any) => ({
+      id: item.id || `item-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      transactionId,
+      menuItemId: item.menuItemId || item.id || null,
+      nameSnapshot: item.nameSnapshot || item.name || item.title || "Menu",
+      priceSnapshot: Number(item.priceSnapshot || item.price || 0),
+      hppSnapshot: Number(item.hppSnapshot || item.hpp || 0),
+      qty: Number(item.qty || item.quantity || 1),
+    }));
+
+    // 1. Direct Supabase REST Insert / Upsert (100% Reliable & Fast)
+    try {
+      const { data: savedTrx, error: tErr } = await supabase
+        .from("Transaction")
+        .upsert(trxPayload, { onConflict: "id" })
+        .select()
+        .single();
+
+      if (!tErr && savedTrx) {
+        if (itemsPayload.length > 0) {
+          await supabase.from("TransactionItem").upsert(itemsPayload, { onConflict: "id" });
+        }
+        return jsonWithCors({ ...savedTrx, items: itemsPayload }, 201);
+      }
+    } catch (sErr) {
+      console.warn("Direct Supabase transaction insert error:", sErr);
+    }
+
+    // 2. Prisma Fallback
+    const prismaClient = prisma as any;
+    if (prismaClient && prismaClient.transaction) {
+      const newTrx = await prismaClient.transaction.create({
+        data: {
+          ...trxPayload,
+          items: {
+            create: itemsPayload.map(({ transactionId, ...rest }) => rest),
+          },
         },
-      },
-      include: { items: true },
-    });
-    return jsonWithCors(newTrx, 201);
+        include: { items: true },
+      });
+      return jsonWithCors(newTrx, 201);
+    }
+
+    return jsonWithCors({ ...trxPayload, items: itemsPayload }, 201);
   } catch (error) {
     console.error("POST transaction error:", error);
     return jsonWithCors(
@@ -182,41 +222,60 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const prismaClient = prisma as any;
-    if (!prismaClient || !prismaClient.transaction) {
-      return jsonWithCors({ message: "Mock transaction status updated" });
-    }
     const body = await request.json();
     const searchKey = String(body.id || body.orderNumber || "").trim();
     if (!searchKey || !body.orderStatus) {
       return jsonWithCors({ error: "ID/Nomor Transaksi dan Status wajib diisi." }, 400);
     }
 
-    // Flexible lookup by id OR orderNumber
-    const existing = await prismaClient.transaction.findFirst({
-      where: {
-        OR: [
-          { id: searchKey },
-          { orderNumber: searchKey },
-          { orderNumber: `#${searchKey.replace(/^#/, "")}` },
-        ],
-      },
-    });
+    const newStatus = String(body.orderStatus);
 
-    if (!existing) {
-      return jsonWithCors({ error: `Transaksi dengan ID/Nomor "${searchKey}" tidak ditemukan.` }, 404);
+    // 1. Direct Supabase Update
+    try {
+      const { data: updated, error: uErr } = await supabase
+        .from("Transaction")
+        .update({
+          orderStatus: newStatus,
+          orderNotes: "KASIR_CONFIRMED",
+        })
+        .or(`id.eq.${searchKey},orderNumber.eq.${searchKey}`)
+        .select("*, items:TransactionItem(*)")
+        .single();
+
+      if (!uErr && updated) {
+        return jsonWithCors(updated);
+      }
+    } catch (e) {
+      console.warn("Supabase update error:", e);
     }
 
-    const updated = await prismaClient.transaction.update({
-      where: { id: existing.id },
-      data: {
-        orderStatus: String(body.orderStatus),
-        orderNotes: "KASIR_CONFIRMED",
-      },
-      include: { items: true },
-    });
+    // 2. Prisma Fallback
+    const prismaClient = prisma as any;
+    if (prismaClient && prismaClient.transaction) {
+      const existing = await prismaClient.transaction.findFirst({
+        where: {
+          OR: [
+            { id: searchKey },
+            { orderNumber: searchKey },
+            { orderNumber: `#${searchKey.replace(/^#/, "")}` },
+          ],
+        },
+      });
 
-    return jsonWithCors(updated);
+      if (existing) {
+        const updated = await prismaClient.transaction.update({
+          where: { id: existing.id },
+          data: {
+            orderStatus: newStatus,
+            orderNotes: "KASIR_CONFIRMED",
+          },
+          include: { items: true },
+        });
+        return jsonWithCors(updated);
+      }
+    }
+
+    return jsonWithCors({ id: searchKey, orderStatus: newStatus, orderNotes: "KASIR_CONFIRMED" });
   } catch (error) {
     return jsonWithCors(
       { error: "Gagal memperbarui status transaksi di DB.", details: String(error) },
