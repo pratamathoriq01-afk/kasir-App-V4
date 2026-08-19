@@ -49,6 +49,8 @@ export interface Transaction {
   orderNotes?: string | null;
   paymentStatus?: string | null;
   paymentMethod?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
   items: TransactionItem[];
 }
 

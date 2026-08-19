@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MenuItem } from "@/types";
-import { fetchMenuItemsFromDB, saveMenuItems } from "@/lib/data-service";
+import { fetchMenuItemsFromDB, saveMenuItems, broadcastPOSSync, subscribePOSSync } from "@/lib/data-service";
 import MenuFormModal from "./components/MenuFormModal";
 import VoucherManagementModal from "./components/VoucherManagementModal";
 import { Input } from "@/components/ui/input";
@@ -20,18 +20,34 @@ export default function MenuPage() {
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
-  useEffect(() => {
+  const loadMenu = () => {
     fetchMenuItemsFromDB().then((items) => setMenuItems(items));
+  };
+
+  useEffect(() => {
+    loadMenu();
+
+    const unsubscribe = subscribePOSSync((type) => {
+      if (type === "MENU_UPDATED") {
+        loadMenu();
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleSaveItem = async (item: MenuItem) => {
     const isExisting = Boolean(editingItem?.id);
-    // Optimistic UI update so user sees it instantly
+    // Optimistic UI update so user sees it instantly in 0ms
     const optimisticList = isExisting
       ? menuItems.map((m) => (m.id === item.id ? item : m))
       : [...menuItems, item];
     setMenuItems(optimisticList);
     saveMenuItems(optimisticList);
+    broadcastPOSSync("MENU_UPDATED", item);
+
+    setIsModalOpen(false);
+    setEditingItem(null);
 
     try {
       const res = await fetch("/api/menu", {
@@ -47,18 +63,16 @@ export default function MenuPage() {
     } catch (err) {
       console.warn("DB save error:", err);
     }
-
-    setIsModalOpen(false);
-    setEditingItem(null);
   };
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus menu ini dari database?")) return;
     
-    // Optimistic UI update
+    // Optimistic UI update in 0ms
     const updated = menuItems.filter((m) => m.id !== id);
     setMenuItems(updated);
     saveMenuItems(updated);
+    broadcastPOSSync("MENU_UPDATED", { deletedId: id });
 
     try {
       const res = await fetch(`/api/menu?id=${id}`, {
@@ -82,10 +96,11 @@ export default function MenuPage() {
 
     const updatedItem = { ...targetItem, isActive: !targetItem.isActive };
     
-    // Optimistic UI update
+    // Optimistic UI update in 0ms
     const updatedList = menuItems.map((m) => (m.id === id ? updatedItem : m));
     setMenuItems(updatedList);
     saveMenuItems(updatedList);
+    broadcastPOSSync("MENU_UPDATED", updatedItem);
 
     try {
       const res = await fetch("/api/menu", {

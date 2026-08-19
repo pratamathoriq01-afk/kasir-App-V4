@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Voucher } from "@/types";
+import { broadcastPOSSync } from "@/lib/data-service";
 import { Ticket, Plus, Trash2, Edit3, CheckCircle2, XCircle, X, Sparkles, AlertCircle } from "lucide-react";
 
 interface VoucherManagementModalProps {
@@ -52,7 +53,7 @@ export default function VoucherManagementModal({
 
   const loadVouchers = async () => {
     try {
-      const res = await fetch("/api/vouchers");
+      const res = await fetch(`/api/vouchers?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setVouchers(data);
@@ -95,7 +96,6 @@ export default function VoucherManagementModal({
     e.preventDefault();
     if (!code || !title) return;
 
-    setLoading(true);
     const isEdit = Boolean(editingVoucher);
 
     const numDiscount = discountType === "fixed"
@@ -105,9 +105,12 @@ export default function VoucherManagementModal({
     const numMaxDiscount = maxDiscountStr ? parseThousandInput(maxDiscountStr) : null;
     const numMinSubtotal = parseThousandInput(minSubtotalStr);
 
-    const payload = {
-      id: editingVoucher?.id,
-      code: code.trim().toUpperCase(),
+    const voucherId = editingVoucher?.id || `vcr-${Date.now()}`;
+    const cleanCode = code.trim().toUpperCase();
+
+    const optimisticVoucher: Voucher = {
+      id: voucherId,
+      code: cleanCode,
       title,
       description,
       discountType,
@@ -118,57 +121,61 @@ export default function VoucherManagementModal({
       isActive,
     };
 
+    // 0ms INSTANT OPTIMISTIC UI UPDATE
+    const updatedList = isEdit
+      ? vouchers.map((v) => (v.id === voucherId ? optimisticVoucher : v))
+      : [optimisticVoucher, ...vouchers];
+
+    setVouchers(updatedList);
+    setIsFormOpen(false);
+    setEditingVoucher(null);
+    broadcastPOSSync("VOUCHER_UPDATED", optimisticVoucher);
+
+    // Save in background
     try {
-      const res = await fetch("/api/vouchers", {
+      await fetch("/api/vouchers", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(optimisticVoucher),
       });
-
-      if (res.ok) {
-        setIsFormOpen(false);
-        setEditingVoucher(null);
-        await loadVouchers();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Gagal menyimpan voucher.");
-      }
+      loadVouchers();
     } catch (err) {
-      console.error("Error save voucher:", err);
-    } finally {
-      setLoading(false);
+      console.error("Error save voucher in background:", err);
     }
   };
 
   const handleToggleStatus = async (voucher: Voucher) => {
+    const toggled = { ...voucher, isActive: !voucher.isActive };
+    // 0ms Optimistic UI
+    setVouchers((prev) => prev.map((v) => (v.id === voucher.id ? toggled : v)));
+    broadcastPOSSync("VOUCHER_UPDATED", toggled);
+
     try {
-      const res = await fetch("/api/vouchers", {
+      await fetch("/api/vouchers", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: voucher.id,
-          isActive: !voucher.isActive,
+          isActive: toggled.isActive,
         }),
       });
-      if (res.ok) {
-        await loadVouchers();
-      }
     } catch (err) {
       console.error("Error update status:", err);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Hapus voucher ini secara permanen dari Supabase?")) return;
+    // 0ms Instant Optimistic Delete without blocking delay
+    setVouchers((prev) => prev.filter((v) => v.id !== id));
+    broadcastPOSSync("VOUCHER_UPDATED", { deletedId: id });
+
     try {
-      const res = await fetch(`/api/vouchers?id=${id}`, {
+      await fetch(`/api/vouchers?id=${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        await loadVouchers();
-      }
+      loadVouchers();
     } catch (err) {
-      console.error("Error delete voucher:", err);
+      console.error("Error delete voucher in background:", err);
     }
   };
 
@@ -203,15 +210,15 @@ export default function VoucherManagementModal({
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-200 relative overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-amber-500 text-slate-950 rounded-2xl shadow-sm">
-              <Ticket className="w-6 h-6 stroke-[2.5]" />
+            <div className="p-2.5 bg-amber-500 text-slate-950 rounded-2xl shadow-sm">
+              <Ticket className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Manajemen Voucher Digital</h2>
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900">Manajemen Voucher Digital</h2>
               <p className="text-xs text-slate-500">
-                Kelola kode promo, persentase (%), nominal (Rp), &amp; pemisah ribuan titik (.).
+                Kelola kode promo diskon realtime untuk Kasir POS &amp; Menu Digital.
               </p>
             </div>
           </div>
@@ -225,10 +232,10 @@ export default function VoucherManagementModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto py-3.5 space-y-3.5">
           {/* Action Bar */}
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-bold text-slate-700 font-mono">
+            <span className="text-xs font-bold text-slate-800 font-mono">
               Total {vouchers.length} Voucher Terdaftar
             </span>
 
@@ -241,7 +248,7 @@ export default function VoucherManagementModal({
                   handleOpenCreateForm();
                 }
               }}
-              className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{isFormOpen ? "Batal" : "Buat Voucher Baru"}</span>
@@ -252,26 +259,26 @@ export default function VoucherManagementModal({
           {isFormOpen && (
             <form
               onSubmit={handleSaveVoucher}
-              className="bg-amber-50/70 p-4 sm:p-5 rounded-2xl border border-amber-300/80 space-y-4 animate-in slide-in-from-top duration-200 shadow-sm"
+              className="bg-amber-50/80 p-4 sm:p-5 rounded-2xl border border-amber-300 space-y-3.5 animate-in slide-in-from-top duration-200 shadow-sm"
             >
-              <div className="flex items-center justify-between gap-2 border-b border-amber-200/80 pb-2">
-                <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 uppercase tracking-wider">
+              <div className="flex items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-950 uppercase tracking-wider">
                   <Sparkles className="w-4 h-4 text-amber-600" />
                   <span>
                     {editingVoucher ? `✏️ Edit Voucher: ${editingVoucher.code}` : "✨ Form Buat Voucher Promo Baru"}
                   </span>
                 </div>
                 {editingVoucher && (
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md">
                     ID: {editingVoucher.id}
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <label className="block font-bold text-slate-900 mb-1">
-                    Kode Voucher (Unik)
+                    Kode Voucher (Unik) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -279,13 +286,13 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: NYAMLENG20"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl uppercase font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl uppercase font-mono font-black focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-900 mb-1">
-                    Judul Voucher Promo
+                    Judul Voucher Promo <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -293,7 +300,7 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: Diskon Promo 20% All Menu"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
@@ -306,7 +313,7 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: Potongan 20% maksimal diskon Rp 15.000 min. belanja Rp 30.000"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
@@ -324,7 +331,7 @@ export default function VoucherManagementModal({
                         setDiscountValueStr("20");
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
                   >
                     <option value="percent" className="text-slate-900 font-bold bg-white">Persentase Diskon (%)</option>
                     <option value="fixed" className="text-slate-900 font-bold bg-white">Nominal Potongan Tetap (Rp)</option>
@@ -335,7 +342,7 @@ export default function VoucherManagementModal({
                 <div>
                   <label className="block font-bold text-slate-900 mb-1 flex items-center justify-between">
                     <span>{discountType === "percent" ? "Persentase Diskon (%)" : "Nominal Potongan (Rp)"}</span>
-                    <span className="text-[10px] text-amber-700 font-extrabold">
+                    <span className="text-[10px] text-amber-800 font-extrabold">
                       {discountType === "percent" ? "1% - 100%" : "Nominal Tetap (Rp)"}
                     </span>
                   </label>
@@ -357,11 +364,10 @@ export default function VoucherManagementModal({
                         if (discountType === "fixed") {
                           setDiscountValueStr(formatThousandInput(raw));
                         } else {
-                          // Allow percentage digits
                           setDiscountValueStr(raw.replace(/[^\d.]/g, ""));
                         }
                       }}
-                      className={`w-full py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-black focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs ${
+                      className={`w-full py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-black focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs ${
                         discountType === "fixed" ? "pl-9 pr-3" : "pl-3 pr-9"
                       }`}
                     />
@@ -412,7 +418,7 @@ export default function VoucherManagementModal({
 
                 {/* Maksimal Diskon Caps Input with Dot Separator */}
                 {discountType === "percent" && (
-                  <div className="sm:col-span-2 bg-white/90 p-3 rounded-xl border border-amber-300/80 space-y-1.5 shadow-2xs">
+                  <div className="sm:col-span-2 bg-white/90 p-3 rounded-xl border border-amber-300 space-y-1.5 shadow-2xs">
                     <label className="block font-bold text-slate-900 flex items-center justify-between">
                       <span>Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-500 font-normal">(Opsional)</span></span>
                       <span className="text-[10px] font-bold text-slate-700">
@@ -430,7 +436,7 @@ export default function VoucherManagementModal({
                         placeholder="Kosongkan jika tanpa batas (contoh: 15.000)"
                         value={maxDiscountStr}
                         onChange={(e) => setMaxDiscountStr(formatThousandInput(e.target.value))}
-                        className="w-full pl-9 pr-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                        className="w-full pl-9 pr-3 py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                       />
                     </div>
 
@@ -469,7 +475,7 @@ export default function VoucherManagementModal({
                       inputMode="numeric"
                       value={minSubtotalStr}
                       onChange={(e) => setMinSubtotalStr(formatThousandInput(e.target.value))}
-                      className="w-full pl-9 pr-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                      className="w-full pl-9 pr-3 py-2 bg-white text-slate-950 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                     />
                   </div>
                 </div>
@@ -480,7 +486,7 @@ export default function VoucherManagementModal({
                     type="date"
                     value={validUntil}
                     onChange={(e) => setValidUntil(e.target.value)}
-                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
@@ -489,7 +495,7 @@ export default function VoucherManagementModal({
                   <select
                     value={isActive ? "true" : "false"}
                     onChange={(e) => setIsActive(e.target.value === "true")}
-                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
+                    className="w-full px-3 py-2 bg-white text-slate-950 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
                   >
                     <option value="true" className="text-slate-900 font-bold bg-white">🟢 Aktif (Dapat Di-claim &amp; Terbaca Realtime oleh Pembeli)</option>
                     <option value="false" className="text-slate-900 font-bold bg-white">🔴 Nonaktif (Disembunyikan dari Pembeli)</option>
@@ -498,10 +504,10 @@ export default function VoucherManagementModal({
               </div>
 
               {/* Simulation Helper Pill */}
-              <div className="p-3 bg-white border border-amber-300/80 rounded-xl text-xs font-medium text-amber-950 flex items-center gap-2.5 shadow-2xs">
+              <div className="p-3 bg-white border border-amber-300 rounded-xl text-xs font-medium text-amber-950 flex items-center gap-2.5 shadow-2xs">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>
-                  💡 <strong>Simulasi Perhitungan:</strong> Belanja Rp 100.000 → Hemat Diskon = <strong className="font-mono text-emerald-700">Rp {sampleDiscount.toLocaleString("id-ID")}</strong>
+                  💡 <strong>Simulasi Perhitungan:</strong> Belanja Rp 100.000 → Hemat Diskon = <strong className="font-mono text-emerald-700 font-bold">Rp {sampleDiscount.toLocaleString("id-ID")}</strong>
                   {discountType === "percent" && numMax && numMax > 0 ? ` (Dibatasi Maks. Rp ${numMax.toLocaleString("id-ID")})` : ""}
                 </span>
               </div>
@@ -513,16 +519,16 @@ export default function VoucherManagementModal({
                     setIsFormOpen(false);
                     setEditingVoucher(null);
                   }}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-xs cursor-pointer"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs cursor-pointer transition-all"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer transition-all"
                 >
-                  {loading ? "Menyimpan..." : editingVoucher ? "Update Voucher ✏️" : "Simpan Voucher ✨"}
+                  {editingVoucher ? "Update Voucher ✏️" : "Simpan Voucher ✨"}
                 </button>
               </div>
             </form>
@@ -533,7 +539,7 @@ export default function VoucherManagementModal({
             {vouchers.map((v) => (
               <div
                 key={v.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between relative overflow-hidden ${
+                className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between relative overflow-hidden ${
                   v.isActive
                     ? "bg-white border-slate-200 shadow-xs hover:border-amber-400"
                     : "bg-slate-50 border-slate-200 opacity-60"
@@ -541,51 +547,81 @@ export default function VoucherManagementModal({
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="font-mono font-black text-sm text-slate-900 bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-300/60">
+                    <span className="font-mono font-black text-sm bg-amber-100 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300">
                       {v.code}
                     </span>
 
                     <button
                       onClick={() => handleToggleStatus(v)}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold cursor-pointer transition-all ${
                         v.isActive
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-200 text-slate-600"
+                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                          : "bg-slate-200 text-slate-700"
                       }`}
                     >
-                      {v.isActive ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                      <span>{v.isActive ? "Aktif" : "Nonaktif"}</span>
+                      {v.isActive ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Aktif</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-3 h-3 text-slate-500" />
+                          <span>Nonaktif</span>
+                        </>
+                      )}
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-xs">{v.title}</h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{v.description}</p>
-                </div>
+                  <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm line-clamp-1">
+                    {v.title}
+                  </h3>
 
-                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <div>
-                    <span className="text-slate-400 block text-[10px]">Nilai Diskon:</span>
-                    <span className="font-mono font-black text-emerald-600">
+                  {v.description && (
+                    <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5">
+                      {v.description}
+                    </p>
+                  )}
+
+                  <div className="mt-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 font-medium">Diskon:</span>
+                    <span className="font-mono font-black text-amber-900 text-xs">
                       {v.discountType === "percent"
                         ? `${v.discountValue}% ${v.maxDiscount ? `(Maks Rp ${v.maxDiscount.toLocaleString("id-ID")})` : ""}`
-                        : `Rp ${v.discountValue.toLocaleString("id-ID")}`}
+                        : `Rp ${(v.discountValue || 0).toLocaleString("id-ID")}`}
                     </span>
                   </div>
+
+                  {v.minSubtotal && v.minSubtotal > 0 ? (
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500 px-1">
+                      <span>Min. Belanja:</span>
+                      <span className="font-mono font-bold text-slate-700">
+                        Rp {v.minSubtotal.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Footer Action Buttons */}
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">
+                    Exp: {v.validUntil || "Selamanya"}
+                  </span>
 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleOpenEditForm(v)}
-                      className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-xs transition-colors cursor-pointer"
                       title="Edit Voucher"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(v.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 rounded-lg text-xs transition-colors cursor-pointer"
                       title="Hapus Voucher"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -594,11 +630,11 @@ export default function VoucherManagementModal({
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Modal Footer */}
         <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 cursor-pointer"
+            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl cursor-pointer transition-all"
           >
             Tutup
           </button>

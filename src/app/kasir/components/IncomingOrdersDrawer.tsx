@@ -56,16 +56,35 @@ export default function IncomingOrdersDrawer({
     }
   };
 
-  // Filter 3 Tabs
-  const newOrders = orders.filter(
-    (o) => !o.orderStatus || o.orderStatus === "NEW_ORDER" || o.orderStatus === "PENDING" || o.orderStatus === "ORDER_ACCEPTED"
-  );
-  const inProcessedOrders = orders.filter(
-    (o) => o.orderStatus === "IN_PROCESSED" || o.orderStatus === "PROCESSED" || o.orderStatus === "COOKING"
-  );
-  const finishedOrders = orders.filter(
-    (o) => o.orderStatus === "ORDER_FINISH" || o.orderStatus === "COMPLETED" || o.orderStatus === "PAID" || o.orderStatus === "DONE"
-  );
+  // Strict 3-Stage Order Pipeline:
+  // 1. Digital orders strictly start at NEW_ORDER until cashier explicitly accepts them
+  const newOrders = orders.filter((o) => {
+    const isDigitalUnconfirmed =
+      o.orderNotes !== "KASIR_CONFIRMED" &&
+      ((o.orderNumber && String(o.orderNumber).startsWith("KDN-")) || Boolean(o.customerEmail) || Boolean(o.customerPhone) || Boolean(o.tableNumber));
+
+    return (
+      isDigitalUnconfirmed ||
+      !o.orderStatus ||
+      o.orderStatus === "NEW_ORDER" ||
+      o.orderStatus === "PENDING"
+    );
+  });
+
+  const inProcessedOrders = orders.filter((o) => {
+    return (
+      !newOrders.includes(o) &&
+      (o.orderStatus === "IN_PROCESSED" || o.orderStatus === "PROCESSED" || o.orderStatus === "COOKING" || o.orderStatus === "ORDER_ACCEPTED")
+    );
+  });
+
+  const finishedOrders = orders.filter((o) => {
+    return (
+      !newOrders.includes(o) &&
+      !inProcessedOrders.includes(o) &&
+      (o.orderStatus === "ORDER_FINISH" || o.orderStatus === "COMPLETED" || o.orderStatus === "DONE" || o.orderStatus === "PAID")
+    );
+  });
 
   const filteredOrders =
     activeTab === "NEW_ORDER"

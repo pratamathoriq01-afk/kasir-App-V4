@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
-import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber } from "@/lib/data-service";
+import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
 import {
   playNotificationChime,
   warmUpAudioContext,
@@ -16,7 +16,7 @@ import CartSection from "./components/CartSection";
 import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
 import IncomingOrdersDrawer from "./components/IncomingOrdersDrawer";
-import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2 } from "lucide-react";
+import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck } from "lucide-react";
 
 export default function KasirPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -52,16 +52,32 @@ export default function KasirPage() {
     getChange,
   } = useCartStore();
 
-  useEffect(() => {
+  const loadMenu = () => {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
+  };
+
+  useEffect(() => {
+    loadMenu();
     unlockAudioContext();
     requestPushNotificationPermission();
 
     const handleWindowFocus = () => {
-      fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
+      loadMenu();
     };
     window.addEventListener("focus", handleWindowFocus);
-    return () => window.removeEventListener("focus", handleWindowFocus);
+
+    const unsubscribe = subscribePOSSync((type) => {
+      if (type === "MENU_UPDATED") {
+        loadMenu();
+      } else if (type === "TRANSACTION_UPDATED") {
+        loadDigitalOrders();
+      }
+    });
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      unsubscribe();
+    };
   }, []);
 
   // Continuous Alarm Loop: Repeat chime every 3s UNTIL cashier accepts orders (newOrdersCount === 0)
@@ -75,7 +91,7 @@ export default function KasirPage() {
     }
   }, [newOrdersCount]);
 
-  // Title Flashing Alert for Background Tabs (when cashier is on WhatsApp / Antigravity)
+  // Title Flashing Alert for Background Tabs (when cashier is on WhatsApp / another app)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -115,7 +131,6 @@ export default function KasirPage() {
         cache: "no-store",
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
         },
       });
       if (!res.ok) return;
@@ -125,9 +140,19 @@ export default function KasirPage() {
 
       setDigitalOrders(transactions);
 
-      const pendingOrders = transactions.filter(
-        (t) => !t.orderStatus || t.orderStatus === "NEW_ORDER" || t.orderStatus === "PENDING"
-      );
+      // Filter all unconfirmed digital orders
+      const pendingOrders = transactions.filter((t) => {
+        const isDigitalUnconfirmed =
+          t.orderNotes !== "KASIR_CONFIRMED" &&
+          ((t.orderNumber && String(t.orderNumber).startsWith("KDN-")) || Boolean(t.customerEmail) || Boolean(t.customerPhone) || Boolean(t.tableNumber));
+        return (
+          isDigitalUnconfirmed ||
+          !t.orderStatus ||
+          t.orderStatus === "NEW_ORDER" ||
+          t.orderStatus === "PENDING"
+        );
+      });
+
       setNewOrdersCount(pendingOrders.length);
 
       if (isFirstLoadRef.current) {
@@ -189,7 +214,7 @@ export default function KasirPage() {
       }
     }
 
-    const interval = setInterval(loadDigitalOrders, 400);
+    const interval = setInterval(loadDigitalOrders, 500);
 
     return () => {
       clearInterval(interval);
@@ -200,53 +225,62 @@ export default function KasirPage() {
     };
   }, []);
 
-  const totalItemsCount = items.reduce((s, i) => s + i.qty, 0);
+  const totalItemsCount = items.reduce((sum, item) => sum + item.qty, 0);
 
-  const handleConfirmPayment = async () => {
+  const handleConfirmPayment = async (
+    paymentMethod: "CASH" | "QRIS" | "DEBIT",
+    amountPaid: number,
+    changeAmount: number
+  ) => {
     const orderNumber = getNextOrderNumber();
+    const subtotal = getSubtotal();
+    const discountAmount = getDiscountAmount();
+    const tax = getTaxAmount();
+    const total = getTotal();
+    const hppTotal = getHppTotal();
+    const netProfit = getNetProfit();
 
-    const transaction: Transaction = {
+    const newTrx: Transaction = {
       id: `trx-${Date.now()}`,
       orderNumber,
-      customerName: customerName.trim() || "Pelanggan",
+      customerName: customerName || "Pelanggan",
       orderType,
-      tableNumber: orderType === "dine-in" ? tableNumber || "01" : "-",
-      subtotal: getSubtotal(),
-      discountType,
-      discountValue,
-      discountAmount: getDiscountAmount(),
-      tax: getTaxAmount(),
-      total: getTotal(),
-      hppTotal: getHppTotal(),
-      netProfit: getNetProfit(),
-      cashReceived,
-      change: getChange(),
+      tableNumber: orderType === "dine-in" ? tableNumber : "-",
+      subtotal,
+      discountType: discountType || null,
+      discountValue: discountValue || 0,
+      discountAmount,
+      tax,
+      total,
+      hppTotal,
+      netProfit,
+      cashReceived: amountPaid,
+      change: changeAmount,
       createdAt: new Date().toISOString(),
       orderStatus: "ORDER_FINISH",
-      items: items.map((i) => ({
-        id: `ti-${Date.now()}-${Math.random()}`,
-        menuItemId: i.menuItem.id,
-        nameSnapshot: i.menuItem.name,
-        priceSnapshot: i.menuItem.price,
-        hppSnapshot: i.menuItem.hpp,
-        qty: i.qty,
+      orderNotes: "KASIR_CONFIRMED",
+      paymentStatus: "PAID",
+      paymentMethod,
+      items: items.map((item) => ({
+        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        menuItemId: item.menuItem.id,
+        nameSnapshot: item.menuItem.name,
+        priceSnapshot: item.menuItem.price,
+        hppSnapshot: item.menuItem.hpp,
+        qty: item.qty,
       })),
     };
 
-    addTransaction(transaction);
-    setCompletedTransaction(transaction);
-    knownTxIdsRef.current.add(transaction.id);
-    knownTxIdsRef.current.add(transaction.orderNumber);
+    addTransaction(newTrx);
 
     fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...transaction, isPOSAdminCheckout: true }),
-    })
-      .then(() => loadDigitalOrders())
-      .catch(() => {});
+      body: JSON.stringify({ ...newTrx, isPOSAdminCheckout: true }),
+    }).catch((err) => console.warn("Failed to persist POS transaction:", err));
 
     setIsPaymentModalOpen(false);
+    setCompletedTransaction(newTrx);
     setIsReceiptModalOpen(true);
   };
 
@@ -255,16 +289,15 @@ export default function KasirPage() {
     setIsReceiptModalOpen(true);
   };
 
-  const handleUpdateOrderStatus = (
-    trxId: string,
-    status: "ORDER_ACCEPTED" | "IN_PROCESSED" | "ORDER_FINISH" | "CANCELLED" | string
-  ) => {
-    // Instant 0ms Optimistic UI state update
+  const handleUpdateOrderStatus = (trxId: string, status: "IN_PROCESSED" | "ORDER_FINISH") => {
     setDigitalOrders((prev) =>
-      prev.map((t) => (t.id === trxId || t.orderNumber === trxId ? { ...t, orderStatus: status } : t))
+      prev.map((t) =>
+        t.id === trxId || t.orderNumber === trxId
+          ? { ...t, orderStatus: status, orderNotes: "KASIR_CONFIRMED" }
+          : t
+      )
     );
 
-    // Non-blocking background sync to Supabase DB
     fetch("/api/transactions", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -282,113 +315,95 @@ export default function KasirPage() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-3">
-      {/* High-Priority Emergency Sound & Push Notification Banner for Cashier Shift */}
-      <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 p-2.5 px-3.5 sm:px-4 rounded-2xl shadow-md flex items-center justify-between gap-2.5 text-xs font-black">
+    <div className="flex flex-col flex-1 min-h-0 space-y-2 h-full">
+      {/* Streamlined Single-Row Header Bar (Compact & High-Contrast) */}
+      <div className="bg-card p-2 sm:p-2.5 rounded-2xl border border-border shadow-xs flex items-center justify-between gap-2 shrink-0 transition-colors">
         <div className="flex items-center gap-2 min-w-0">
-          <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] text-slate-950 shrink-0 animate-bounce" />
-          <span className="truncate sm:whitespace-normal">
-            {newOrdersCount > 0
-              ? `🚨 ALARM AKTIF: Ada ${newOrdersCount} Pesanan Baru! Bel berbunyi berulang setiap 3 detik...`
-              : "🔊 Klik 1x saat buka kasir agar Alarm POS & Push Notifikasi berbunyi otomatis tanpa henti"}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            unlockAudioContext();
-            warmUpAudioContext();
-            playNotificationChime();
-            requestPushNotificationPermission();
-          }}
-          className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-slate-950 text-amber-300 hover:bg-slate-900 rounded-xl text-[10px] sm:text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
-        >
-          Aktifkan Audio 📢
-        </button>
-      </div>
-
-      {/* Top Action & Real-time Incoming Orders Header Banner */}
-      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
-        <div>
-          <h1 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-            Kasir POS Offline &amp; Menu Digital v2
-          </h1>
-          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-            Layan transaksi pembeli offline dan pantau pesanan masuk secara realtime.
-          </p>
+          <div className="p-1.5 rounded-xl bg-primary text-primary-foreground font-black text-sm">
+            ⚡
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-extrabold text-foreground truncate">
+              Kasir POS Kedai Nyamleng
+            </h1>
+            <p className="text-[10px] text-muted-foreground hidden sm:block truncate">
+              Realtime POS, sinkronisasi pesanan digital &amp; thermal printing.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-          {/* Audio Notifier Status & Test Trigger Pill */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Audio Alert Trigger */}
           <button
             type="button"
             onClick={() => {
+              unlockAudioContext();
               warmUpAudioContext();
               playNotificationChime();
+              requestPushNotificationPermission();
             }}
-            className="py-1.5 px-2.5 sm:py-2 sm:px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 active:scale-95 cursor-pointer"
-            title="Tes Suara Bel Notifikasi POS"
+            className="py-1 px-2 sm:py-1.5 sm:px-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1 border border-border cursor-pointer"
+            title="Aktifkan & Tes Audio Alarm"
           >
-            <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-            <span className="inline">Audio</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] sm:text-[10px] font-black">Aktif</span>
+            <Volume2 className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+            <span className="hidden sm:inline">Audio</span>
           </button>
 
-          {/* Dedicated Compact Pesanan Online Trigger Button */}
+          {/* Dedicated Incoming Digital Orders Trigger Button */}
           <button
             onClick={() => setIsOrdersDrawerOpen(true)}
-            className={`py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-md cursor-pointer shrink-0 ${
+            className={`py-1 px-2.5 sm:py-1.5 sm:px-3.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
               newOrdersCount > 0
                 ? "bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/25 animate-pulse"
                 : "bg-slate-900 hover:bg-slate-800 text-white"
             }`}
           >
             <div className="relative">
-              <Bell className="w-4 h-4 stroke-[2.5]" />
+              <Bell className="w-3.5 h-3.5 stroke-[2.5]" />
               {newOrdersCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white animate-ping" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white animate-ping" />
               )}
             </div>
             <span>Pesanan Online</span>
-            <span className={`px-2 py-0.5 rounded-full font-mono text-[10px] sm:text-[11px] font-black ${
+            <span className={`px-1.5 py-0.2 rounded-md font-mono text-[10px] font-black ${
               newOrdersCount > 0
                 ? "bg-slate-950 text-amber-400"
                 : "bg-slate-800 text-slate-300"
             }`}>
-              {newOrdersCount > 0 ? `🔴 ${newOrdersCount} Baru` : `${digitalOrders.length}`}
+              {newOrdersCount > 0 ? `${newOrdersCount} Baru` : `${digitalOrders.length}`}
             </span>
           </button>
         </div>
       </div>
 
-      {/* Mobile Top View Switcher (Visible on < lg screens) */}
-      <div className="lg:hidden bg-slate-900 p-1.5 rounded-2xl flex gap-1 shadow-md">
+      {/* Mobile Top View Switcher (Visible only on mobile < lg screens) */}
+      <div className="lg:hidden bg-slate-900 p-1 rounded-xl flex gap-1 shadow-md shrink-0">
         <button
           type="button"
           onClick={() => setMobileTab("menu")}
-          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
             mobileTab === "menu"
-              ? "bg-amber-500 text-slate-950 shadow-sm"
+              ? "bg-amber-500 text-slate-950 shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <Utensils className="w-4 h-4" />
-          <span>Daftar Menu</span>
+          <Utensils className="w-3.5 h-3.5" />
+          <span>Menu</span>
         </button>
 
         <button
           type="button"
           onClick={() => setMobileTab("cart")}
-          className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 relative ${
+          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 relative ${
             mobileTab === "cart"
-              ? "bg-amber-500 text-slate-950 shadow-sm"
+              ? "bg-amber-500 text-slate-950 shadow-xs"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <ShoppingCart className="w-4 h-4" />
+          <ShoppingCart className="w-3.5 h-3.5" />
           <span>Keranjang</span>
           {totalItemsCount > 0 && (
-            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-slate-950 text-amber-400 font-mono">
+            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-slate-950 text-amber-400 font-mono">
               {totalItemsCount}
             </span>
           )}
@@ -397,27 +412,27 @@ export default function KasirPage() {
         <button
           type="button"
           onClick={() => setIsOrdersDrawerOpen(true)}
-          className="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 bg-slate-800 text-amber-400 hover:bg-slate-700"
+          className="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 bg-slate-800 text-amber-400 hover:bg-slate-700"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-3.5 h-3.5" />
           <span>Pesanan ({newOrdersCount})</span>
         </button>
       </div>
 
-      {/* Main Grid Container */}
-      <div className="min-h-0 flex-1 lg:h-[calc(100vh-11.5rem)] grid grid-cols-1 lg:grid-cols-12 gap-4 pb-20 lg:pb-0 overflow-hidden">
-        {/* Left Column: Menu Grid (7 cols desktop) */}
+      {/* Main Grid Container - Viewport-Lock Layout (Never Requires Zoom In / Zoom Out) */}
+      <div className="min-h-0 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 overflow-hidden pb-16 lg:pb-0">
+        {/* Left Column: Menu Grid (7 cols desktop, 8 cols widescreen) */}
         <div
-          className={`lg:col-span-7 xl:col-span-8 lg:h-full lg:overflow-hidden flex flex-col ${
+          className={`lg:col-span-7 xl:col-span-8 h-full min-h-0 overflow-hidden flex flex-col ${
             mobileTab === "menu" ? "block" : "hidden lg:flex"
           }`}
         >
           <MenuGrid items={menuItems} />
         </div>
 
-        {/* Right Column: Cart Section (5 cols desktop) */}
+        {/* Right Column: Cart Section (5 cols desktop, 4 cols widescreen) */}
         <div
-          className={`lg:col-span-5 xl:col-span-4 lg:h-full lg:overflow-hidden flex flex-col ${
+          className={`lg:col-span-5 xl:col-span-4 h-full min-h-0 overflow-hidden flex flex-col ${
             mobileTab === "cart" ? "block" : "hidden lg:flex"
           }`}
         >
@@ -425,21 +440,21 @@ export default function KasirPage() {
         </div>
       </div>
 
-      {/* Mobile Floating Sticky Bottom Bar (Only visible when viewing Menu Tab) */}
+      {/* Mobile Floating Sticky Bottom Bar (Only visible when viewing Menu Tab on small devices) */}
       {items.length > 0 && mobileTab === "menu" && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 border-t border-slate-800 shadow-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-200">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md text-white p-2.5 border-t border-slate-800 shadow-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-200">
           <div
             onClick={() => setMobileTab("cart")}
-            className="flex items-center gap-2.5 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer"
           >
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
-              <ShoppingCart className="w-5 h-5" />
+            <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
+              <ShoppingCart className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[11px] text-slate-400 font-medium block">
-                {totalItemsCount} item pesanan
+              <span className="text-[10px] text-slate-400 font-medium block">
+                {totalItemsCount} item
               </span>
-              <span className="text-base font-black text-amber-400 font-mono">
+              <span className="text-sm font-black text-amber-400 font-mono">
                 Rp {getTotal().toLocaleString("id-ID")}
               </span>
             </div>
@@ -448,10 +463,10 @@ export default function KasirPage() {
           <button
             type="button"
             onClick={() => setIsPaymentModalOpen(true)}
-            className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+            className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 shadow-md active:scale-95 cursor-pointer"
           >
-            <span>Bayar Sekarang</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Bayar</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
