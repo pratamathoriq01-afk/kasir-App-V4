@@ -1,8 +1,13 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { MenuItem } from "@/types";
-import { fetchMenuItemsFromDB, saveMenuItems, broadcastPOSSync, subscribePOSSync } from "@/lib/data-service";
+import {
+  fetchMenuItemsFromDB,
+  getStoredMenuItems,
+  saveMenuItemOptimistic,
+  deleteMenuItemOptimistic,
+  broadcastPOSSync,
+  subscribePOSSync,
+} from "@/lib/data-service";
 import MenuFormModal from "./components/MenuFormModal";
 import VoucherManagementModal from "./components/VoucherManagementModal";
 import { Input } from "@/components/ui/input";
@@ -10,10 +15,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, CheckCircle2, XCircle, Utensils, Coffee, Cookie, Ticket, Sparkles } from "lucide-react";
 
 export default function MenuPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,57 +42,16 @@ export default function MenuPage() {
   }, []);
 
   const handleSaveItem = async (item: MenuItem) => {
-    const isExisting = Boolean(editingItem?.id);
-    // Optimistic UI update so user sees it instantly in 0ms
-    const optimisticList = isExisting
-      ? menuItems.map((m) => (m.id === item.id ? item : m))
-      : [...menuItems, item];
-    setMenuItems(optimisticList);
-    saveMenuItems(optimisticList);
-    broadcastPOSSync("MENU_UPDATED", item);
-
+    const updated = await saveMenuItemOptimistic(item, menuItems);
+    setMenuItems(updated);
     setIsModalOpen(false);
     setEditingItem(null);
-
-    try {
-      const res = await fetch("/api/menu", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
-      });
-
-      if (res.ok) {
-        const freshData = await fetchMenuItemsFromDB();
-        setMenuItems(freshData);
-      }
-    } catch (err) {
-      console.warn("DB save error:", err);
-    }
   };
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus menu ini dari database?")) return;
-    
-    // Optimistic UI update in 0ms
-    const updated = menuItems.filter((m) => m.id !== id);
+    const updated = await deleteMenuItemOptimistic(id, menuItems);
     setMenuItems(updated);
-    saveMenuItems(updated);
-    broadcastPOSSync("MENU_UPDATED", { deletedId: id });
-
-    try {
-      const res = await fetch(`/api/menu?id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        const freshData = await fetchMenuItemsFromDB();
-        setMenuItems(freshData);
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        console.error("Gagal menghapus menu di DB:", errData);
-      }
-    } catch (err) {
-      console.error("Gagal menghapus menu:", err);
-    }
   };
 
   const handleToggleStatus = async (id: string) => {
@@ -95,38 +59,36 @@ export default function MenuPage() {
     if (!targetItem) return;
 
     const updatedItem = { ...targetItem, isActive: !targetItem.isActive };
-    
-    // Optimistic UI update in 0ms
-    const updatedList = menuItems.map((m) => (m.id === id ? updatedItem : m));
-    setMenuItems(updatedList);
-    saveMenuItems(updatedList);
-    broadcastPOSSync("MENU_UPDATED", updatedItem);
-
-    try {
-      const res = await fetch("/api/menu", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedItem),
-      });
-      if (res.ok) {
-        const freshData = await fetchMenuItemsFromDB();
-        setMenuItems(freshData);
-      }
-    } catch (err) {
-      console.error("Gagal mengubah status menu:", err);
-    }
+    const updated = await saveMenuItemOptimistic(updatedItem, menuItems);
+    setMenuItems(updated);
   };
+
+  const dynamicCategories = Array.from(
+    new Set([
+      "Semua",
+      "Menu Ayam Nyamleng",
+      "Menu Ikan Nyamleng",
+      "Menu Minuman",
+      "Menu Alacarte",
+      "Cemilan & Snack",
+      "Paket Hemat",
+      ...menuItems.map((m) => m.category || "Menu Alacarte"),
+    ])
+  ).filter(Boolean);
 
   const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
       activeCategory === "Semua" || item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
-  const countMakanan = menuItems.filter((m) => m.category === "Makanan").length;
-  const countMinuman = menuItems.filter((m) => m.category === "Minuman").length;
-  const countCemilan = menuItems.filter((m) => m.category === "Cemilan").length;
+  const countAyam = menuItems.filter((m) => m.category === "Menu Ayam Nyamleng").length;
+  const countIkan = menuItems.filter((m) => m.category === "Menu Ikan Nyamleng").length;
+  const countMinuman = menuItems.filter((m) => m.category === "Menu Minuman").length;
+  const countAlacarte = menuItems.filter((m) => m.category === "Menu Alacarte").length;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -175,12 +137,12 @@ export default function MenuPage() {
         </div>
 
         <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            <Utensils className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">
+            🍗
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Makanan</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{countMakanan} Item</h3>
+            <span className="text-[11px] text-muted-foreground font-medium block">Ayam Nyamleng</span>
+            <h3 className="text-base font-bold text-foreground font-mono">{countAyam} Item</h3>
           </div>
         </div>
 
@@ -195,12 +157,12 @@ export default function MenuPage() {
         </div>
 
         <div className="bg-card p-3.5 rounded-2xl border border-border shadow-xs flex items-center gap-3 transition-colors">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Cookie className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+            🍱
           </div>
           <div>
-            <span className="text-[11px] text-muted-foreground font-medium block">Cemilan</span>
-            <h3 className="text-base font-bold text-foreground font-mono">{countCemilan} Item</h3>
+            <span className="text-[11px] text-muted-foreground font-medium block">Alacarte & Lainnya</span>
+            <h3 className="text-base font-bold text-foreground font-mono">{countAlacarte + countIkan} Item</h3>
           </div>
         </div>
       </div>
@@ -214,23 +176,27 @@ export default function MenuPage() {
             placeholder="Cari nama menu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-xs bg-background border-input"
+            className="pl-9 h-9 text-xs bg-background border-input font-medium"
           />
         </div>
 
-        <Tabs defaultValue="Semua" value={activeCategory} onValueChange={setActiveCategory} className="w-full sm:w-auto">
-          <TabsList className="w-full sm:w-auto grid grid-cols-4 sm:flex h-9 bg-muted p-1 rounded-xl">
-            {["Semua", "Makanan", "Minuman", "Cemilan"].map((cat) => (
-              <TabsTrigger
-                key={cat}
-                value={cat}
-                className="text-xs font-bold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all cursor-pointer"
-              >
-                {cat}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        {/* Dynamic Category Container Pills */}
+        <div className="w-full sm:w-auto flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {dynamicCategories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(cat)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                activeCategory === cat
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Mobile Card List View (< md screens) */}

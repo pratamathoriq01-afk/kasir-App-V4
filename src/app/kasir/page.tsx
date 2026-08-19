@@ -1,8 +1,6 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
-import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
+import { fetchMenuItemsFromDB, getStoredMenuItems, saveMenuItemOptimistic, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
 import { supabase } from "@/lib/supabase";
 import {
   playNotificationChime,
@@ -17,13 +15,19 @@ import CartSection from "./components/CartSection";
 import PaymentModal from "./components/PaymentModal";
 import ReceiptModal from "./components/ReceiptModal";
 import IncomingOrdersDrawer from "./components/IncomingOrdersDrawer";
-import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck } from "lucide-react";
+import MenuFormModal from "@/app/menu/components/MenuFormModal";
+import { ArrowRight, ShoppingCart, Utensils, Bell, RefreshCw, Volume2, Sparkles, ShieldCheck, Plus, UtensilsCrossed } from "lucide-react";
 
 export default function KasirPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  // Initialize with cached local items for instant 0ms initial render without blank screen
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => getStoredMenuItems());
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
+
+  // Quick Menu Modal (Core POS Menu Management)
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState<boolean>(false);
+  const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null);
 
   // Real-time Incoming Digital Orders State
   const [digitalOrders, setDigitalOrders] = useState<Transaction[]>([]);
@@ -327,6 +331,13 @@ export default function KasirPage() {
     }).catch((err) => console.warn("Failed to update status in DB:", err));
   };
 
+  const handleSaveItemFromPOS = async (item: MenuItem) => {
+    const updated = await saveMenuItemOptimistic(item, menuItems);
+    setMenuItems(updated);
+    setIsMenuModalOpen(false);
+    setItemToEdit(null);
+  };
+
   const handleCloseReceipt = () => {
     setIsReceiptModalOpen(false);
     setCompletedTransaction(null);
@@ -355,6 +366,20 @@ export default function KasirPage() {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Quick Add Menu Button (Core POS Edit Feature) */}
+          <button
+            type="button"
+            onClick={() => {
+              setItemToEdit(null);
+              setIsMenuModalOpen(true);
+            }}
+            className="py-1 px-2.5 sm:py-1.5 sm:px-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+            title="Tambah Menu Makanan/Minuman Baru"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span className="hidden sm:inline">+ Menu Baru</span>
+          </button>
+
           {/* Audio Alert Trigger */}
           <button
             type="button"
@@ -449,7 +474,17 @@ export default function KasirPage() {
             mobileTab === "menu" ? "block" : "hidden lg:flex"
           }`}
         >
-          <MenuGrid items={menuItems} />
+          <MenuGrid
+            items={menuItems}
+            onEditItem={(item) => {
+              setItemToEdit(item);
+              setIsMenuModalOpen(true);
+            }}
+            onAddNewItem={() => {
+              setItemToEdit(null);
+              setIsMenuModalOpen(true);
+            }}
+          />
         </div>
 
         {/* Right Column: Cart Section (5 cols desktop, 4 cols widescreen) */}
@@ -492,6 +527,17 @@ export default function KasirPage() {
           </button>
         </div>
       )}
+
+      {/* Quick Menu Form Modal (Core POS Menu Management) */}
+      <MenuFormModal
+        isOpen={isMenuModalOpen}
+        itemToEdit={itemToEdit}
+        onClose={() => {
+          setIsMenuModalOpen(false);
+          setItemToEdit(null);
+        }}
+        onSave={handleSaveItemFromPOS}
+      />
 
       {/* Payment Dialog */}
       <PaymentModal

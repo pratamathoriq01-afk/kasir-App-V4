@@ -21,7 +21,6 @@ export function broadcastPOSSync(type: "MENU_UPDATED" | "TRANSACTION_UPDATED" | 
     if (posBroadcastChannel) {
       posBroadcastChannel.postMessage({ type, payload, timestamp: Date.now() });
     }
-    // Also dispatch a window storage event for fallback
     window.dispatchEvent(new CustomEvent("pos-sync-event", { detail: { type, payload } }));
   } catch (e) {
     console.warn("Error broadcasting POS sync:", e);
@@ -70,25 +69,7 @@ export function getStoredMenuItems(): MenuItem[] {
 }
 
 export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
-  try {
-    const res = await fetch(`/api/menu?t=${Date.now()}`, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-      },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        saveMenuItems(data);
-        return data;
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to fetch menu from API, trying Supabase direct client:", e);
-  }
-
+  // 1. Direct Supabase Edge Query (~30ms)
   try {
     const { data, error } = await supabase
       .from("MenuItem")
@@ -99,7 +80,23 @@ export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
       return data as MenuItem[];
     }
   } catch (e) {
-    console.warn("Direct Supabase menu fetch notice:", e);
+    console.warn("Direct Supabase menu query note:", e);
+  }
+
+  // 2. Fallback to API route
+  try {
+    const res = await fetch(`/api/menu?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        saveMenuItems(data);
+        return data;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to fetch menu from API:", e);
   }
 
   return getStoredMenuItems();
@@ -108,6 +105,55 @@ export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
 export function saveMenuItems(items: MenuItem[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(items));
+}
+
+// 0ms Optimistic Menu Save & Sync
+export async function saveMenuItemOptimistic(item: MenuItem, currentItems: MenuItem[]): Promise<MenuItem[]> {
+  const isExisting = currentItems.some((m) => m.id === item.id);
+  const updatedList = isExisting
+    ? currentItems.map((m) => (m.id === item.id ? item : m))
+    : [...currentItems, item];
+
+  // 1. Instant local persistence & broadcast (0ms)
+  saveMenuItems(updatedList);
+  broadcastPOSSync("MENU_UPDATED", item);
+
+  // 2. Background DB Upsert
+  (async () => {
+    try {
+      await supabase.from("MenuItem").upsert(item, { onConflict: "id" });
+      await fetch("/api/menu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item),
+      });
+    } catch (err) {
+      console.warn("Background menu save notice:", err);
+    }
+  })();
+
+  return updatedList;
+}
+
+// 0ms Optimistic Menu Delete & Sync
+export async function deleteMenuItemOptimistic(id: string, currentItems: MenuItem[]): Promise<MenuItem[]> {
+  const updatedList = currentItems.filter((m) => m.id !== id);
+
+  // 1. Instant local persistence & broadcast (0ms)
+  saveMenuItems(updatedList);
+  broadcastPOSSync("MENU_UPDATED", { deletedId: id });
+
+  // 2. Background DB Delete
+  (async () => {
+    try {
+      await supabase.from("MenuItem").delete().eq("id", id);
+      await fetch(`/api/menu?id=${id}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("Background menu delete notice:", err);
+    }
+  })();
+
+  return updatedList;
 }
 
 export function getStoredTransactions(): Transaction[] {
@@ -121,12 +167,24 @@ export function getStoredTransactions(): Transaction[] {
 }
 
 export async function fetchTransactionsFromDB(): Promise<Transaction[]> {
+  // 1. Direct Supabase Edge Query (~30ms)
+  try {
+    const { data, error } = await supabase
+      .from("Transaction")
+      .select("*, items:TransactionItem(*)")
+      .order("createdAt", { ascending: false });
+    if (!error && Array.isArray(data)) {
+      saveTransactions(data as Transaction[]);
+      return data as Transaction[];
+    }
+  } catch (e) {
+    console.warn("Direct Supabase transactions query note:", e);
+  }
+
+  // 2. Fallback to API route
   try {
     const res = await fetch(`/api/transactions?t=${Date.now()}`, {
       cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-      },
     });
     if (res.ok) {
       const data = await res.json();
@@ -138,6 +196,7 @@ export async function fetchTransactionsFromDB(): Promise<Transaction[]> {
   } catch (e) {
     console.warn("Failed to fetch transactions from DB API:", e);
   }
+
   return getStoredTransactions();
 }
 
@@ -147,10 +206,26 @@ export function saveTransactions(transactions: Transaction[]): void {
 }
 
 export async function fetchActiveVouchersFromDB(): Promise<Voucher[]> {
+  // 1. Direct Supabase Edge Query (~30ms)
+  try {
+    const { data, error } = await supabase
+      .from("Voucher")
+      .select("*")
+      .eq("isActive", true)
+      .order("createdAt", { ascending: false });
+    if (!error && Array.isArray(data)) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(VOUCHERS_STORAGE_KEY, JSON.stringify(data));
+      }
+      return data as Voucher[];
+    }
+  } catch (e) {
+    console.warn("Direct Supabase vouchers query note:", e);
+  }
+
   try {
     const res = await fetch(`/api/vouchers?t=${Date.now()}`, {
       cache: "no-store",
-      headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
     });
     if (res.ok) {
       const data: Voucher[] = await res.json();

@@ -15,11 +15,11 @@ interface MenuFormModalProps {
 }
 
 const CATEGORY_PRESETS = [
-  { label: "🍽️ Makanan", val: "Makanan" },
-  { label: "🥤 Minuman", val: "Minuman" },
-  { label: "🍟 Cemilan", val: "Cemilan" },
-  { label: "☕ Aneka Kopi", val: "Aneka Kopi" },
-  { label: "🍹 Non-Kopi", val: "Non-Kopi" },
+  { label: "🍗 Menu Ayam Nyamleng", val: "Menu Ayam Nyamleng" },
+  { label: "🐟 Menu Ikan Nyamleng", val: "Menu Ikan Nyamleng" },
+  { label: "🥤 Menu Minuman", val: "Menu Minuman" },
+  { label: "🍱 Menu Alacarte", val: "Menu Alacarte" },
+  { label: "🍟 Cemilan & Snack", val: "Cemilan & Snack" },
   { label: "📦 Paket Hemat", val: "Paket Hemat" },
   { label: "🍰 Dessert", val: "Dessert" },
 ];

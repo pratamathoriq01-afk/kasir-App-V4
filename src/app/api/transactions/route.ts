@@ -29,6 +29,24 @@ export async function OPTIONS() {
   });
 }
 
+function triggerAutoReceiptEmail(trxData: any, items: any[]) {
+  if (!trxData?.customerEmail) return;
+  // Non-blocking background call
+  try {
+    const host = process.env.NEXT_PUBLIC_APP_URL || "https://app-kasir-kedai-nyamleng.vercel.app";
+    fetch(`${host}/api/receipt/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...trxData,
+        items,
+      }),
+    }).catch((e) => console.warn("Background receipt email notice:", e));
+  } catch (err) {
+    console.warn("Auto receipt email trigger error:", err);
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -188,6 +206,9 @@ export async function POST(request: Request) {
       if (!tErr && savedTrx) {
         if (itemsPayload.length > 0) {
           await supabase.from("TransactionItem").upsert(itemsPayload, { onConflict: "id" });
+        }
+        if (body.customerEmail) {
+          triggerAutoReceiptEmail({ ...savedTrx, customerEmail: body.customerEmail }, itemsPayload);
         }
         return jsonWithCors({ ...savedTrx, items: itemsPayload }, 201);
       }
