@@ -5,6 +5,7 @@ export interface MenuItem {
   price: number;
   hpp: number;
   taxPercent: number;
+  description?: string | null;
   icon?: string | null;
   imageUrl?: string | null;
   isActive: boolean;

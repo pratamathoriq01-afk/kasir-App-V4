@@ -7,18 +7,19 @@ datasource db {
 }
 
 model MenuItem {
-  id         String            @id @default(cuid())
-  name       String
-  category   String
-  price      Int
-  hpp        Int
-  taxPercent Int               @default(10)
-  icon       String?
-  imageUrl   String?
-  isActive   Boolean           @default(true)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  items      TransactionItem[]
+  id          String            @id @default(cuid())
+  name        String
+  category    String
+  price       Int
+  hpp         Int
+  taxPercent  Int               @default(10)
+  description String?
+  icon        String?
+  imageUrl    String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  items       TransactionItem[]
 }
 
 model Transaction {

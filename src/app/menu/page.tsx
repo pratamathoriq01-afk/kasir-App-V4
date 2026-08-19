@@ -86,6 +86,7 @@ export default function MenuPage() {
       activeCategory === "Semua" || item.category === activeCategory;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
@@ -207,7 +208,7 @@ export default function MenuPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Cari nama menu / kategori..."
+            placeholder="Cari nama menu / deskripsi / kategori..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-10 text-xs sm:text-sm bg-background border-input font-medium rounded-xl"
@@ -278,7 +279,10 @@ export default function MenuPage() {
                     </div>
                     <div className="min-w-0">
                       <h4 className="font-extrabold text-foreground text-sm truncate">{item.name}</h4>
-                      <span className="text-xs text-muted-foreground font-mono">ID: {item.id}</span>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
+                      )}
+                      <span className="text-xs text-muted-foreground/70 font-mono">ID: {item.id}</span>
                     </div>
                   </div>
 
@@ -415,11 +419,16 @@ export default function MenuPage() {
                             </span>
                           )}
                         </div>
-                        <div>
-                          <h4 className="font-bold text-foreground text-xs sm:text-sm group-hover:text-primary transition-colors">
+                        <div className="min-w-0 max-w-[280px]">
+                          <h4 className="font-bold text-foreground text-xs sm:text-sm group-hover:text-primary transition-colors truncate">
                             {item.name}
                           </h4>
-                          <span className="text-xs text-muted-foreground font-mono">
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                              {item.description}
+                            </p>
+                          )}
+                          <span className="text-xs text-muted-foreground/70 font-mono">
                             ID: {item.id}
                           </span>
                         </div>

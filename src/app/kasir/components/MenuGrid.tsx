@@ -65,6 +65,7 @@ export default function MenuGrid({ items, onSelectItem, onEditItem, onAddNewItem
       activeCategory === "Semua" || item.category === activeCategory;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch && item.isActive;
   });
@@ -324,6 +325,13 @@ function MenuCard({
           <h3 className="font-bold text-foreground text-xs sm:text-[13px] line-clamp-2 leading-tight group-hover:text-primary transition-colors">
             {item.name}
           </h3>
+
+          {/* Menu Description */}
+          {item.description && (
+            <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+              {item.description}
+            </p>
+          )}
         </div>
 
         {/* Price & Add Button */}

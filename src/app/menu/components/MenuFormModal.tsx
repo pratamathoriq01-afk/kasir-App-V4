@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X, AlignLeft } from "lucide-react";
 import { getStoredCategories, addNewCategoryOptimistic } from "@/lib/data-service";
 
 interface MenuFormModalProps {
@@ -37,6 +38,7 @@ export default function MenuFormModal({
 }: MenuFormModalProps) {
   const [availableCategories, setAvailableCategories] = useState<string[]>(() => getStoredCategories());
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Menu Ayam Nyamleng");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryInput, setCustomCategoryInput] = useState("");
@@ -59,6 +61,7 @@ export default function MenuFormModal({
 
     if (itemToEdit) {
       setName(itemToEdit.name);
+      setDescription(itemToEdit.description || "");
       const isPreset = cats.includes(itemToEdit.category);
       if (isPreset) {
         setCategory(itemToEdit.category);
@@ -75,6 +78,7 @@ export default function MenuFormModal({
       setIsActive(itemToEdit.isActive);
     } else {
       setName("");
+      setDescription("");
       setCategory(cats[0] || "Menu Ayam Nyamleng");
       setIsCustomCategory(false);
       setCustomCategoryInput("");
@@ -147,6 +151,7 @@ export default function MenuFormModal({
     const newItem: MenuItem = {
       id: itemToEdit ? itemToEdit.id : `menu-${Date.now()}`,
       name: name.trim(),
+      description: description.trim() || null,
       category: finalCategory,
       price: numPrice,
       hpp: numHpp,
@@ -267,6 +272,25 @@ export default function MenuFormModal({
               onChange={(e) => setName(e.target.value)}
               className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl"
               required
+            />
+          </div>
+
+          {/* Menu Description Input */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground">
+                Deskripsi Menu Produk
+              </label>
+              <span className="text-xs text-muted-foreground font-medium">
+                Tampil di Menu Digital
+              </span>
+            </div>
+            <Textarea
+              placeholder="Contoh: Daging ayam pilihan empuk yang dibakar dengan bumbu madu gurih manis khas Nyamleng, disajikan lengkap dengan lalapan dan sambal korek pedas."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="text-xs sm:text-sm bg-background font-medium rounded-xl min-h-[70px] resize-y"
             />
           </div>
 
