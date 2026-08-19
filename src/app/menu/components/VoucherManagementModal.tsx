@@ -270,7 +270,7 @@ export default function VoucherManagementModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-900 mb-1">
                     Kode Voucher (Unik)
                   </label>
                   <input
@@ -279,12 +279,12 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: NYAMLENG20"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl uppercase font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl uppercase font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-900 mb-1">
                     Judul Voucher Promo
                   </label>
                   <input
@@ -293,12 +293,12 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: Diskon Promo 20% All Menu"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-900 mb-1">
                     Deskripsi Promo Ringkas
                   </label>
                   <input
@@ -306,13 +306,13 @@ export default function VoucherManagementModal({
                     placeholder="Contoh: Potongan 20% maksimal diskon Rp 15.000 min. belanja Rp 30.000"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 {/* Skema Diskon Selector */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Skema Diskon</label>
+                  <label className="block font-bold text-slate-900 mb-1">Skema Diskon</label>
                   <select
                     value={discountType}
                     onChange={(e) => {
@@ -324,16 +324,16 @@ export default function VoucherManagementModal({
                         setDiscountValueStr("20");
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
                   >
-                    <option value="percent">Persentase Diskon (%)</option>
-                    <option value="fixed">Nominal Potongan Tetap (Rp)</option>
+                    <option value="percent" className="text-slate-900 font-bold bg-white">Persentase Diskon (%)</option>
+                    <option value="fixed" className="text-slate-900 font-bold bg-white">Nominal Potongan Tetap (Rp)</option>
                   </select>
                 </div>
 
                 {/* Flexible Discount Input Field with Dot Separator for Rp */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <label className="block font-bold text-slate-900 mb-1 flex items-center justify-between">
                     <span>{discountType === "percent" ? "Persentase Diskon (%)" : "Nominal Potongan (Rp)"}</span>
                     <span className="text-[10px] text-amber-700 font-extrabold">
                       {discountType === "percent" ? "1% - 100%" : "Nominal Tetap (Rp)"}
@@ -342,7 +342,7 @@ export default function VoucherManagementModal({
                   
                   <div className="relative flex items-center">
                     {discountType === "fixed" && (
-                      <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                      <span className="absolute left-3 font-bold font-mono text-slate-700 text-xs select-none">
                         Rp
                       </span>
                     )}
@@ -361,12 +361,12 @@ export default function VoucherManagementModal({
                           setDiscountValueStr(raw.replace(/[^\d.]/g, ""));
                         }
                       }}
-                      className={`w-full py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none ${
+                      className={`w-full py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-black focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs ${
                         discountType === "fixed" ? "pl-9 pr-3" : "pl-3 pr-9"
                       }`}
                     />
                     {discountType === "percent" && (
-                      <span className="absolute right-3 font-extrabold font-mono text-amber-700 text-xs select-none">
+                      <span className="absolute right-3 font-extrabold font-mono text-amber-800 text-xs select-none">
                         %
                       </span>
                     )}
@@ -374,7 +374,7 @@ export default function VoucherManagementModal({
 
                   {/* Preset Pills for Quick Selection */}
                   <div className="mt-1.5 flex items-center gap-1 overflow-x-auto pb-1">
-                    <span className="text-[9px] font-bold text-slate-400 shrink-0">Pilihan Cepat:</span>
+                    <span className="text-[9px] font-bold text-slate-500 shrink-0">Pilihan Cepat:</span>
                     {discountType === "percent"
                       ? percentPresets.map((p) => (
                           <button
@@ -384,7 +384,7 @@ export default function VoucherManagementModal({
                             className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
                               discountValueStr === String(p)
                                 ? "bg-amber-500 text-slate-950 font-black shadow-xs"
-                                : "bg-white border border-slate-200 text-slate-700 hover:bg-amber-100"
+                                : "bg-white border border-slate-300 text-slate-800 hover:bg-amber-100"
                             }`}
                           >
                             {p}%
@@ -400,7 +400,7 @@ export default function VoucherManagementModal({
                               className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
                                 discountValueStr === formattedPreset
                                   ? "bg-amber-500 text-slate-950 font-black shadow-xs"
-                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-amber-100"
+                                  : "bg-white border border-slate-300 text-slate-800 hover:bg-amber-100"
                               }`}
                             >
                               Rp {formattedPreset}
@@ -412,16 +412,16 @@ export default function VoucherManagementModal({
 
                 {/* Maksimal Diskon Caps Input with Dot Separator */}
                 {discountType === "percent" && (
-                  <div className="sm:col-span-2 bg-white/60 p-3 rounded-xl border border-amber-200/60 space-y-1.5">
-                    <label className="block font-bold text-slate-700 flex items-center justify-between">
-                      <span>Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span></span>
-                      <span className="text-[10px] font-semibold text-slate-500">
+                  <div className="sm:col-span-2 bg-white/90 p-3 rounded-xl border border-amber-300/80 space-y-1.5 shadow-2xs">
+                    <label className="block font-bold text-slate-900 flex items-center justify-between">
+                      <span>Maksimal Diskon Caps (Rp) <span className="text-[10px] text-slate-500 font-normal">(Opsional)</span></span>
+                      <span className="text-[10px] font-bold text-slate-700">
                         {maxDiscountStr ? `Maksimal Rp ${maxDiscountStr}` : "Tanpa Batas Maximum"}
                       </span>
                     </label>
                     
                     <div className="relative flex items-center">
-                      <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                      <span className="absolute left-3 font-bold font-mono text-slate-700 text-xs select-none">
                         Rp
                       </span>
                       <input
@@ -430,13 +430,13 @@ export default function VoucherManagementModal({
                         placeholder="Kosongkan jika tanpa batas (contoh: 15.000)"
                         value={maxDiscountStr}
                         onChange={(e) => setMaxDiscountStr(formatThousandInput(e.target.value))}
-                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                        className="w-full pl-9 pr-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                       />
                     </div>
 
                     {/* Max Discount Presets */}
                     <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
-                      <span className="text-[9px] font-bold text-slate-400 shrink-0">Batas Caps:</span>
+                      <span className="text-[9px] font-bold text-slate-500 shrink-0">Batas Caps:</span>
                       {maxCapPresets.map((cap) => (
                         <button
                           key={cap.label}
@@ -444,8 +444,8 @@ export default function VoucherManagementModal({
                           onClick={() => setMaxDiscountStr(cap.val)}
                           className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all shrink-0 cursor-pointer ${
                             maxDiscountStr === cap.val
-                              ? "bg-slate-900 text-white shadow-xs"
-                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              ? "bg-slate-900 text-white shadow-xs font-black"
+                              : "bg-white border border-slate-300 text-slate-800 hover:bg-slate-100"
                           }`}
                         >
                           {cap.label}
@@ -457,11 +457,11 @@ export default function VoucherManagementModal({
 
                 {/* Minimal Subtotal Belanja Input with Dot Separator */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-900 mb-1">
                     Minimal Subtotal Belanja (Rp)
                   </label>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3 font-bold font-mono text-slate-500 text-xs select-none">
+                    <span className="absolute left-3 font-bold font-mono text-slate-700 text-xs select-none">
                       Rp
                     </span>
                     <input
@@ -469,30 +469,30 @@ export default function VoucherManagementModal({
                       inputMode="numeric"
                       value={minSubtotalStr}
                       onChange={(e) => setMinSubtotalStr(formatThousandInput(e.target.value))}
-                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/20 outline-none"
+                      className="w-full pl-9 pr-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl font-mono font-bold focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Masa Berlaku Sampai</label>
+                  <label className="block font-bold text-slate-900 mb-1">Masa Berlaku Sampai</label>
                   <input
                     type="date"
                     value={validUntil}
                     onChange={(e) => setValidUntil(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-700 mb-1">Status Publikasi</label>
+                  <label className="block font-bold text-slate-900 mb-1">Status Publikasi</label>
                   <select
                     value={isActive ? "true" : "false"}
                     onChange={(e) => setIsActive(e.target.value === "true")}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-white text-slate-900 font-bold border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none cursor-pointer shadow-xs"
                   >
-                    <option value="true">🟢 Aktif (Dapat Di-claim &amp; Terbaca Realtime oleh Pembeli)</option>
-                    <option value="false">🔴 Nonaktif (Disembunyikan dari Pembeli)</option>
+                    <option value="true" className="text-slate-900 font-bold bg-white">🟢 Aktif (Dapat Di-claim &amp; Terbaca Realtime oleh Pembeli)</option>
+                    <option value="false" className="text-slate-900 font-bold bg-white">🔴 Nonaktif (Disembunyikan dari Pembeli)</option>
                   </select>
                 </div>
               </div>
