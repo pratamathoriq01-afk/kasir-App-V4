@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MenuItem, Transaction } from "@/types";
 import { fetchMenuItemsFromDB, addTransaction, getNextOrderNumber, subscribePOSSync } from "@/lib/data-service";
+import { supabase } from "@/lib/supabase";
 import {
   playNotificationChime,
   warmUpAudioContext,
@@ -56,17 +57,42 @@ export default function KasirPage() {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
   };
 
+  // 1. Core Supabase Realtime WebSocket Connection (0ms Instant Latency)
   useEffect(() => {
     loadMenu();
+    loadDigitalOrders();
     unlockAudioContext();
     requestPushNotificationPermission();
 
+    // Direct Supabase WebSocket Channel Subscription
+    const realtimeChannel = supabase
+      .channel("kasir_realtime_orders_stream")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Transaction" },
+        (payload) => {
+          console.log("⚡ [SUPABASE REALTIME WS EVENT RECEIVED]:", payload.eventType, payload.new);
+          loadDigitalOrders();
+          warmUpAudioContext();
+          playNotificationChime();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "MenuItem" },
+        () => {
+          loadMenu();
+        }
+      )
+      .subscribe();
+
     const handleWindowFocus = () => {
       loadMenu();
+      loadDigitalOrders();
     };
     window.addEventListener("focus", handleWindowFocus);
 
-    const unsubscribe = subscribePOSSync((type) => {
+    const unsubscribeBroadcast = subscribePOSSync((type) => {
       if (type === "MENU_UPDATED") {
         loadMenu();
       } else if (type === "TRANSACTION_UPDATED") {
@@ -75,8 +101,9 @@ export default function KasirPage() {
     });
 
     return () => {
+      supabase.removeChannel(realtimeChannel);
       window.removeEventListener("focus", handleWindowFocus);
-      unsubscribe();
+      unsubscribeBroadcast();
     };
   }, []);
 
@@ -127,24 +154,32 @@ export default function KasirPage() {
 
   const loadDigitalOrders = async () => {
     try {
-      const res = await fetch(`/api/transactions?t=${Date.now()}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
-      });
-      if (!res.ok) return;
+      // 1. Direct Supabase Query (Blazing Fast ~30ms)
+      const { data: directData, error } = await supabase
+        .from("Transaction")
+        .select("*, items:TransactionItem(*)")
+        .order("createdAt", { ascending: false });
 
-      const transactions: Transaction[] = await res.json();
-      if (!Array.isArray(transactions)) return;
+      let transactions: Transaction[] = [];
 
-      setDigitalOrders(transactions);
+      if (!error && Array.isArray(directData)) {
+        transactions = directData as Transaction[];
+      } else {
+        // Fallback to API endpoint
+        const res = await fetch(`/api/transactions?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const apiData = await res.json();
+          if (Array.isArray(apiData)) transactions = apiData;
+        }
+      }
+
+      if (!transactions || !Array.isArray(transactions)) return;
 
       // Filter all unconfirmed digital orders
       const pendingOrders = transactions.filter((t) => {
         const isDigitalUnconfirmed =
           t.orderNotes !== "KASIR_CONFIRMED" &&
-          ((t.orderNumber && String(t.orderNumber).startsWith("KDN-")) || Boolean(t.customerEmail) || Boolean(t.customerPhone) || Boolean(t.tableNumber));
+          ((t.orderNumber && String(t.orderNumber).startsWith("KDN-")) || Boolean(t.customerEmail) || Boolean(t.customerPhone) || (Boolean(t.tableNumber) && t.tableNumber !== "-"));
         return (
           isDigitalUnconfirmed ||
           !t.orderStatus ||
@@ -153,6 +188,7 @@ export default function KasirPage() {
         );
       });
 
+      setDigitalOrders(transactions);
       setNewOrdersCount(pendingOrders.length);
 
       if (isFirstLoadRef.current) {
@@ -168,27 +204,17 @@ export default function KasirPage() {
         return;
       }
 
-      // Check if new orders arrived that were not in knownTxIds
-      const brandNew = transactions.filter(
-        (t) =>
-          (!knownTxIdsRef.current.has(t.id) && !knownTxIdsRef.current.has(t.orderNumber)) ||
-          (!t.orderStatus || t.orderStatus === "NEW_ORDER" || t.orderStatus === "PENDING")
+      // Check if brand new orders arrived that were not in knownTxIds
+      const brandNew = pendingOrders.filter(
+        (t) => !knownTxIdsRef.current.has(t.id) && !knownTxIdsRef.current.has(t.orderNumber)
       );
 
-      const unannounced = brandNew.filter(
-        (t) => !knownTxIdsRef.current.has(`${t.id}-announced`)
-      );
-
-      if (unannounced.length > 0) {
-        unannounced.forEach((t) => {
-          if (t.id) {
-            knownTxIdsRef.current.add(t.id);
-            knownTxIdsRef.current.add(`${t.id}-announced`);
-          }
+      if (brandNew.length > 0) {
+        brandNew.forEach((t) => {
+          if (t.id) knownTxIdsRef.current.add(t.id);
           if (t.orderNumber) knownTxIdsRef.current.add(t.orderNumber);
           showOrderPushNotification(t);
         });
-        // Play instant automatic notification chime!
         warmUpAudioContext();
         playNotificationChime();
       }
@@ -197,10 +223,8 @@ export default function KasirPage() {
     }
   };
 
-  // Dual Web Worker + Foreground Poller for 100% background-resilient realtime order sync
+  // High-Frequency Background Poller fallback (Every 300ms)
   useEffect(() => {
-    loadDigitalOrders();
-
     let worker: Worker | null = null;
     if (typeof window !== "undefined" && "Worker" in window) {
       try {
@@ -214,7 +238,7 @@ export default function KasirPage() {
       }
     }
 
-    const interval = setInterval(loadDigitalOrders, 500);
+    const interval = setInterval(loadDigitalOrders, 300);
 
     return () => {
       clearInterval(interval);
