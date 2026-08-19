@@ -56,6 +56,12 @@ export default function KasirPage() {
     fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
     unlockAudioContext();
     requestPushNotificationPermission();
+
+    const handleWindowFocus = () => {
+      fetchMenuItemsFromDB().then((loaded) => setMenuItems(loaded));
+    };
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
   }, []);
 
   // Continuous Alarm Loop: Repeat chime every 3s UNTIL cashier accepts orders (newOrdersCount === 0)

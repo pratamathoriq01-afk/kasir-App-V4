@@ -7,15 +7,53 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     if (!prisma) {
-      return NextResponse.json(INITIAL_MENU_ITEMS);
+      return NextResponse.json(INITIAL_MENU_ITEMS, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+        },
+      });
     }
-    const items = await prisma.menuItem.findMany({
+    let items = await prisma.menuItem.findMany({
       orderBy: { createdAt: "asc" },
     });
-    return NextResponse.json(items);
+
+    if (items.length === 0) {
+      for (const item of INITIAL_MENU_ITEMS) {
+        await prisma.menuItem.upsert({
+          where: { id: item.id },
+          update: {},
+          create: {
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            hpp: item.hpp,
+            taxPercent: item.taxPercent,
+            icon: item.icon || "🍽️",
+            isActive: item.isActive ?? true,
+          },
+        });
+      }
+      items = await prisma.menuItem.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    return NextResponse.json(items, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   } catch (error) {
     console.warn("DB query error, returning initial menu items:", error);
-    return NextResponse.json(INITIAL_MENU_ITEMS);
+    return NextResponse.json(INITIAL_MENU_ITEMS, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   }
 }
 
@@ -56,9 +94,20 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "ID menu tidak ditemukan." }, { status: 400 });
     }
 
-    const updatedItem = await prisma.menuItem.update({
+    const updatedItem = await prisma.menuItem.upsert({
       where: { id: body.id },
-      data: {
+      update: {
+        name: body.name,
+        category: body.category,
+        price: Number(body.price),
+        hpp: Number(body.hpp),
+        taxPercent: Number(body.taxPercent || 10),
+        icon: body.icon || "🍽️",
+        imageUrl: body.imageUrl || null,
+        isActive: body.isActive ?? true,
+      },
+      create: {
+        id: body.id,
         name: body.name,
         category: body.category,
         price: Number(body.price),

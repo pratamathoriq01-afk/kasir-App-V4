@@ -25,12 +25,17 @@ export default function MenuPage() {
   }, []);
 
   const handleSaveItem = async (item: MenuItem) => {
-    try {
-      const isExisting = Boolean(item.id && !item.id.startsWith("mock-"));
-      const method = isExisting ? "PUT" : "POST";
+    const isExisting = Boolean(editingItem?.id);
+    // Optimistic UI update so user sees it instantly
+    const optimisticList = isExisting
+      ? menuItems.map((m) => (m.id === item.id ? item : m))
+      : [...menuItems, item];
+    setMenuItems(optimisticList);
+    saveMenuItems(optimisticList);
 
+    try {
       const res = await fetch("/api/menu", {
-        method,
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
       });
