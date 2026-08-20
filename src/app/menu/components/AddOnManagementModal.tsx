@@ -25,7 +25,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Edit3, Sparkles, Check, X, Tag, DollarSign, Layers } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit3,
+  Sparkles,
+  Check,
+  X,
+  Tag,
+  Flame,
+  Layers,
+  Wand2,
+} from "lucide-react";
 
 interface AddOnManagementModalProps {
   isOpen: boolean;
@@ -34,12 +45,24 @@ interface AddOnManagementModalProps {
 
 const CATEGORY_PRESETS = [
   "Semua",
+  "🌶️ Pilihan Sambal",
+  "🔥 Level Pedas",
+  "🍳 Ekstra Topping / Lauk",
+  "🥤 Pilihan Es / Suhu",
+  "Semua Makanan",
+  "Semua Minuman",
   "Menu Ayam Nyamleng",
   "Menu Ikan Nyamleng",
   "Menu Minuman",
   "Menu Alacarte",
   "Cemilan & Snack",
   "Paket Hemat",
+];
+
+const SAMBAL_DEFAULTS = [
+  { name: "Sambal Bawang Nyamleng 🌶️", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+  { name: "Sambal Terasi Matang 🔴", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+  { name: "Sambal Hijau / Ijo Segar 🟢", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
 ];
 
 export default function AddOnManagementModal({
@@ -54,9 +77,12 @@ export default function AddOnManagementModal({
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | "">(0);
   const [hpp, setHpp] = useState<number | "">(0);
-  const [category, setCategory] = useState("Semua");
+  const [category, setCategory] = useState("🌶️ Pilihan Sambal");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("Semua");
+  const [isGeneratingSambal, setIsGeneratingSambal] = useState(false);
 
   const loadData = () => {
     fetchAddOnsFromDB().then((data) => setAddOns(data));
@@ -83,7 +109,9 @@ export default function AddOnManagementModal({
     setName("");
     setPrice(0);
     setHpp(0);
-    setCategory("Semua");
+    setCategory("🌶️ Pilihan Sambal");
+    setIsCustomCategory(false);
+    setCustomCategoryInput("");
     setIsActive(true);
     setIsFormOpen(false);
   };
@@ -93,7 +121,15 @@ export default function AddOnManagementModal({
     setName(addon.name);
     setPrice(addon.price);
     setHpp(addon.hpp);
-    setCategory(addon.category || "Semua");
+    const catVal = addon.category || "Semua";
+    if (CATEGORY_PRESETS.includes(catVal)) {
+      setCategory(catVal);
+      setIsCustomCategory(false);
+    } else {
+      setCategory(catVal);
+      setIsCustomCategory(true);
+      setCustomCategoryInput(catVal);
+    }
     setIsActive(addon.isActive);
     setIsFormOpen(true);
   };
@@ -102,12 +138,16 @@ export default function AddOnManagementModal({
     e.preventDefault();
     if (!name.trim()) return;
 
+    const finalCat = isCustomCategory
+      ? customCategoryInput.trim() || "Semua"
+      : category;
+
     const payload: AddOn = {
       id: editingId || `addon-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       name: name.trim(),
       price: Number(price) || 0,
       hpp: Number(hpp) || 0,
-      category,
+      category: finalCat,
       isActive,
       updatedAt: new Date().toISOString(),
     };
@@ -116,6 +156,36 @@ export default function AddOnManagementModal({
     await saveAddOnOptimistic(payload);
     setAddOns(getStoredAddOns());
     resetForm();
+  };
+
+  const handleAutoCreateSambal = async () => {
+    setIsGeneratingSambal(true);
+    try {
+      for (const s of SAMBAL_DEFAULTS) {
+        // Check if already exists
+        const exists = addOns.some(
+          (a) => a.name.toLowerCase().includes(s.name.toLowerCase().split(" ")[0])
+        );
+        if (!exists) {
+          const item: AddOn = {
+            id: `addon-sambal-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            name: s.name,
+            price: s.price,
+            hpp: s.hpp,
+            category: s.category,
+            isActive: true,
+            updatedAt: new Date().toISOString(),
+          };
+          await saveAddOnOptimistic(item);
+        }
+      }
+      setAddOns(getStoredAddOns());
+      loadData();
+    } catch (err) {
+      console.error("Gagal auto create sambal:", err);
+    } finally {
+      setIsGeneratingSambal(false);
+    }
   };
 
   const handleDelete = async (id: string, addonName: string) => {
@@ -132,7 +202,27 @@ export default function AddOnManagementModal({
 
   const filteredAddOns = addOns.filter((a) => {
     if (selectedFilterCategory === "Semua") return true;
-    return a.category === selectedFilterCategory || a.category === "Semua";
+    if (selectedFilterCategory === "🌶️ Pilihan Sambal") {
+      return (
+        a.category === "🌶️ Pilihan Sambal" ||
+        a.name.toLowerCase().includes("sambal")
+      );
+    }
+    if (selectedFilterCategory === "🔥 Level Pedas") {
+      return (
+        a.category === "🔥 Level Pedas" ||
+        a.name.toLowerCase().includes("pedas") ||
+        a.name.toLowerCase().includes("level")
+      );
+    }
+    if (selectedFilterCategory === "🍳 Ekstra Topping / Lauk") {
+      return (
+        a.category === "🍳 Ekstra Topping / Lauk" ||
+        a.category === "Semua" ||
+        a.category === "Semua Makanan"
+      );
+    }
+    return a.category === selectedFilterCategory;
   });
 
   return (
@@ -149,10 +239,10 @@ export default function AddOnManagementModal({
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                Kelola Add-On &amp; Topping Menu
+                Kelola Add-On &amp; 3 Opsi Sambal Nyamleng
               </DialogTitle>
               <p className="text-xs text-emerald-100 font-medium">
-                Atur ekstra topping, sambal, porsi nasi &amp; level pedas realtime.
+                Atur 3 pilihan sambal, ekstra topping, sambal, porsi nasi &amp; level pedas realtime.
               </p>
             </div>
           </div>
@@ -167,7 +257,7 @@ export default function AddOnManagementModal({
                 className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm h-10 px-4 gap-2 rounded-xl cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>+ Add-On Baru</span>
+                <span>+ Add-On / Sambal Baru</span>
               </Button>
             )}
 
@@ -183,6 +273,34 @@ export default function AddOnManagementModal({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+          {/* Quick Preset Banner for 3 Sambal Options */}
+          <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500 text-slate-950 rounded-xl font-bold shrink-0">
+                🌶️
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-foreground">
+                  Kelola 3 Opsi Sambal Utama Nyamleng
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Sambal Bawang, Sambal Terasi, dan Sambal Hijau siap disinkronkan ke Kasir POS &amp; Menu Digital.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              disabled={isGeneratingSambal}
+              onClick={handleAutoCreateSambal}
+              variant="outline"
+              className="border-amber-500/40 text-amber-700 dark:text-amber-300 bg-background hover:bg-amber-500/20 font-black text-xs h-10 px-4 gap-2 rounded-xl cursor-pointer shrink-0"
+            >
+              <Wand2 className="w-4 h-4 text-amber-500" />
+              <span>{isGeneratingSambal ? "Memproses..." : "✨ Auto Create 3 Opsi Sambal"}</span>
+            </Button>
+          </div>
+
           {/* Add / Edit Form Card */}
           {isFormOpen && (
             <form
@@ -192,7 +310,7 @@ export default function AddOnManagementModal({
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <h4 className="font-black text-sm sm:text-base text-foreground flex items-center gap-2">
                   <Tag className="w-4 h-4 text-primary" />
-                  <span>{editingId ? "Edit Data Add-On" : "Form Tambah Add-On Baru"}</span>
+                  <span>{editingId ? "Edit Data Add-On / Sambal" : "Form Tambah Add-On / Sambal Baru"}</span>
                 </h4>
                 <Button
                   type="button"
@@ -207,20 +325,20 @@ export default function AddOnManagementModal({
 
               {/* Responsive Form Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-                {/* Nama Add On (Full Width on Desktop) */}
+                {/* Nama Add On */}
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-bold text-foreground block">
-                    Nama Add-On / Topping <span className="text-destructive">*</span>
+                    Nama Add-On / Opsi Sambal <span className="text-destructive">*</span>
                   </label>
                   <Input
                     required
-                    placeholder="Contoh: Ekstra Sambal Bawang, Telur Dadar Crispy, Level Pedas 3..."
+                    placeholder="Contoh: Sambal Bawang Nyamleng 🌶️, Ekstra Sambal Terasi, Level 3..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
                   <span className="text-xs text-muted-foreground block">
-                    Nama opsi topping yang dapat dipilih pembeli di Kasir POS dan Menu Digital.
+                    Nama topping/sambal yang muncul sebagai opsi pilihan saat pemesanan makanan.
                   </span>
                 </div>
 
@@ -238,7 +356,7 @@ export default function AddOnManagementModal({
                     className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
                   <span className="text-xs text-muted-foreground block">
-                    Isi 0 jika gratis (misal opsi pilihan level pedas).
+                    Isi 0 jika gratis (misal pilihan sambal bawaan / porsi gratis).
                   </span>
                 </div>
 
@@ -256,33 +374,53 @@ export default function AddOnManagementModal({
                     className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
                   />
                   <span className="text-xs text-muted-foreground block">
-                    Digunakan untuk kalkulasi laba bersih akurat per topping.
+                    Digunakan untuk kalkulasi laba bersih akurat per porsi topping.
                   </span>
                 </div>
 
-                {/* Kategori Wadah Berlakunya */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground block">
-                    Berlaku Untuk Wadah Kategori
-                  </label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="bg-background font-bold text-sm h-11 rounded-xl w-full">
-                      <SelectValue placeholder="Pilih Wadah" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORY_PRESETS.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="font-bold text-xs sm:text-sm">
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Kategori Wadah / Kelompok */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground block">
+                      Wadah Kelompok / Kategori Add-On
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomCategory(!isCustomCategory)}
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      {isCustomCategory ? "Pilih dari Preset Wadah" : "+ Ketik Wadah / Kelompok Baru"}
+                    </button>
+                  </div>
+
+                  {isCustomCategory ? (
+                    <Input
+                      type="text"
+                      placeholder="Ketik kelompok baru (contoh: 🌶️ Pilihan Sambal Spesial)"
+                      value={customCategoryInput}
+                      onChange={(e) => setCustomCategoryInput(e.target.value)}
+                      className="h-11 text-sm font-bold bg-background rounded-xl w-full"
+                    />
+                  ) : (
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger className="bg-background font-bold text-sm h-11 rounded-xl w-full">
+                        <SelectValue placeholder="Pilih Wadah Kelompok" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORY_PRESETS.map((cat) => (
+                          <SelectItem key={cat} value={cat} className="font-bold text-xs sm:text-sm">
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {/* Status Toggle */}
-                <div className="space-y-1.5 flex flex-col justify-end">
+                <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-bold text-foreground block">
-                    Status Ketersediaan
+                    Status Ketersediaan Opsi
                   </label>
                   <Button
                     type="button"
@@ -292,7 +430,7 @@ export default function AddOnManagementModal({
                       isActive ? "text-emerald-600 border-emerald-500/40" : "text-rose-500 border-rose-500/40"
                     }`}
                   >
-                    <span>{isActive ? "🟢 Aktif (Tersedia)" : "🔴 Nonaktif (Habis)"}</span>
+                    <span>{isActive ? "🟢 Aktif (Tersedia Dipilih Pembeli)" : "🔴 Nonaktif (Stok Habis / Tutup)"}</span>
                     <span className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
                   </Button>
                 </div>
@@ -319,12 +457,18 @@ export default function AddOnManagementModal({
             </form>
           )}
 
-          {/* Filter Bar */}
+          {/* Filter Bar Categories */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
             <span className="text-xs font-bold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5" /> Wadah:
+              <Layers className="w-3.5 h-3.5" /> Filter Kelompok:
             </span>
-            {CATEGORY_PRESETS.map((cat) => (
+            {[
+              "Semua",
+              "🌶️ Pilihan Sambal",
+              "🔥 Level Pedas",
+              "🍳 Ekstra Topping / Lauk",
+              "🥤 Pilihan Es / Suhu",
+            ].map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -344,9 +488,9 @@ export default function AddOnManagementModal({
           {filteredAddOns.length === 0 ? (
             <div className="text-center py-12 bg-muted/20 border border-dashed border-border rounded-2xl p-6">
               <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="font-bold text-foreground text-sm">Belum Ada Add-On di Wadah Ini</p>
+              <p className="font-bold text-foreground text-sm">Belum Ada Add-On di Kelompok Ini</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Klik tombol <strong>&quot;+ Add-On Baru&quot;</strong> di atas untuk membuat pilihan topping pertama.
+                Klik tombol <strong>&quot;+ Add-On / Sambal Baru&quot;</strong> atau <strong>&quot;Auto Create 3 Opsi Sambal&quot;</strong> di atas.
               </p>
             </div>
           ) : (
@@ -362,7 +506,7 @@ export default function AddOnManagementModal({
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h5 className="font-black text-sm sm:text-base text-foreground leading-snug">
+                      <h5 className="font-black text-sm sm:text-base text-foreground leading-snug flex items-center gap-1.5">
                         {addon.name}
                       </h5>
                       <Badge
@@ -444,7 +588,7 @@ export default function AddOnManagementModal({
         {/* Modal Bottom Bar */}
         {!isFormOpen && (
           <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs sm:text-sm text-muted-foreground shrink-0">
-            <span>Total: <strong className="text-foreground">{addOns.length} Add-On</strong> terdaftar</span>
+            <span>Total: <strong className="text-foreground">{addOns.length} Add-On &amp; Sambal</strong> terdaftar</span>
             <Button variant="outline" onClick={onClose} className="cursor-pointer font-bold h-10 px-6 rounded-xl text-xs sm:text-sm">
               Tutup
             </Button>
