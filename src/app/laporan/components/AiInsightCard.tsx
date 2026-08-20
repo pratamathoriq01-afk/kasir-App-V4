@@ -9,9 +9,9 @@ interface AiInsightCardProps {
 
 export default function AiInsightCard({ transactions }: AiInsightCardProps) {
   const totalTrx = transactions.length;
-  const totalOmzet = transactions.reduce((acc, t) => acc + t.total, 0);
+  const totalNetOmzet = transactions.reduce((acc, t) => acc + (t.total - (t.tax || 0)), 0);
   const totalLaba = transactions.reduce((acc, t) => acc + t.netProfit, 0);
-  const avgBill = totalTrx > 0 ? Math.round(totalOmzet / totalTrx) : 0;
+  const avgBill = totalTrx > 0 ? Math.round(totalNetOmzet / totalTrx) : 0;
 
   const itemMap: Record<string, { qty: number; revenue: number }> = {};
   let dineInCount = 0;
@@ -59,7 +59,7 @@ export default function AiInsightCard({ transactions }: AiInsightCardProps) {
         <p className="flex items-start gap-2">
           <TrendingUp className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
           <span>
-            <strong>Performa Keuangan:</strong> Kedai Nyamleng mencatatkan total <strong>{totalTrx} transaksi</strong> dengan omzet sebesar <strong className="text-amber-300 font-mono">Rp {totalOmzet.toLocaleString("id-ID")}</strong> dan laba bersih sebesar <strong className="text-emerald-300 font-mono">Rp {totalLaba.toLocaleString("id-ID")}</strong>. Rata-rata pengeluaran per transaksi sebesar <strong>Rp {avgBill.toLocaleString("id-ID")}</strong>.
+            <strong>Performa Keuangan:</strong> Kedai Nyamleng mencatatkan total <strong>{totalTrx} transaksi</strong> dengan omzet netto sebesar <strong className="text-amber-300 font-mono">Rp {totalNetOmzet.toLocaleString("id-ID")}</strong> dan laba bersih sebesar <strong className="text-emerald-300 font-mono">Rp {totalLaba.toLocaleString("id-ID")}</strong>. Rata-rata pengeluaran per transaksi sebesar <strong>Rp {avgBill.toLocaleString("id-ID")}</strong>.
           </span>
         </p>
 

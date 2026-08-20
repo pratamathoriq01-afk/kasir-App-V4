@@ -149,7 +149,8 @@ export async function POST(request: Request) {
     const tax = Number(body.tax) || 0;
     const total = Number(body.total) || (subtotal + tax);
     const hppTotal = Number(body.hppTotal) || 0;
-    const netProfit = Number(body.netProfit) || (total - hppTotal - tax);
+    // SAK EMKM Real Net Profit: (Total - Tax) - HPP (Excludes Tax)
+    const netProfit = (total - tax) - hppTotal;
 
     // Initial status: all buyer online orders MUST be NEW_ORDER
     const initialStatus = body.isPOSAdminCheckout
