@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Plus, Check, Utensils, Flame } from "lucide-react";
+import { Sparkles, Plus, Check, Utensils, Flame, Radio } from "lucide-react";
 
 interface AddOnPickerModalProps {
   isOpen: boolean;
@@ -43,7 +43,7 @@ export default function AddOnPickerModal({
     !menuItem.category.toLowerCase().includes("minuman") &&
     !menuItem.category.toLowerCase().includes("drink");
 
-  // Smart Matching Logic: Show all active Sambal, Pedas, Topping & Matching category add-ons
+  // Smart Matching Logic: Show active Sambal, Pedas, Topping & Matching category add-ons
   const matchingAddOns = availableAddOns.filter((addon) => {
     if (!addon.isActive) return false;
     const cat = addon.category || "Semua";
@@ -94,9 +94,21 @@ export default function AddOnPickerModal({
     (a) => !sambalAddOns.includes(a) && !pedasAddOns.includes(a)
   );
 
-  const handleToggleAddOn = (addon: AddOn) => {
+  // Single-Select (Radio) for Sambal & Pedas, Multi-Select (Checkbox) for Topping
+  const handleToggleAddOn = (addon: AddOn, isSingleSelect: boolean, groupItems: AddOn[]) => {
     setSelectedAddOns((prev) => {
       const exists = prev.some((a) => a.id === addon.id);
+      if (isSingleSelect) {
+        if (exists) {
+          // Deselect if already selected
+          return prev.filter((a) => a.id !== addon.id);
+        }
+        // Replace other items in the same single-select group
+        const groupIds = groupItems.map((g) => g.id);
+        const filtered = prev.filter((a) => !groupIds.includes(a.id));
+        return [...filtered, addon];
+      }
+
       if (exists) {
         return prev.filter((a) => a.id !== addon.id);
       }
@@ -107,16 +119,24 @@ export default function AddOnPickerModal({
   const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + (a.price || 0), 0);
   const currentTotal = Number(menuItem.price) + addOnsTotal;
 
-  const renderAddOnGroup = (title: string, icon: string, items: AddOn[]) => {
+  const renderAddOnGroup = (
+    title: string,
+    subtitle: string,
+    icon: string,
+    items: AddOn[],
+    isSingleSelect: boolean
+  ) => {
     if (items.length === 0) return null;
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-1.5 text-xs font-black text-foreground border-b border-border pb-1">
-          <span>{icon}</span>
-          <span>{title}</span>
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold ml-auto">
-            {items.length} opsi
-          </Badge>
+        <div className="flex items-center justify-between border-b border-border pb-1">
+          <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
+            <span>{icon}</span>
+            <span>{title}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-semibold">
+            {subtitle}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -126,7 +146,7 @@ export default function AddOnPickerModal({
               <button
                 key={addon.id}
                 type="button"
-                onClick={() => handleToggleAddOn(addon)}
+                onClick={() => handleToggleAddOn(addon, isSingleSelect, items)}
                 className={`p-3 rounded-2xl border transition-all flex items-center justify-between text-left cursor-pointer ${
                   isSelected
                     ? "bg-primary/10 border-primary shadow-xs ring-2 ring-primary/40 font-bold"
@@ -135,7 +155,7 @@ export default function AddOnPickerModal({
               >
                 <div className="flex items-center gap-2.5 min-w-0 pr-1">
                   <div
-                    className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all shrink-0 ${
                       isSelected
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-muted-foreground/40 bg-background"
@@ -148,8 +168,8 @@ export default function AddOnPickerModal({
                   </span>
                 </div>
 
-                <span className="font-mono font-extrabold text-xs text-primary shrink-0">
-                  {addon.price > 0 ? `+ Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis"}
+                <span className="text-xs font-extrabold font-mono text-primary shrink-0 ml-2">
+                  {addon.price > 0 ? `+Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis"}
                 </span>
               </button>
             );
@@ -161,93 +181,97 @@ export default function AddOnPickerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        showCloseButton={false}
-        className="w-[96vw] sm:w-[92vw] md:max-w-lg lg:max-w-xl p-0 overflow-hidden bg-card text-card-foreground border-border shadow-2xl rounded-3xl flex flex-col max-h-[88vh]"
-      >
+      <DialogContent className="w-[94vw] sm:max-w-xl max-h-[90vh] p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 p-4 sm:p-5 text-white flex items-center justify-between shrink-0 border-b border-emerald-600/30">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/20 backdrop-blur-xs text-white rounded-2xl shadow-inner">
-              <Utensils className="w-5 h-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-base sm:text-lg font-black text-white truncate">
-                {menuItem.name}
-              </DialogTitle>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="font-mono font-bold text-amber-300 text-xs">
-                  Rp {Number(menuItem.price).toLocaleString("id-ID")}
-                </span>
-                <Badge variant="outline" className="text-[10px] px-2 py-0 border-white/30 text-emerald-100 font-bold">
-                  {menuItem.category}
-                </Badge>
+        <DialogHeader className="p-4 sm:p-5 bg-gradient-to-r from-emerald-800 to-green-700 text-white shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-white/20 text-white font-bold text-lg">
+                {menuItem.icon || "🍽️"}
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
+                  {menuItem.name}
+                </DialogTitle>
+                <p className="text-xs text-emerald-100 font-mono font-bold">
+                  Rp {Number(menuItem.price).toLocaleString("id-ID")} / porsi
+                </p>
               </div>
             </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span>Pilihan Sambal &amp; Topping Tambahan:</span>
-            </span>
-            <Badge className="bg-primary/20 text-primary border-primary/40 font-mono font-bold text-xs">
-              {selectedAddOns.length} Dipilih
+            <Badge className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5">
+              Opsi Add-On
             </Badge>
           </div>
+        </DialogHeader>
 
+        {/* Add-Ons List Sections */}
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 max-h-[60vh]">
           {matchingAddOns.length === 0 ? (
-            <div className="text-center py-8 bg-muted/30 rounded-2xl border border-dashed border-border p-6 text-xs text-muted-foreground">
-              <p className="font-bold text-foreground text-sm">Tidak Ada Add-On / Opsi Sambal</p>
-              <p className="mt-1">
-                Menu ini dapat langsung dimasukkan ke keranjang pesanan.
-              </p>
+            <div className="py-8 text-center text-muted-foreground text-xs font-bold">
+              Belum ada varian Add-On aktif untuk menu ini.
             </div>
           ) : (
-            <div className="space-y-4">
-              {renderAddOnGroup("Pilihan Sambal Nyamleng", "🌶️", sambalAddOns)}
-              {renderAddOnGroup("Tingkat Kepedasan", "🔥", pedasAddOns)}
-              {renderAddOnGroup("Ekstra Topping & Lauk", "🍳", toppingAddOns)}
-            </div>
+            <>
+              {renderAddOnGroup(
+                "Langkah 1: 🌶️ Pilih Jenis Sambal",
+                "(Pilih 1 jenis sambal)",
+                "🌶️",
+                sambalAddOns,
+                true // Single Select Radio
+              )}
+
+              {renderAddOnGroup(
+                "Langkah 2: 🔥 Pilih Level Kepedasan",
+                "(Pilih 1 level pedas)",
+                "🔥",
+                pedasAddOns,
+                true // Single Select Radio
+              )}
+
+              {renderAddOnGroup(
+                "Langkah 3: 🍳 Ekstra Topping & Lauk",
+                "(Bisa pilih banyak)",
+                "🍳",
+                toppingAddOns,
+                false // Multi Select Checkbox
+              )}
+            </>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-muted/40 border-t border-border space-y-3 shrink-0">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <span className="text-muted-foreground font-bold">Total Harga Per Porsi:</span>
-            <span className="font-mono font-black text-base sm:text-lg text-primary">
+        <div className="p-4 bg-muted/40 border-t border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+          <div>
+            <span className="text-[10px] text-muted-foreground font-semibold block uppercase tracking-wider">
+              Total Harga per Porsi
+            </span>
+            <span className="text-lg font-black text-primary font-mono">
               Rp {currentTotal.toLocaleString("id-ID")}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onDirectAdd(menuItem)}
-              className="h-11 text-xs sm:text-sm font-bold rounded-xl cursor-pointer"
+              onClick={() => {
+                onDirectAdd(menuItem);
+                onClose();
+              }}
+              className="flex-1 sm:flex-initial h-10 px-4 text-xs font-bold rounded-xl cursor-pointer"
             >
               Tanpa Add-On
             </Button>
             <Button
               type="button"
-              onClick={() => onConfirm(menuItem, selectedAddOns)}
-              className="h-11 text-xs sm:text-sm font-extrabold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md cursor-pointer gap-1.5"
+              onClick={() => {
+                onConfirm(menuItem, selectedAddOns);
+                onClose();
+              }}
+              className="flex-1 sm:flex-initial h-10 px-6 text-xs font-extrabold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Tambah Ke Keranjang</span>
+              <span>Tambah ke Keranjang</span>
             </Button>
           </div>
         </div>

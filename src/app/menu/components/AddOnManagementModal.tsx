@@ -36,6 +36,7 @@ import {
   Flame,
   Layers,
   Wand2,
+  Power,
 } from "lucide-react";
 
 interface AddOnManagementModalProps {
@@ -63,6 +64,10 @@ const SAMBAL_DEFAULTS = [
   { name: "Sambal Bawang Nyamleng 🌶️", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Terasi Matang 🔴", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Hijau / Ijo Segar 🟢", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+  { name: "Sambal Matah Bali 🥭", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+  { name: "Level 1 — Sedang 🌶️", price: 0, hpp: 0, category: "🔥 Level Pedas" },
+  { name: "Level 2 — Pedas 🔥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
+  { name: "Level 3 — Ekstra Pedas 💥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
 ];
 
 export default function AddOnManagementModal({
@@ -149,334 +154,102 @@ export default function AddOnManagementModal({
       hpp: Number(hpp) || 0,
       category: finalCat,
       isActive,
-      updatedAt: new Date().toISOString(),
     };
 
-    // 0ms Optimistic UI
     await saveAddOnOptimistic(payload);
     setAddOns(getStoredAddOns());
     resetForm();
   };
 
-  const handleAutoCreateSambal = async () => {
+  const handleToggleStatus = async (addon: AddOn) => {
+    const updatedAddon = { ...addon, isActive: !addon.isActive };
+    await saveAddOnOptimistic(updatedAddon);
+    setAddOns(getStoredAddOns());
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus Add-On ini?")) return;
+    await deleteAddOnOptimistic(id);
+    setAddOns(getStoredAddOns());
+    if (editingId === id) resetForm();
+  };
+
+  const handleAutoCreateSambals = async () => {
     setIsGeneratingSambal(true);
     try {
-      for (const s of SAMBAL_DEFAULTS) {
-        // Check if already exists
+      for (const preset of SAMBAL_DEFAULTS) {
         const exists = addOns.some(
-          (a) => a.name.toLowerCase().includes(s.name.toLowerCase().split(" ")[0])
+          (a) => a.name.toLowerCase().trim() === preset.name.toLowerCase().trim()
         );
         if (!exists) {
-          const item: AddOn = {
-            id: `addon-sambal-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            name: s.name,
-            price: s.price,
-            hpp: s.hpp,
-            category: s.category,
+          const itemPayload: AddOn = {
+            id: `addon-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            name: preset.name,
+            price: preset.price,
+            hpp: preset.hpp,
+            category: preset.category,
             isActive: true,
-            updatedAt: new Date().toISOString(),
           };
-          await saveAddOnOptimistic(item);
+          await saveAddOnOptimistic(itemPayload);
         }
       }
       setAddOns(getStoredAddOns());
-      loadData();
-    } catch (err) {
-      console.error("Gagal auto create sambal:", err);
+    } catch (e) {
+      console.error("Auto create preset add-ons error:", e);
     } finally {
       setIsGeneratingSambal(false);
     }
   };
 
-  const handleDelete = async (id: string, addonName: string) => {
-    if (!confirm(`Hapus Add-On "${addonName}"?`)) return;
-    await deleteAddOnOptimistic(id);
-    setAddOns(getStoredAddOns());
-  };
-
-  const handleToggleStatus = async (addon: AddOn) => {
-    const updated: AddOn = { ...addon, isActive: !addon.isActive };
-    await saveAddOnOptimistic(updated);
-    setAddOns(getStoredAddOns());
-  };
-
   const filteredAddOns = addOns.filter((a) => {
     if (selectedFilterCategory === "Semua") return true;
-    if (selectedFilterCategory === "🌶️ Pilihan Sambal") {
-      return (
-        a.category === "🌶️ Pilihan Sambal" ||
-        a.name.toLowerCase().includes("sambal")
-      );
-    }
-    if (selectedFilterCategory === "🔥 Level Pedas") {
-      return (
-        a.category === "🔥 Level Pedas" ||
-        a.name.toLowerCase().includes("pedas") ||
-        a.name.toLowerCase().includes("level")
-      );
-    }
-    if (selectedFilterCategory === "🍳 Ekstra Topping / Lauk") {
-      return (
-        a.category === "🍳 Ekstra Topping / Lauk" ||
-        a.category === "Semua" ||
-        a.category === "Semua Makanan"
-      );
-    }
-    return a.category === selectedFilterCategory;
+    return (a.category || "Semua") === selectedFilterCategory;
   });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] sm:w-[94vw] md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card text-card-foreground border-border rounded-3xl shadow-2xl"
+        className="w-[96vw] sm:w-[94vw] md:max-w-4xl lg:max-w-5xl max-h-[92vh] p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl flex flex-col"
       >
         {/* Header Banner */}
-        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-800 p-4 sm:p-5 text-white flex items-center justify-between shrink-0 border-b border-emerald-600/30">
+        <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 p-4 sm:p-5 text-white flex items-center justify-between shrink-0 border-b border-amber-400/30">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/20 backdrop-blur-xs text-white rounded-2xl shadow-inner">
+            <div className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                Kelola Add-On &amp; 3 Opsi Sambal Nyamleng
+                Kelola Add-On &amp; Varian Sambal Nyamleng
               </DialogTitle>
-              <p className="text-xs text-emerald-100 font-medium">
-                Atur 3 pilihan sambal, ekstra topping, sambal, porsi nasi &amp; level pedas realtime.
+              <p className="text-xs text-amber-100 font-medium">
+                Tambah, edit, hapus, &amp; kontrol stok aktif/non-aktif jenis sambal &amp; level pedas realtime 0ms.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {!isFormOpen && (
-              <Button
-                onClick={() => {
-                  resetForm();
-                  setIsFormOpen(true);
-                }}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs sm:text-sm h-10 px-4 gap-2 rounded-xl cursor-pointer shadow-sm"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>+ Add-On / Sambal Baru</span>
-              </Button>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-          {/* Quick Preset Banner for 3 Sambal Options */}
-          <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500 text-slate-950 rounded-xl font-bold shrink-0">
-                🌶️
-              </div>
-              <div>
-                <h4 className="font-extrabold text-xs sm:text-sm text-foreground">
-                  Kelola 3 Opsi Sambal Utama Nyamleng
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Sambal Bawang, Sambal Terasi, dan Sambal Hijau siap disinkronkan ke Kasir POS &amp; Menu Digital.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              disabled={isGeneratingSambal}
-              onClick={handleAutoCreateSambal}
-              variant="outline"
-              className="border-amber-500/40 text-amber-700 dark:text-amber-300 bg-background hover:bg-amber-500/20 font-black text-xs h-10 px-4 gap-2 rounded-xl cursor-pointer shrink-0"
-            >
-              <Wand2 className="w-4 h-4 text-amber-500" />
-              <span>{isGeneratingSambal ? "Memproses..." : "✨ Auto Create 3 Opsi Sambal"}</span>
-            </Button>
-          </div>
-
-          {/* Add / Edit Form Card */}
-          {isFormOpen && (
-            <form
-              onSubmit={handleSave}
-              className="p-4 sm:p-6 bg-muted/40 border border-primary/30 rounded-2xl space-y-5 animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm"
-            >
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h4 className="font-black text-sm sm:text-base text-foreground flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-primary" />
-                  <span>{editingId ? "Edit Data Add-On / Sambal" : "Form Tambah Add-On / Sambal Baru"}</span>
-                </h4>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetForm}
-                  className="h-9 px-4 text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer rounded-xl"
-                >
-                  Batal
-                </Button>
-              </div>
-
-              {/* Responsive Form Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
-                {/* Nama Add On */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-foreground block">
-                    Nama Add-On / Opsi Sambal <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    required
-                    placeholder="Contoh: Sambal Bawang Nyamleng 🌶️, Ekstra Sambal Terasi, Level 3..."
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
-                  />
-                  <span className="text-xs text-muted-foreground block">
-                    Nama topping/sambal yang muncul sebagai opsi pilihan saat pemesanan makanan.
-                  </span>
-                </div>
-
-                {/* Harga Jual */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground block">
-                    Harga Jual Tambahan (Rp) <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
-                  />
-                  <span className="text-xs text-muted-foreground block">
-                    Isi 0 jika gratis (misal pilihan sambal bawaan / porsi gratis).
-                  </span>
-                </div>
-
-                {/* Modal HPP */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground block">
-                    Modal HPP (Rp)
-                  </label>
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={hpp}
-                    onChange={(e) => setHpp(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="font-mono font-bold text-sm text-foreground bg-background h-11 rounded-xl w-full"
-                  />
-                  <span className="text-xs text-muted-foreground block">
-                    Digunakan untuk kalkulasi laba bersih akurat per porsi topping.
-                  </span>
-                </div>
-
-                {/* Kategori Wadah / Kelompok */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground block">
-                      Wadah Kelompok / Kategori Add-On
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomCategory(!isCustomCategory)}
-                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      {isCustomCategory ? "Pilih dari Preset Wadah" : "+ Ketik Wadah / Kelompok Baru"}
-                    </button>
-                  </div>
-
-                  {isCustomCategory ? (
-                    <Input
-                      type="text"
-                      placeholder="Ketik kelompok baru (contoh: 🌶️ Pilihan Sambal Spesial)"
-                      value={customCategoryInput}
-                      onChange={(e) => setCustomCategoryInput(e.target.value)}
-                      className="h-11 text-sm font-bold bg-background rounded-xl w-full"
-                    />
-                  ) : (
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="bg-background font-bold text-sm h-11 rounded-xl w-full">
-                        <SelectValue placeholder="Pilih Wadah Kelompok" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_PRESETS.map((cat) => (
-                          <SelectItem key={cat} value={cat} className="font-bold text-xs sm:text-sm">
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {/* Status Toggle */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-foreground block">
-                    Status Ketersediaan Opsi
-                  </label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsActive(!isActive)}
-                    className={`justify-between text-xs sm:text-sm font-bold h-11 rounded-xl bg-background cursor-pointer w-full ${
-                      isActive ? "text-emerald-600 border-emerald-500/40" : "text-rose-500 border-rose-500/40"
-                    }`}
-                  >
-                    <span>{isActive ? "🟢 Aktif (Tersedia Dipilih Pembeli)" : "🔴 Nonaktif (Stok Habis / Tutup)"}</span>
-                    <span className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={resetForm}
-                  className="cursor-pointer rounded-xl h-11 px-6 text-xs sm:text-sm font-bold"
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold cursor-pointer rounded-xl h-11 px-8 text-xs sm:text-sm shadow-sm"
-                >
-                  {editingId ? "Update Data Add-On ✨" : "Simpan Add-On ✨"}
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* Filter Bar Categories */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-            <span className="text-xs font-bold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5" /> Filter Kelompok:
-            </span>
-            {[
-              "Semua",
-              "🌶️ Pilihan Sambal",
-              "🔥 Level Pedas",
-              "🍳 Ekstra Topping / Lauk",
-              "🥤 Pilihan Es / Suhu",
-            ].map((cat) => (
+        {/* Action Bar */}
+        <div className="p-4 sm:px-6 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
+            <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Filter Grup:</span>
+            {["Semua", "🌶️ Pilihan Sambal", "🔥 Level Pedas", "🍳 Ekstra Topping / Lauk"].map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedFilterCategory(cat)}
-                className={`px-3.5 py-2 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer text-xs ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
                   selectedFilterCategory === cat
-                    ? "bg-primary text-primary-foreground shadow-xs ring-1 ring-primary/40 font-extrabold"
-                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-background border border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {cat}
@@ -484,116 +257,256 @@ export default function AddOnManagementModal({
             ))}
           </div>
 
-          {/* Add-On List (Roomy 1/2/3 Columns) */}
-          {filteredAddOns.length === 0 ? (
-            <div className="text-center py-12 bg-muted/20 border border-dashed border-border rounded-2xl p-6">
-              <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="font-bold text-foreground text-sm">Belum Ada Add-On di Kelompok Ini</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Klik tombol <strong>&quot;+ Add-On / Sambal Baru&quot;</strong> atau <strong>&quot;Auto Create 3 Opsi Sambal&quot;</strong> di atas.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAddOns.map((addon) => (
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isGeneratingSambal}
+              onClick={handleAutoCreateSambals}
+              className="h-9 px-3 text-xs font-bold gap-1.5 cursor-pointer rounded-xl border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              <span>{isGeneratingSambal ? "Membuat..." : "✨ Auto Preset Sambal & Level"}</span>
+            </Button>
+
+            {!isFormOpen && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsFormOpen(true)}
+                className="h-9 px-4 text-xs font-extrabold gap-1.5 cursor-pointer rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ Tambah Varian Baru</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Scrollable Form & List Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Add / Edit Form Drawer */}
+          {isFormOpen && (
+            <form
+              onSubmit={handleSave}
+              className="p-4 sm:p-5 rounded-2xl bg-muted/40 border border-border space-y-4 animate-in fade-in duration-200"
+            >
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h4 className="font-extrabold text-sm text-foreground flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-primary" />
+                  <span>{editingId ? "Edit Varian Add-On" : "Tambah Varian Add-On / Sambal Baru"}</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="text-muted-foreground hover:text-foreground text-xs font-bold"
+                >
+                  Batal ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-foreground">Nama Varian / Sambal</label>
+                  <Input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Contoh: Sambal Matah Bali 🥭"
+                    className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl w-full"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-foreground">Harga Jual (Rp)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="0 (Gratis) / Rp 3.000"
+                    className="h-10 text-xs sm:text-sm font-mono font-bold bg-background rounded-xl w-full"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-foreground">HPP / Modal (Rp)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={hpp}
+                    onChange={(e) => setHpp(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="0"
+                    className="h-10 text-xs sm:text-sm font-mono bg-background rounded-xl w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-foreground">Grup / Kategori Add-On</label>
+                  <Select
+                    value={isCustomCategory ? "CUSTOM" : category}
+                    onValueChange={(val) => {
+                      if (val === "CUSTOM") {
+                        setIsCustomCategory(true);
+                      } else {
+                        setIsCustomCategory(false);
+                        setCategory(val);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-xs font-bold bg-background rounded-xl w-full">
+                      <SelectValue placeholder="Pilih Grup" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORY_PRESETS.map((cat) => (
+                        <SelectItem key={cat} value={cat} className="text-xs font-medium">
+                          {cat}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="CUSTOM" className="text-xs font-bold text-primary">
+                        + Buat Grup Kustom Baru...
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {isCustomCategory && (
+                    <Input
+                      type="text"
+                      value={customCategoryInput}
+                      onChange={(e) => setCustomCategoryInput(e.target.value)}
+                      placeholder="Masukkan nama grup kustom..."
+                      className="h-9 text-xs mt-1.5 bg-background rounded-xl w-full"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1 flex flex-col justify-end">
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl bg-background border border-border cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary accent-primary cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-foreground">
+                      {isActive ? "🟢 Status: Aktif (Tersedia)" : "🔴 Status: Non-Aktif (Habis)"}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resetForm}
+                  className="h-9 px-4 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 px-6 text-xs font-extrabold gap-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-sm"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>{editingId ? "Update Varian" : "Simpan Varian"}</span>
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Add-Ons List Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredAddOns.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border p-6">
+                <Flame className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                <p className="text-xs font-bold">Belum ada Add-On / Varian Sambal dalam grup ini.</p>
+                <p className="text-[11px] mt-1 text-muted-foreground">
+                  Klik "+ Tambah Varian Baru" atau gunakan "✨ Auto Preset Sambal &amp; Level" di atas.
+                </p>
+              </div>
+            ) : (
+              filteredAddOns.map((addon) => (
                 <div
                   key={addon.id}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
                     addon.isActive
-                      ? "bg-card border-border hover:border-primary/50 shadow-xs hover:shadow-md"
-                      : "bg-muted/30 border-border/60 opacity-60"
+                      ? "bg-card border-border hover:border-primary/40 shadow-xs"
+                      : "bg-muted/40 border-border/60 opacity-60"
                   }`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h5 className="font-black text-sm sm:text-base text-foreground leading-snug flex items-center gap-1.5">
-                        {addon.name}
-                      </h5>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs px-2.5 py-0.5 font-extrabold uppercase ${
-                          addon.isActive
-                            ? "text-emerald-600 border-emerald-500/30 bg-emerald-500/10"
-                            : "text-rose-500 border-rose-500/30 bg-rose-500/10"
-                        }`}
-                      >
-                        {addon.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </div>
-
-                    <div className="p-2.5 bg-muted/40 rounded-xl border border-border flex items-center justify-between text-xs sm:text-sm">
-                      <span className="font-mono font-black text-primary text-sm sm:text-base">
-                        {addon.price > 0 ? `+ Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis (Rp 0)"}
-                      </span>
-                      {addon.hpp > 0 && (
-                        <span className="font-mono text-muted-foreground text-xs">
-                          HPP: Rp {addon.hpp.toLocaleString("id-ID")}
-                        </span>
-                      )}
-                    </div>
-
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-md font-semibold inline-block">
-                        Wadah: {addon.category || "Semua"}
-                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="text-[9.5px] px-2 py-0.5 font-bold mb-1.5 bg-muted text-muted-foreground"
+                      >
+                        {addon.category || "Semua"}
+                      </Badge>
+                      <h4 className="font-extrabold text-sm text-foreground leading-tight">
+                        {addon.name}
+                      </h4>
                     </div>
+
+                    {/* Instant Toggle Stock Button (0ms Sync) */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(addon)}
+                      className={`px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1 transition-all cursor-pointer ${
+                        addon.isActive
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:bg-rose-500/20"
+                      }`}
+                      title={addon.isActive ? "Klik untuk tandai HABIS" : "Klik untuk tandai TERSEDIA"}
+                    >
+                      <Power className="w-3 h-3" />
+                      <span>{addon.isActive ? "AKTIFF" : "HABIS"}</span>
+                    </button>
                   </div>
 
-                  {/* Actions */}
                   <div className="pt-2 border-t border-border flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      ID: {addon.id.slice(0, 10)}...
-                    </span>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-medium">Harga Jual</span>
+                      <span className="text-xs font-extrabold font-mono text-primary">
+                        {addon.price > 0 ? `+Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis / Rp 0"}
+                      </span>
+                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleStatus(addon)}
-                        className={`w-8 h-8 rounded-lg cursor-pointer ${
-                          addon.isActive ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-foreground hover:bg-muted"
-                        }`}
-                        title={addon.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      >
-                        {addon.isActive ? <Check className="w-4 h-4 stroke-[2.5]" /> : <X className="w-4 h-4" />}
-                      </Button>
-
-                      <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(addon)}
-                        className="w-8 h-8 rounded-lg text-primary hover:bg-primary/10 cursor-pointer"
-                        title="Edit Add-On"
+                        className="w-8 h-8 rounded-xl text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Edit Varian"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3.5 h-3.5" />
                       </Button>
 
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(addon.id, addon.name)}
-                        className="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                        title="Hapus Add-On"
+                        onClick={() => handleDelete(addon.id)}
+                        className="w-8 h-8 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                        title="Hapus Varian"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Modal Bottom Bar */}
-        {!isFormOpen && (
-          <div className="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs sm:text-sm text-muted-foreground shrink-0">
-            <span>Total: <strong className="text-foreground">{addOns.length} Add-On &amp; Sambal</strong> terdaftar</span>
-            <Button variant="outline" onClick={onClose} className="cursor-pointer font-bold h-10 px-6 rounded-xl text-xs sm:text-sm">
-              Tutup
-            </Button>
+              ))
+            )}
           </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   );
