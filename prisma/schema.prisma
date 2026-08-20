@@ -105,8 +105,19 @@ model StoreSettings {
   whatsapp           String
   city               String   @default("Kota Malang")
   province           String   @default("Jawa Timur")
+  isOpen             Boolean? @default(true)
+  openTime           String?  @default("08:00")
+  closeTime          String?  @default("22:00")
+  isAutoSchedule     Boolean? @default(true)
+  closedReason       String?  @default("Kedai sedang istirahat / tutup sementara.")
+  weeklySchedule     String?  // JSON string storing 7-day schedule (Monday to Sunday)
   googleClientId     String?
   googleClientSecret String?
   googleRedirectUri  String?
+  geminiApiKey       String?
+  openaiApiKey       String?
+  anthropicApiKey    String?
+  groqApiKey         String?
+  deepseekApiKey     String?
   updatedAt          DateTime @updatedAt
 }

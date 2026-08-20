@@ -47,6 +47,14 @@ class ThermalPrinterManager {
     return ThermalPrinterManager.instance;
   }
 
+  public getPrinterStatus() {
+    return {
+      isUsb: !!(this.usbSession && this.usbSession.isOpen),
+      isSerial: !!(this.serialSession && this.serialSession.isOpen),
+      isBt: !!(this.btSession && this.btSession.isOpen),
+    };
+  }
+
   /**
    * Auto-restores existing paired USB / Serial / Bluetooth printers on boot
    */

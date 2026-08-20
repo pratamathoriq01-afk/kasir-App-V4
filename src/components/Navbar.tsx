@@ -64,6 +64,31 @@ export default function Navbar() {
     };
   }, []);
 
+  // Auto-restore printer connection status on mount / page refresh
+  useEffect(() => {
+    const autoRestore = async () => {
+      const preferred = localStorage.getItem("preferred_printer_method");
+      try {
+        const { printerManager } = await import("@/lib/printer/printer-manager");
+        await printerManager.autoRestorePairedDevices();
+
+        const status = printerManager.getPrinterStatus();
+        if (status.isUsb) setUsbConnected(true);
+        if (status.isSerial) setSerialConnected(true);
+        if (status.isBt) setBtConnected(true);
+
+        if (!status.isUsb && !status.isSerial && !status.isBt && preferred) {
+          if (preferred === "usb") setUsbConnected(true);
+          if (preferred === "serial") setSerialConnected(true);
+          if (preferred === "bluetooth") setBtConnected(true);
+        }
+      } catch (e) {
+        console.warn("Auto restore printer notice:", e);
+      }
+    };
+    autoRestore();
+  }, []);
+
   const handleConnectUsb = async () => {
     try {
       const success = await connectUSBPrinter();

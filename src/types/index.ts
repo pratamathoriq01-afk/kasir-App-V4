@@ -101,6 +101,15 @@ export interface StoreInfo {
   phone: string;
 }
 
+export interface DaySchedule {
+  dayName: "Senin" | "Selasa" | "Rabu" | "Kamis" | "Jumat" | "Sabtu" | "Minggu";
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+export type WeeklySchedule = DaySchedule[];
+
 export interface StoreSettings {
   id: string;
   storeName: string;
@@ -113,6 +122,7 @@ export interface StoreSettings {
   closeTime: string;
   isAutoSchedule: boolean;
   closedReason: string;
+  weeklySchedule?: WeeklySchedule | string | null;
   googleClientId?: string | null;
   googleRedirectUri?: string | null;
   updatedAt?: string | Date;

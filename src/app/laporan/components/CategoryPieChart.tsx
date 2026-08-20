@@ -3,7 +3,6 @@
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import { Transaction } from "@/types";
-import { PieChart } from "lucide-react";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -17,16 +16,24 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
   let cemilanRev = 0;
 
   transactions.forEach((t) => {
+    const trxGross = t.items.reduce(
+      (sum, i) => sum + i.qty * Number(i.priceSnapshot || 0),
+      0
+    );
+    const discountAmount = Number(t.discountAmount || 0);
+    const netRatio = trxGross > 0 ? Math.max(0, (trxGross - discountAmount) / trxGross) : 1;
+
     t.items.forEach((item) => {
       const itemCat = (item as any).category || (item as any).categorySnapshot;
-      const rev = item.priceSnapshot * item.qty;
+      const grossRev = Number(item.priceSnapshot || 0) * item.qty;
+      const rev = Math.round(grossRev * netRatio);
       const name = item.nameSnapshot.toLowerCase();
 
-      if (itemCat === "Minuman" || itemCat === "Beverage") {
+      if (itemCat === "Minuman" || itemCat === "Beverage" || itemCat === "Menu Minuman") {
         minumanRev += rev;
-      } else if (itemCat === "Cemilan" || itemCat === "Snack") {
+      } else if (itemCat === "Cemilan" || itemCat === "Snack" || itemCat === "Cemilan & Snack") {
         cemilanRev += rev;
-      } else if (itemCat === "Makanan" || itemCat === "Food") {
+      } else if (itemCat === "Makanan" || itemCat === "Food" || itemCat === "Menu Ayam Nyamleng" || itemCat === "Menu Ikan Nyamleng") {
         makananRev += rev;
       } else if (
         name.includes("es ") ||
@@ -89,7 +96,7 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
           pointStyle: "circle",
           padding: 14,
           font: { family: "sans-serif", size: 10, weight: "bold" },
-          color: "#334155",
+          color: "#94a3b8",
         },
       },
       tooltip: {
@@ -99,10 +106,10 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
         padding: 12,
         cornerRadius: 12,
         callbacks: {
-          label: function (context: any) {
-            const val = context.parsed || 0;
-            const pct = totalCatRev > 0 ? ((val / totalCatRev) * 100).toFixed(1) : "0.0";
-            return `  ${context.label}: Rp ${val.toLocaleString("id-ID")} (${pct}%)`;
+          label: (context: any) => {
+            const val = context.raw || 0;
+            const pct = totalCatRev > 0 ? Math.round((val / totalCatRev) * 100) : 0;
+            return ` ${context.label}: Rp ${val.toLocaleString("id-ID")} (${pct}%)`;
           },
         },
       },
@@ -110,30 +117,25 @@ export default function CategoryPieChart({ transactions }: CategoryPieChartProps
   };
 
   return (
-    <div className="bg-card p-5 rounded-3xl border border-border shadow-xs flex flex-col h-88 transition-colors">
-      <div className="flex items-center justify-between mb-2 border-b border-border pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-400 rounded-xl">
-            <PieChart className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-bold text-foreground text-sm">Proporsi Omzet Kategori</h3>
-            <p className="text-[11px] text-muted-foreground">Distribusi pendapatan per jenis menu.</p>
-          </div>
+    <div className="bg-card p-4 rounded-2xl border border-border shadow-xs flex flex-col justify-between transition-colors">
+      <div className="flex items-center justify-between border-b border-border pb-3 mb-2">
+        <div>
+          <h3 className="font-bold text-foreground text-sm">Proporsi Omzet Kategori</h3>
+          <p className="text-xs text-muted-foreground">Distribusi pendapatan per jenis menu</p>
         </div>
       </div>
 
-      <div className="flex-1 w-full relative flex items-center justify-center">
+      <div className="relative h-[190px] w-full flex items-center justify-center my-2">
         <Doughnut data={data} options={options} />
-        {/* Center Total Overlay */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
-          <span className="text-[10px] uppercase font-extrabold text-muted-foreground">Total Omzet</span>
-          <span className="text-xs font-black text-foreground font-mono">
-            Rp {(totalCatRev / 1000).toFixed(0)}rb
+          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
+            TOTAL OMZET
+          </span>
+          <span className="text-sm sm:text-base font-black text-foreground font-mono">
+            Rp {totalCatRev.toLocaleString("id-ID")}
           </span>
         </div>
       </div>
     </div>
   );
 }
-

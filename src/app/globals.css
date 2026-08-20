@@ -108,7 +108,7 @@ body {
 @theme inline {
   --font-heading: var(--font-plus-jakarta), Inter, sans-serif;
   --font-sans: var(--font-plus-jakarta), Inter, sans-serif;
-  --font-mono: var(--font-space-mono), monospace;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
