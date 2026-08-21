@@ -46,8 +46,38 @@ export default function AddOnPickerModal({
   // Smart Section Categorization for Food vs Drink Items
   const activeAddOns = availableAddOns.filter((a) => a.isActive);
 
-  // Food Add-Ons Groups
+  // 1. Ice / Suhu Add-Ons
+  const iceAddOns = activeAddOns.filter((a) => {
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat.includes("es") ||
+      cat.includes("suhu") ||
+      name.includes("es") ||
+      name.includes("ice") ||
+      name.includes("hangat") ||
+      name.includes("warm") ||
+      name.includes("suhu")
+    );
+  });
+
+  // 2. Sugar / Manis Add-Ons
+  const sugarAddOns = activeAddOns.filter((a) => {
+    if (iceAddOns.includes(a)) return false;
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat.includes("gula") ||
+      cat.includes("manis") ||
+      name.includes("gula") ||
+      name.includes("sugar") ||
+      name.includes("manis")
+    );
+  });
+
+  // 3. Sambal Add-Ons
   const sambalAddOns = activeAddOns.filter((a) => {
+    if (iceAddOns.includes(a) || sugarAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -60,8 +90,9 @@ export default function AddOnPickerModal({
     );
   });
 
+  // 4. Pedas Add-Ons
   const pedasAddOns = activeAddOns.filter((a) => {
-    if (sambalAddOns.includes(a)) return false;
+    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || sambalAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -73,41 +104,19 @@ export default function AddOnPickerModal({
     );
   });
 
-  const toppingAddOns = activeAddOns.filter((a) => {
-    if (sambalAddOns.includes(a) || pedasAddOns.includes(a)) return false;
-    const cat = (a.category || "").toLowerCase();
-    const name = a.name.toLowerCase();
-    return (
-      cat.includes("topping") ||
-      cat.includes("lauk") ||
-      name.includes("tahu") ||
-      name.includes("tempe") ||
-      name.includes("terong") ||
-      name.includes("telur")
-    );
-  });
+  // 5. Topping / General Food Add-Ons (Catches ALL remaining active items so nothing is ever lost!)
+  const toppingAddOns = activeAddOns.filter(
+    (a) =>
+      !iceAddOns.includes(a) &&
+      !sugarAddOns.includes(a) &&
+      !sambalAddOns.includes(a) &&
+      !pedasAddOns.includes(a)
+  );
 
-  // Drink Add-Ons Groups
-  const iceAddOns = activeAddOns.filter((a) => {
-    const name = a.name.toLowerCase();
-    return (
-      name.includes("es") ||
-      name.includes("ice") ||
-      name.includes("hangat") ||
-      name.includes("warm") ||
-      name.includes("suhu")
-    );
-  });
-
-  const sugarAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a)) return false;
-    const name = a.name.toLowerCase();
-    return (
-      name.includes("gula") ||
-      name.includes("sugar") ||
-      name.includes("manis")
-    );
-  });
+  // 6. Drink Extra Toppings (Catches ALL remaining active items for drinks!)
+  const drinkToppingAddOns = activeAddOns.filter(
+    (a) => !iceAddOns.includes(a) && !sugarAddOns.includes(a)
+  );
 
   // Single-Select (Radio) for Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
   const handleToggleAddOn = (
@@ -198,6 +207,11 @@ export default function AddOnPickerModal({
     );
   };
 
+  const hasAnyFoodAddOn =
+    sambalAddOns.length > 0 || pedasAddOns.length > 0 || toppingAddOns.length > 0;
+  const hasAnyDrinkAddOn =
+    iceAddOns.length > 0 || sugarAddOns.length > 0 || drinkToppingAddOns.length > 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[94vw] sm:max-w-xl max-h-[90vh] p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl flex flex-col">
@@ -226,32 +240,38 @@ export default function AddOnPickerModal({
         {/* Add-Ons List Sections */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 max-h-[60vh]">
           {isFoodItem ? (
-            <>
-              {renderAddOnGroup(
-                "Langkah 1: 🌶️ Pilih Jenis Sambal",
-                "(Pilih 1 jenis sambal)",
-                "🌶️",
-                sambalAddOns,
-                true // Single Select Radio
-              )}
+            hasAnyFoodAddOn ? (
+              <>
+                {renderAddOnGroup(
+                  "Langkah 1: 🌶️ Pilih Jenis Sambal",
+                  "(Pilih 1 jenis sambal)",
+                  "🌶️",
+                  sambalAddOns,
+                  true // Single Select Radio
+                )}
 
-              {renderAddOnGroup(
-                "Langkah 2: 🔥 Pilih Level Kepedasan",
-                "(Pilih 1 level pedas)",
-                "🔥",
-                pedasAddOns,
-                true // Single Select Radio
-              )}
+                {renderAddOnGroup(
+                  "Langkah 2: 🔥 Pilih Level Kepedasan",
+                  "(Pilih 1 level pedas)",
+                  "🔥",
+                  pedasAddOns,
+                  true // Single Select Radio
+                )}
 
-              {renderAddOnGroup(
-                "Langkah 3: 🍳 Ekstra Topping & Lauk",
-                "(Bisa pilih banyak)",
-                "🍳",
-                toppingAddOns,
-                false // Multi Select Checkbox
-              )}
-            </>
-          ) : (
+                {renderAddOnGroup(
+                  "Langkah 3: 🍳 Ekstra Topping & Lauk",
+                  "(Bisa pilih banyak)",
+                  "🍳",
+                  toppingAddOns,
+                  false // Multi Select Checkbox
+                )}
+              </>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground text-xs font-bold">
+                Belum ada pilihan Add-On aktif untuk menu ini.
+              </div>
+            )
+          ) : hasAnyDrinkAddOn ? (
             <>
               {renderAddOnGroup(
                 "Langkah 1: 🧊 Pilihan Suhu & Es",
@@ -268,7 +288,19 @@ export default function AddOnPickerModal({
                 sugarAddOns,
                 true // Single Select Radio
               )}
+
+              {renderAddOnGroup(
+                "Langkah 3: 🥤 Ekstra Topping Minuman",
+                "(Bisa pilih banyak)",
+                "🥤",
+                drinkToppingAddOns,
+                false // Multi Select Checkbox
+              )}
             </>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground text-xs font-bold">
+              Belum ada pilihan Add-On aktif untuk menu minuman ini.
+            </div>
           )}
         </div>
 
