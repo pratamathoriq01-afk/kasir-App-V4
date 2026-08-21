@@ -308,7 +308,7 @@ export async function fetchAddOnsFromDB(): Promise<AddOn[]> {
       .from("AddOn")
       .select("*")
       .order("name", { ascending: true });
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       saveAddOns(data as AddOn[]);
       return data as AddOn[];
     }
@@ -317,10 +317,10 @@ export async function fetchAddOnsFromDB(): Promise<AddOn[]> {
   }
 
   try {
-    const res = await fetch(`/api/addons?t=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`/api/addons?t=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         saveAddOns(data);
         return data;
       }
