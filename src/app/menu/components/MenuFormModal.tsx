@@ -76,6 +76,12 @@ export default function MenuFormModal({
       setTaxPercent(itemToEdit.taxPercent ?? 10);
       setImageUrl(itemToEdit.imageUrl || null);
       setIsActive(itemToEdit.isActive);
+
+      const initPrice = itemToEdit.price || 0;
+      const initHpp = itemToEdit.hpp || 0;
+      if (initPrice > 0) {
+        setTargetMargin(Math.max(0, Math.round(((initPrice - initHpp) / initPrice) * 100)));
+      }
     } else {
       setName("");
       setDescription("");
@@ -84,6 +90,7 @@ export default function MenuFormModal({
       setCustomCategoryInput("");
       setPriceStr("15.000");
       setHppStr("8.000");
+      setTargetMargin(47);
       setTaxPercent(10);
       setImageUrl(null);
       setIsActive(true);
@@ -124,12 +131,34 @@ export default function MenuFormModal({
     if (file && file.type.startsWith("image/")) handleImageFile(file);
   };
 
-  // Recalculate price when target margin is used
+  // Recalculate price when target margin is explicitly set by user/preset
   const handleTargetMarginChange = (marginVal: number) => {
     setTargetMargin(marginVal);
     if (marginVal < 100 && numHpp > 0) {
       const calculatedPrice = Math.round(numHpp / (1 - marginVal / 100));
       setPriceStr(formatNumber(calculatedPrice));
+    }
+  };
+
+  // Recalculate target margin when price input is changed directly
+  const handlePriceChange = (valStr: string) => {
+    const formatted = formatNumber(valStr);
+    setPriceStr(formatted);
+    const p = parseNumber(formatted);
+    if (p > 0) {
+      const effMargin = Math.max(0, Math.round(((p - numHpp) / p) * 100));
+      setTargetMargin(effMargin);
+    }
+  };
+
+  // Recalculate target margin when HPP input is changed directly
+  const handleHppChange = (valStr: string) => {
+    const formatted = formatNumber(valStr);
+    setHppStr(formatted);
+    const h = parseNumber(formatted);
+    if (numPrice > 0) {
+      const effMargin = Math.max(0, Math.round(((numPrice - h) / numPrice) * 100));
+      setTargetMargin(effMargin);
     }
   };
 
@@ -408,7 +437,7 @@ export default function MenuFormModal({
                   type="text"
                   inputMode="numeric"
                   value={priceStr}
-                  onChange={(e) => setPriceStr(formatNumber(e.target.value))}
+                  onChange={(e) => handlePriceChange(e.target.value)}
                   className="pl-11 pr-3 h-11 text-sm font-mono font-black bg-background rounded-xl text-primary w-full"
                   required
                 />
@@ -427,14 +456,7 @@ export default function MenuFormModal({
                   type="text"
                   inputMode="numeric"
                   value={hppStr}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value);
-                    setHppStr(formatted);
-                    const rawHpp = parseNumber(formatted);
-                    if (targetMargin < 100 && rawHpp > 0) {
-                      setPriceStr(formatNumber(Math.round(rawHpp / (1 - targetMargin / 100))));
-                    }
-                  }}
+                  onChange={(e) => handleHppChange(e.target.value)}
                   className="pl-11 pr-3 h-11 text-sm font-mono font-bold bg-background rounded-xl w-full"
                   required
                 />
