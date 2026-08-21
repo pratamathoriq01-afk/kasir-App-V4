@@ -31,10 +31,8 @@ import {
   Edit3,
   Sparkles,
   Check,
-  X,
   Tag,
   Flame,
-  Layers,
   Wand2,
   Power,
 } from "lucide-react";
@@ -49,7 +47,7 @@ const CATEGORY_PRESETS = [
   "🌶️ Pilihan Sambal",
   "🔥 Level Pedas",
   "🍳 Ekstra Topping / Lauk",
-  "🥤 Pilihan Es / Suhu",
+  "🥤 Pilihan Es & Gula",
   "Semua Makanan",
   "Semua Minuman",
   "Menu Ayam Nyamleng",
@@ -60,14 +58,31 @@ const CATEGORY_PRESETS = [
   "Paket Hemat",
 ];
 
-const SAMBAL_DEFAULTS = [
+const SAMBAL_AND_DRINK_DEFAULTS = [
+  // Sambal
   { name: "Sambal Bawang Nyamleng 🌶️", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Terasi Matang 🔴", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Hijau / Ijo Segar 🟢", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Matah Bali 🥭", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+  // Level Pedas
   { name: "Level 1 — Sedang 🌶️", price: 0, hpp: 0, category: "🔥 Level Pedas" },
   { name: "Level 2 — Pedas 🔥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
   { name: "Level 3 — Ekstra Pedas 💥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
+  // Topping
+  { name: "Tahu Goreng Crispy 🧈", price: 2500, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
+  { name: "Tempe Goreng Nyamleng 🥓", price: 2500, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
+  { name: "Terong Goreng Crispy 🍆", price: 3000, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
+  { name: "Telur Ceplok / Dadar 🍳", price: 4000, hpp: 2000, category: "🍳 Ekstra Topping / Lauk" },
+  // Minuman (Es & Suhu)
+  { name: "Es Normal 🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Es Sedikit / Less Ice 🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Tanpa Es / No Ice 🚫🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Hangat / Warm ☕", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  // Minuman (Gula & Manis)
+  { name: "Gula Normal 🍬", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Gula Sedikit / Less Sugar 🤏", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Tanpa Gula / No Sugar 🚫🍬", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+  { name: "Ekstra Shot Gula 🍯", price: 1000, hpp: 200, category: "🥤 Pilihan Es & Gula" },
 ];
 
 export default function AddOnManagementModal({
@@ -177,7 +192,7 @@ export default function AddOnManagementModal({
   const handleAutoCreateSambals = async () => {
     setIsGeneratingSambal(true);
     try {
-      for (const preset of SAMBAL_DEFAULTS) {
+      for (const preset of SAMBAL_AND_DRINK_DEFAULTS) {
         const exists = addOns.some(
           (a) => a.name.toLowerCase().trim() === preset.name.toLowerCase().trim()
         );
@@ -201,8 +216,58 @@ export default function AddOnManagementModal({
     }
   };
 
+  // Smart Keyword Filter: Match both category field & item name keywords
   const filteredAddOns = addOns.filter((a) => {
     if (selectedFilterCategory === "Semua") return true;
+
+    const cat = (a.category || "Semua").toLowerCase();
+    const nameLower = a.name.toLowerCase();
+
+    if (selectedFilterCategory === "🌶️ Pilihan Sambal") {
+      return (
+        cat.includes("sambal") ||
+        nameLower.includes("sambal") ||
+        nameLower.includes("bawang") ||
+        nameLower.includes("hijau") ||
+        nameLower.includes("matah") ||
+        nameLower.includes("terasi")
+      );
+    }
+
+    if (selectedFilterCategory === "🔥 Level Pedas") {
+      return (
+        cat.includes("pedas") ||
+        nameLower.includes("pedas") ||
+        nameLower.includes("level") ||
+        nameLower.includes("sedang") ||
+        nameLower.includes("super")
+      );
+    }
+
+    if (selectedFilterCategory === "🍳 Ekstra Topping / Lauk") {
+      return (
+        cat.includes("topping") ||
+        cat.includes("lauk") ||
+        nameLower.includes("tahu") ||
+        nameLower.includes("tempe") ||
+        nameLower.includes("terong") ||
+        nameLower.includes("telur")
+      );
+    }
+
+    if (selectedFilterCategory === "🥤 Pilihan Es & Gula") {
+      return (
+        cat.includes("minuman") ||
+        cat.includes("es") ||
+        cat.includes("gula") ||
+        nameLower.includes("es") ||
+        nameLower.includes("gula") ||
+        nameLower.includes("hangat") ||
+        nameLower.includes("ice") ||
+        nameLower.includes("sugar")
+      );
+    }
+
     return (a.category || "Semua") === selectedFilterCategory;
   });
 
@@ -220,10 +285,10 @@ export default function AddOnManagementModal({
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                Kelola Add-On &amp; Varian Sambal Nyamleng
+                Kelola Add-On &amp; Varian (Sambal, Pedas, Topping &amp; Minuman)
               </DialogTitle>
               <p className="text-xs text-amber-100 font-medium">
-                Tambah, edit, hapus, &amp; kontrol stok aktif/non-aktif jenis sambal &amp; level pedas realtime 0ms.
+                Tambah, edit, hapus, &amp; kontrol stok aktif/habis opsi makanan &amp; minuman realtime 0ms.
               </p>
             </div>
           </div>
@@ -241,7 +306,13 @@ export default function AddOnManagementModal({
         <div className="p-4 sm:px-6 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0">
             <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Filter Grup:</span>
-            {["Semua", "🌶️ Pilihan Sambal", "🔥 Level Pedas", "🍳 Ekstra Topping / Lauk"].map((cat) => (
+            {[
+              "Semua",
+              "🌶️ Pilihan Sambal",
+              "🔥 Level Pedas",
+              "🍳 Ekstra Topping / Lauk",
+              "🥤 Pilihan Es & Gula",
+            ].map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -267,7 +338,7 @@ export default function AddOnManagementModal({
               className="h-9 px-3 text-xs font-bold gap-1.5 cursor-pointer rounded-xl border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
             >
               <Wand2 className="w-3.5 h-3.5" />
-              <span>{isGeneratingSambal ? "Membuat..." : "✨ Auto Preset Sambal & Level"}</span>
+              <span>{isGeneratingSambal ? "Membuat..." : "✨ Auto Preset Sambal & Minuman"}</span>
             </Button>
 
             {!isFormOpen && (
@@ -295,7 +366,7 @@ export default function AddOnManagementModal({
               <div className="flex items-center justify-between border-b border-border pb-2">
                 <h4 className="font-extrabold text-sm text-foreground flex items-center gap-2">
                   <Tag className="w-4 h-4 text-primary" />
-                  <span>{editingId ? "Edit Varian Add-On" : "Tambah Varian Add-On / Sambal Baru"}</span>
+                  <span>{editingId ? "Edit Varian Add-On" : "Tambah Varian Add-On Baru"}</span>
                 </h4>
                 <button
                   type="button"
@@ -308,25 +379,25 @@ export default function AddOnManagementModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-foreground">Nama Varian / Sambal</label>
+                  <label className="text-xs font-bold text-foreground">Nama Varian / Option</label>
                   <Input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Sambal Matah Bali 🥭"
+                    placeholder="Contoh: Es Sedikit / Less Ice 🧊"
                     className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl w-full"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground">Harga Jual (Rp)</label>
+                  <label className="text-xs font-bold text-foreground">Harga Tambahan (Rp)</label>
                   <Input
                     type="number"
                     min={0}
                     value={price}
                     onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="0 (Gratis) / Rp 3.000"
+                    placeholder="0 (Gratis) / Rp 2.500"
                     className="h-10 text-xs sm:text-sm font-mono font-bold bg-background rounded-xl w-full"
                   />
                 </div>
@@ -426,9 +497,9 @@ export default function AddOnManagementModal({
             {filteredAddOns.length === 0 ? (
               <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border p-6">
                 <Flame className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                <p className="text-xs font-bold">Belum ada Add-On / Varian Sambal dalam grup ini.</p>
+                <p className="text-xs font-bold">Belum ada Add-On / Varian dalam grup ini.</p>
                 <p className="text-[11px] mt-1 text-muted-foreground">
-                  Klik "+ Tambah Varian Baru" atau gunakan "✨ Auto Preset Sambal &amp; Level" di atas.
+                  Klik "+ Tambah Varian Baru" atau gunakan "✨ Auto Preset Sambal &amp; Minuman" di atas.
                 </p>
               </div>
             ) : (
@@ -472,7 +543,7 @@ export default function AddOnManagementModal({
 
                   <div className="pt-2 border-t border-border flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-muted-foreground block font-medium">Harga Jual</span>
+                      <span className="text-[10px] text-muted-foreground block font-medium">Harga Tambahan</span>
                       <span className="text-xs font-extrabold font-mono text-primary">
                         {addon.price > 0 ? `+Rp ${addon.price.toLocaleString("id-ID")}` : "Gratis / Rp 0"}
                       </span>
