@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function jsonWithCors(data: any, status = 200) {
   return NextResponse.json(data, {
@@ -10,6 +11,7 @@ function jsonWithCors(data: any, status = 200) {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
     },
   });
 }
