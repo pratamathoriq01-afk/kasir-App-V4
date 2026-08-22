@@ -44,6 +44,7 @@ interface AddOnManagementModalProps {
 
 const CATEGORY_PRESETS = [
   "Semua",
+  "🍚 Pilihan Nasi",
   "🌶️ Pilihan Sambal",
   "🔥 Level Pedas",
   "🍳 Ekstra Topping / Lauk",
@@ -59,25 +60,34 @@ const CATEGORY_PRESETS = [
 ];
 
 const SAMBAL_AND_DRINK_DEFAULTS = [
+  // Pilihan Nasi / Karbo
+  { name: "Nasi Putih Matang 🍚", price: 0, hpp: 1500, category: "🍚 Pilihan Nasi" },
+  { name: "Nasi Daun Jeruk Nyamleng 🍃", price: 2000, hpp: 2000, category: "🍚 Pilihan Nasi" },
+  { name: "Tanpa Nasi / Tanpa Karbo 🚫🍚", price: 0, hpp: 0, category: "🍚 Pilihan Nasi" },
+
   // Sambal
   { name: "Sambal Bawang Nyamleng 🌶️", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Terasi Matang 🔴", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Hijau / Ijo Segar 🟢", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
   { name: "Sambal Matah Bali 🥭", price: 0, hpp: 500, category: "🌶️ Pilihan Sambal" },
+
   // Level Pedas
   { name: "Level 1 — Sedang 🌶️", price: 0, hpp: 0, category: "🔥 Level Pedas" },
   { name: "Level 2 — Pedas 🔥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
-  { name: "Level 3 — Ekstra Pedas 💥", price: 0, hpp: 0, category: "🔥 Level Pedas" },
-  // Topping
+  { name: "Level 3 — Ekstra Pedas 💥", price: 1000, hpp: 0, category: "🔥 Level Pedas" },
+
+  // Topping & Lauk Ala Carte
   { name: "Tahu Goreng Crispy 🧈", price: 2500, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
   { name: "Tempe Goreng Nyamleng 🥓", price: 2500, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
   { name: "Terong Goreng Crispy 🍆", price: 3000, hpp: 1000, category: "🍳 Ekstra Topping / Lauk" },
   { name: "Telur Ceplok / Dadar 🍳", price: 4000, hpp: 2000, category: "🍳 Ekstra Topping / Lauk" },
+
   // Minuman (Es & Suhu)
   { name: "Es Normal 🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
   { name: "Es Sedikit / Less Ice 🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
   { name: "Tanpa Es / No Ice 🚫🧊", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
   { name: "Hangat / Warm ☕", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
+
   // Minuman (Gula & Manis)
   { name: "Gula Normal 🍬", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
   { name: "Gula Sedikit / Less Sugar 🤏", price: 0, hpp: 0, category: "🥤 Pilihan Es & Gula" },
@@ -97,7 +107,7 @@ export default function AddOnManagementModal({
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | "">(0);
   const [hpp, setHpp] = useState<number | "">(0);
-  const [category, setCategory] = useState("🌶️ Pilihan Sambal");
+  const [category, setCategory] = useState("🍚 Pilihan Nasi");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryInput, setCustomCategoryInput] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -129,7 +139,7 @@ export default function AddOnManagementModal({
     setName("");
     setPrice(0);
     setHpp(0);
-    setCategory("🌶️ Pilihan Sambal");
+    setCategory("🍚 Pilihan Nasi");
     setIsCustomCategory(false);
     setCustomCategoryInput("");
     setIsActive(true);
@@ -223,6 +233,16 @@ export default function AddOnManagementModal({
     const cat = (a.category || "Semua").toLowerCase();
     const nameLower = a.name.toLowerCase();
 
+    if (selectedFilterCategory === "🍚 Pilihan Nasi") {
+      return (
+        cat.includes("nasi") ||
+        cat.includes("karbo") ||
+        nameLower.includes("nasi") ||
+        nameLower.includes("karbo") ||
+        nameLower.includes("jeruk")
+      );
+    }
+
     if (selectedFilterCategory === "🌶️ Pilihan Sambal") {
       return (
         cat.includes("sambal") ||
@@ -285,7 +305,7 @@ export default function AddOnManagementModal({
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                Kelola Add-On &amp; Varian (Sambal, Pedas, Topping &amp; Minuman)
+                Kelola Add-On &amp; Varian (Nasi, Sambal, Pedas, Topping &amp; Minuman)
               </DialogTitle>
               <p className="text-xs text-amber-100 font-medium">
                 Tambah, edit, hapus, &amp; kontrol stok aktif/habis opsi makanan &amp; minuman realtime 0ms.
@@ -308,6 +328,7 @@ export default function AddOnManagementModal({
             <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Filter Grup:</span>
             {[
               "Semua",
+              "🍚 Pilihan Nasi",
               "🌶️ Pilihan Sambal",
               "🔥 Level Pedas",
               "🍳 Ekstra Topping / Lauk",
@@ -338,7 +359,7 @@ export default function AddOnManagementModal({
               className="h-9 px-3 text-xs font-bold gap-1.5 cursor-pointer rounded-xl border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
             >
               <Wand2 className="w-3.5 h-3.5" />
-              <span>{isGeneratingSambal ? "Membuat..." : "✨ Auto Preset Sambal & Minuman"}</span>
+              <span>{isGeneratingSambal ? "Membuat..." : "✨ Auto Preset Lengkap"}</span>
             </Button>
 
             {!isFormOpen && (
@@ -385,7 +406,7 @@ export default function AddOnManagementModal({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Es Sedikit / Less Ice 🧊"
+                    placeholder="Contoh: Nasi Daun Jeruk Nyamleng 🍃"
                     className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl w-full"
                   />
                 </div>
@@ -397,7 +418,7 @@ export default function AddOnManagementModal({
                     min={0}
                     value={price}
                     onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="0 (Gratis) / Rp 2.500"
+                    placeholder="0 (Gratis) / Rp 2.000"
                     className="h-10 text-xs sm:text-sm font-mono font-bold bg-background rounded-xl w-full"
                   />
                 </div>
@@ -499,7 +520,7 @@ export default function AddOnManagementModal({
                 <Flame className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                 <p className="text-xs font-bold">Belum ada Add-On / Varian dalam grup ini.</p>
                 <p className="text-[11px] mt-1 text-muted-foreground">
-                  Klik "+ Tambah Varian Baru" atau gunakan "✨ Auto Preset Sambal &amp; Minuman" di atas.
+                  Klik "+ Tambah Varian Baru" atau gunakan "✨ Auto Preset Lengkap" di atas.
                 </p>
               </div>
             ) : (

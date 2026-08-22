@@ -75,9 +75,23 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 3. Sambal Add-Ons
-  const sambalAddOns = activeAddOns.filter((a) => {
+  // 3. Nasi / Karbo Add-Ons
+  const nasiAddOns = activeAddOns.filter((a) => {
     if (iceAddOns.includes(a) || sugarAddOns.includes(a)) return false;
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat.includes("nasi") ||
+      cat.includes("karbo") ||
+      name.includes("nasi") ||
+      name.includes("karbo") ||
+      name.includes("jeruk")
+    );
+  });
+
+  // 4. Sambal Add-Ons
+  const sambalAddOns = activeAddOns.filter((a) => {
+    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -90,9 +104,9 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 4. Pedas Add-Ons
+  // 5. Pedas Add-Ons
   const pedasAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || sambalAddOns.includes(a)) return false;
+    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a) || sambalAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -104,21 +118,22 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 5. Topping / General Food Add-Ons (Catches ALL remaining active items so nothing is ever lost!)
+  // 6. Topping & Ala Carte Add-Ons (Universal Fallback for Food)
   const toppingAddOns = activeAddOns.filter(
     (a) =>
       !iceAddOns.includes(a) &&
       !sugarAddOns.includes(a) &&
+      !nasiAddOns.includes(a) &&
       !sambalAddOns.includes(a) &&
       !pedasAddOns.includes(a)
   );
 
-  // 6. Drink Extra Toppings (Catches ALL remaining active items for drinks!)
+  // 7. Drink Extra Toppings (Universal Fallback for Drinks)
   const drinkToppingAddOns = activeAddOns.filter(
     (a) => !iceAddOns.includes(a) && !sugarAddOns.includes(a)
   );
 
-  // Single-Select (Radio) for Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
+  // Single-Select (Radio) for Nasi, Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
   const handleToggleAddOn = (
     addon: AddOn,
     isSingleSelect: boolean,
@@ -208,7 +223,10 @@ export default function AddOnPickerModal({
   };
 
   const hasAnyFoodAddOn =
-    sambalAddOns.length > 0 || pedasAddOns.length > 0 || toppingAddOns.length > 0;
+    nasiAddOns.length > 0 ||
+    sambalAddOns.length > 0 ||
+    pedasAddOns.length > 0 ||
+    toppingAddOns.length > 0;
   const hasAnyDrinkAddOn =
     iceAddOns.length > 0 || sugarAddOns.length > 0 || drinkToppingAddOns.length > 0;
 
@@ -232,7 +250,7 @@ export default function AddOnPickerModal({
               </div>
             </div>
             <Badge className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5">
-              {isFoodItem ? "Opsi Sambal & Topping" : "Opsi Es & Gula"}
+              {isFoodItem ? "Opsi Nasi, Sambal & Topping" : "Opsi Es & Gula"}
             </Badge>
           </div>
         </DialogHeader>
@@ -243,7 +261,15 @@ export default function AddOnPickerModal({
             hasAnyFoodAddOn ? (
               <>
                 {renderAddOnGroup(
-                  "Langkah 1: 🌶️ Pilih Jenis Sambal",
+                  "Langkah 1: 🍚 Pilih Jenis Nasi / Karbo",
+                  "(Pilih 1 opsi nasi)",
+                  "🍚",
+                  nasiAddOns,
+                  true // Single Select Radio
+                )}
+
+                {renderAddOnGroup(
+                  "Langkah 2: 🌶️ Pilih Jenis Sambal",
                   "(Pilih 1 jenis sambal)",
                   "🌶️",
                   sambalAddOns,
@@ -251,7 +277,7 @@ export default function AddOnPickerModal({
                 )}
 
                 {renderAddOnGroup(
-                  "Langkah 2: 🔥 Pilih Level Kepedasan",
+                  "Langkah 3: 🔥 Pilih Level Kepedasan",
                   "(Pilih 1 level pedas)",
                   "🔥",
                   pedasAddOns,
@@ -259,7 +285,7 @@ export default function AddOnPickerModal({
                 )}
 
                 {renderAddOnGroup(
-                  "Langkah 3: 🍳 Ekstra Topping & Lauk",
+                  "Langkah 4: 🍳 Ekstra Topping & Ala Carte",
                   "(Bisa pilih banyak)",
                   "🍳",
                   toppingAddOns,

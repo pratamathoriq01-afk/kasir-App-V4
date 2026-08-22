@@ -147,15 +147,32 @@ export async function saveMenuItemOptimistic(item: MenuItem, currentItems: MenuI
   saveMenuItems(updatedList);
   broadcastPOSSync("MENU_UPDATED", item);
 
-  // 2. Background DB Upsert
+  // 2. Background DB Upsert with sanitized explicit payload
   (async () => {
     try {
-      await supabase.from("MenuItem").upsert(item, { onConflict: "id" });
-      await fetch("/api/menu", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
-      });
+      const payload = {
+        id: item.id,
+        name: item.name,
+        category: item.category || "Menu Alacarte",
+        price: Number(item.price || 0),
+        hpp: Number(item.hpp || 0),
+        taxPercent: Number(item.taxPercent ?? 10),
+        description: item.description || null,
+        icon: item.icon || "🍽️",
+        imageUrl: item.imageUrl || null,
+        isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("MenuItem").upsert(payload, { onConflict: "id" });
+      if (error) {
+        console.warn("Supabase MenuItem upsert error, falling back to API:", error);
+        await fetch("/api/menu", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
     } catch (err) {
       console.warn("Background menu save notice:", err);
     }
