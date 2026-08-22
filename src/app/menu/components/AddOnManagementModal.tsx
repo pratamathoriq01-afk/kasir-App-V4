@@ -174,9 +174,20 @@ export default function AddOnManagementModal({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const finalCat = isCustomCategory
+    let finalCat = isCustomCategory
       ? customCategoryInput.trim() || "Semua"
       : category;
+
+    const nameLower = name.toLowerCase().trim();
+    if (nameLower.includes("nasi") || nameLower.includes("karbo")) {
+      finalCat = "🍚 Pilihan Nasi";
+    } else if (nameLower.includes("sambal") || nameLower.includes("bawang") || nameLower.includes("hijau") || nameLower.includes("matah") || nameLower.includes("terasi")) {
+      finalCat = "🌶️ Pilihan Sambal";
+    } else if (nameLower.includes("pedas") || nameLower.includes("level") || nameLower.includes("sedang") || nameLower.includes("super")) {
+      finalCat = "🔥 Level Pedas";
+    } else if (nameLower.includes("tahu") || nameLower.includes("tempe") || nameLower.includes("terong") || nameLower.includes("telur")) {
+      finalCat = "🍳 Ekstra Topping / Lauk";
+    }
 
     const payload: AddOn = {
       id: editingId || `addon-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
