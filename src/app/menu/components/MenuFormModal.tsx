@@ -126,7 +126,7 @@ export default function MenuFormModal({
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 600;
+        const MAX_WIDTH = 400;
         const scaleSize = MAX_WIDTH / img.width;
 
         if (scaleSize < 1) {
@@ -139,7 +139,7 @@ export default function MenuFormModal({
 
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.5);
         setImageUrl(compressedBase64);
       };
       img.src = src;
@@ -230,7 +230,18 @@ export default function MenuFormModal({
         isActive,
       };
 
-      await onSave(newItem);
+      try {
+        await onSave(newItem);
+      } catch (err: any) {
+        if (err?.message?.includes("exceeded the quota") || err?.name === "QuotaExceededError") {
+          console.warn("Storage quota warning caught, continuing with sanitized image data:", err);
+          // Try saving without image if localStorage quota is tight
+          const fallbackItem = { ...newItem, imageUrl: null };
+          await onSave(fallbackItem);
+        } else {
+          throw err;
+        }
+      }
     } catch (err: any) {
       console.error("Save menu error:", err);
       setErrorMessage(`Gagal menyimpan menu: ${err.message || "Terjadi kesalahan"}`);

@@ -136,16 +136,31 @@ export function saveMenuItems(items: MenuItem[]): void {
   try {
     localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(items));
   } catch (e) {
-    console.warn("LocalStorage quota notice, streamlining images for local storage:", e);
+    console.warn("LocalStorage quota exceeded in saveMenuItems, stripping base64 images:", e);
     try {
-      // Strip oversized base64 data URLs for local storage fallback
+      // Strip base64 data URLs for local storage fallback
       const streamlined = items.map((m) => ({
         ...m,
-        imageUrl: m.imageUrl && m.imageUrl.length > 50000 ? null : m.imageUrl,
+        imageUrl: m.imageUrl && m.imageUrl.startsWith("data:") ? null : m.imageUrl,
       }));
       localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(streamlined));
     } catch (err) {
-      console.error("LocalStorage save error:", err);
+      console.warn("LocalStorage saveMenuItems fallback notice:", err);
+    }
+  }
+}
+
+export function saveTransactions(transactions: Transaction[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(transactions));
+  } catch (e) {
+    console.warn("LocalStorage quota exceeded in saveTransactions, keeping recent:", e);
+    try {
+      const recent = transactions.slice(-20);
+      localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(recent));
+    } catch (err) {
+      console.warn("LocalStorage saveTransactions fallback notice:", err);
     }
   }
 }
@@ -260,10 +275,7 @@ export async function fetchTransactionsFromDB(): Promise<Transaction[]> {
   return getStoredTransactions();
 }
 
-export function saveTransactions(transactions: Transaction[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(transactions));
-}
+
 
 export async function fetchActiveVouchersFromDB(): Promise<Voucher[]> {
   // 1. Direct Supabase Edge Query (~30ms)
