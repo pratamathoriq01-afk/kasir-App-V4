@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MenuItem, AddOn } from "@/types";
+import { getStoredMenuItems } from "@/lib/data-service";
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,7 @@ export default function AddOnPickerModal({
   });
   const pedasAddOns = isGroupAllowed("🔥 Level Pedas", isFoodItem) ? rawPedasAddOns : [];
 
-  // 4. Paket Drink Add-Ons (Strictly for Drinks, Never Nasi or Food)
+  // 4. Paket Drink Add-Ons (Dynamically pulled from Etalase Drink Menu + AddOn table)
   const rawPaketDrinkAddOns = activeAddOns.filter((a) => {
     if (rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a) || rawPedasAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
@@ -127,7 +128,37 @@ export default function AddOnPickerModal({
 
     return isDrinkCategory || isDrinkName;
   });
-  const paketDrinkAddOns = isGroupAllowed("🍹 Pilihan Minuman Paket", isPaketItem) ? rawPaketDrinkAddOns : [];
+
+  // Dynamically query all active drinks from Etalase Menu Items (getStoredMenuItems)
+  const etalaseDrinks: AddOn[] = getStoredMenuItems()
+    .filter(
+      (m) =>
+        m.isActive &&
+        (m.category.toLowerCase().includes("minuman") || m.category.toLowerCase().includes("drink"))
+    )
+    .map((m) => ({
+      id: `etalase-drink-${m.id}`,
+      name: `${m.name} (Paket)`,
+      price: 0,
+      hpp: m.hpp || 0,
+      category: "🍹 Pilihan Minuman Paket",
+      isActive: true,
+    }));
+
+  // Combine both custom AddOn drink items and Etalase Drink Menu items (deduplicated by name)
+  const combinedPaketDrinkAddOns = [...rawPaketDrinkAddOns];
+  for (const ed of etalaseDrinks) {
+    const cleanEdName = ed.name.toLowerCase().replace(/\s*\(.*?\)/g, "").trim();
+    const exists = combinedPaketDrinkAddOns.some((a) => {
+      const cleanAName = a.name.toLowerCase().replace(/\s*\(.*?\)/g, "").trim();
+      return cleanAName === cleanEdName;
+    });
+    if (!exists) {
+      combinedPaketDrinkAddOns.push(ed);
+    }
+  }
+
+  const paketDrinkAddOns = isGroupAllowed("🍹 Pilihan Minuman Paket", isPaketItem) ? combinedPaketDrinkAddOns : [];
 
   // 5. Ice / Suhu Add-Ons
   const rawIceAddOns = activeAddOns.filter((a) => {
@@ -337,7 +368,7 @@ export default function AddOnPickerModal({
               {paketDrinkAddOns.length > 0 &&
                 renderAddOnGroup(
                   stepCounter++,
-                  "Pilihan Minuman Paket",
+                  "Pilihan Minuman Paket (Bebas Pilih)",
                   "(Pilih 1 minuman paket)",
                   "🍹",
                   paketDrinkAddOns,
