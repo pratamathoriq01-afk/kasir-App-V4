@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X, AlignLeft, AlertCircle } from "lucide-react";
+import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X, AlignLeft, AlertCircle, ToggleLeft, ToggleRight, CheckSquare, Square } from "lucide-react";
 import { getStoredCategories, addNewCategoryOptimistic } from "@/lib/data-service";
 
 interface MenuFormModalProps {
@@ -30,6 +30,15 @@ const CATEGORY_ICONS: Record<string, string> = {
   Cemilan: "🍟",
 };
 
+const ADDON_TOGGLE_GROUPS = [
+  { id: "🍹 Pilihan Minuman Paket", label: "🍹 Pilihan Minuman Paket", desc: "Es Teh, Es Jeruk, Air Mineral" },
+  { id: "🍚 Pilihan Nasi", label: "🍚 Pilihan Nasi / Karbo", desc: "Nasi Putih, Nasi Daun Jeruk, Tanpa Nasi" },
+  { id: "🌶️ Pilihan Sambal", label: "🌶️ Pilihan Jenis Sambal", desc: "Sambal Bawang, Terasi, Hijau, Matah" },
+  { id: "🔥 Level Pedas", label: "🔥 Level Kepedasan", desc: "Level 1, Level 2, Level 3" },
+  { id: "🍳 Ekstra Topping / Lauk", label: "🍳 Ekstra Topping & Ala Carte", desc: "Tahu, Tempe, Terong, Telur" },
+  { id: "🥤 Pilihan Es & Gula", label: "🥤 Pilihan Es & Gula", desc: "Es Normal, Less Ice, Gula Normal" },
+];
+
 export default function MenuFormModal({
   isOpen,
   itemToEdit,
@@ -48,6 +57,7 @@ export default function MenuFormModal({
   const [taxPercent, setTaxPercent] = useState<number>(10);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
+  const [allowedAddOnCategories, setAllowedAddOnCategories] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -83,6 +93,31 @@ export default function MenuFormModal({
       setImageUrl(itemToEdit.imageUrl || null);
       setIsActive(itemToEdit.isActive);
 
+      if (Array.isArray(itemToEdit.allowedAddOnCategories)) {
+        setAllowedAddOnCategories(itemToEdit.allowedAddOnCategories);
+      } else {
+        // Auto default according to category
+        const catLower = itemToEdit.category.toLowerCase();
+        if (catLower.includes("paket") || itemToEdit.name.toLowerCase().includes("paket")) {
+          setAllowedAddOnCategories([
+            "🍹 Pilihan Minuman Paket",
+            "🍚 Pilihan Nasi",
+            "🌶️ Pilihan Sambal",
+            "🔥 Level Pedas",
+            "🍳 Ekstra Topping / Lauk",
+          ]);
+        } else if (catLower.includes("minuman")) {
+          setAllowedAddOnCategories(["🥤 Pilihan Es & Gula"]);
+        } else {
+          setAllowedAddOnCategories([
+            "🍚 Pilihan Nasi",
+            "🌶️ Pilihan Sambal",
+            "🔥 Level Pedas",
+            "🍳 Ekstra Topping / Lauk",
+          ]);
+        }
+      }
+
       const initPrice = itemToEdit.price || 0;
       const initHpp = itemToEdit.hpp || 0;
       if (initPrice > 0) {
@@ -100,6 +135,12 @@ export default function MenuFormModal({
       setTaxPercent(10);
       setImageUrl(null);
       setIsActive(true);
+      setAllowedAddOnCategories([
+        "🍚 Pilihan Nasi",
+        "🌶️ Pilihan Sambal",
+        "🔥 Level Pedas",
+        "🍳 Ekstra Topping / Lauk",
+      ]);
     }
   }, [itemToEdit, isOpen]);
 
@@ -157,6 +198,15 @@ export default function MenuFormModal({
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) handleImageFile(file);
+  };
+
+  const toggleAddOnCategory = (groupId: string) => {
+    setAllowedAddOnCategories((prev) => {
+      if (prev.includes(groupId)) {
+        return prev.filter((id) => id !== groupId);
+      }
+      return [...prev, groupId];
+    });
   };
 
   // Recalculate price when target margin is explicitly set by user/preset
@@ -228,6 +278,7 @@ export default function MenuFormModal({
         imageUrl: imageUrl || null,
         icon: null,
         isActive,
+        allowedAddOnCategories: allowedAddOnCategories.length > 0 ? allowedAddOnCategories : null,
       };
 
       try {
@@ -235,7 +286,6 @@ export default function MenuFormModal({
       } catch (err: any) {
         if (err?.message?.includes("exceeded the quota") || err?.name === "QuotaExceededError") {
           console.warn("Storage quota warning caught, continuing with sanitized image data:", err);
-          // Try saving without image if localStorage quota is tight
           const fallbackItem = { ...newItem, imageUrl: null };
           await onSave(fallbackItem);
         } else {
@@ -435,6 +485,60 @@ export default function MenuFormModal({
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Per-MenuItem Add-On Group Toggle Switches (ON/OFF) */}
+            <div className="md:col-span-2 p-4 bg-muted/40 rounded-2xl border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-extrabold text-xs sm:text-sm text-foreground flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>⚙️ Atur Add-On &amp; Varian yang Aktif (Tombol ON/OFF per Menu)</span>
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Pilih grup Add-On mana saja yang bisa dipilih pembeli saat memesan menu ini.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                {ADDON_TOGGLE_GROUPS.map((grp) => {
+                  const isEnabled = allowedAddOnCategories.includes(grp.id);
+                  return (
+                    <button
+                      key={grp.id}
+                      type="button"
+                      onClick={() => toggleAddOnCategory(grp.id)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        isEnabled
+                          ? "bg-emerald-500/10 border-emerald-500/50 shadow-xs ring-1 ring-emerald-500/30"
+                          : "bg-background border-border opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      <div className="min-w-0 pr-1">
+                        <span className="font-extrabold text-xs text-foreground block truncate">
+                          {grp.label}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block truncate">
+                          {grp.desc}
+                        </span>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isEnabled ? (
+                          <Badge className="bg-emerald-500 text-slate-950 font-black text-[10px] px-2 py-0.5">
+                            ON 🟢
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground text-[10px] px-2 py-0.5">
+                            OFF 🔴
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Target Margin Smart Calculator Card (Full Width on Desktop) */}

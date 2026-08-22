@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       icon: body.icon || "🍽️",
       imageUrl: body.imageUrl || null,
       isActive: body.isActive ?? true,
+      allowedAddOnCategories: Array.isArray(body.allowedAddOnCategories) ? body.allowedAddOnCategories : null,
       updatedAt: new Date().toISOString(),
     };
 
@@ -117,6 +118,7 @@ export async function PUT(request: Request) {
       icon: body.icon || "🍽️",
       imageUrl: body.imageUrl || null,
       isActive: body.isActive ?? true,
+      allowedAddOnCategories: Array.isArray(body.allowedAddOnCategories) ? body.allowedAddOnCategories : null,
       updatedAt: new Date().toISOString(),
     };
 

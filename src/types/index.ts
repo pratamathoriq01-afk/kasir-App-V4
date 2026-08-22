@@ -9,6 +9,7 @@ export interface MenuItem {
   icon?: string | null;
   imageUrl?: string | null;
   isActive: boolean;
+  allowedAddOnCategories?: string[] | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }

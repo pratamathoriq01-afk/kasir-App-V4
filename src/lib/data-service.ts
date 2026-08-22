@@ -190,6 +190,7 @@ export async function saveMenuItemOptimistic(item: MenuItem, currentItems: MenuI
         icon: item.icon || "🍽️",
         imageUrl: item.imageUrl || null,
         isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+        allowedAddOnCategories: Array.isArray(item.allowedAddOnCategories) ? item.allowedAddOnCategories : null,
         updatedAt: new Date().toISOString(),
       };
 
