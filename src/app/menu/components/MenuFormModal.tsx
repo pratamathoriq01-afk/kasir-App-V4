@@ -120,7 +120,29 @@ export default function MenuFormModal({
   const handleImageFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      setImageUrl(e.target?.result as string);
+      const src = e.target?.result as string;
+      if (!src) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 600;
+        const scaleSize = MAX_WIDTH / img.width;
+
+        if (scaleSize < 1) {
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        }
+
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        setImageUrl(compressedBase64);
+      };
+      img.src = src;
     };
     reader.readAsDataURL(file);
   };

@@ -133,7 +133,21 @@ export async function fetchMenuItemsFromDB(): Promise<MenuItem[]> {
 
 export function saveMenuItems(items: MenuItem[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(items));
+  try {
+    localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.warn("LocalStorage quota notice, streamlining images for local storage:", e);
+    try {
+      // Strip oversized base64 data URLs for local storage fallback
+      const streamlined = items.map((m) => ({
+        ...m,
+        imageUrl: m.imageUrl && m.imageUrl.length > 50000 ? null : m.imageUrl,
+      }));
+      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(streamlined));
+    } catch (err) {
+      console.error("LocalStorage save error:", err);
+    }
+  }
 }
 
 // 0ms Optimistic Menu Save & Sync
