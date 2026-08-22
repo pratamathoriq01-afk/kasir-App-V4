@@ -44,6 +44,7 @@ interface AddOnManagementModalProps {
 
 const CATEGORY_PRESETS = [
   "Semua",
+  "🍹 Pilihan Minuman Paket",
   "🍚 Pilihan Nasi",
   "🌶️ Pilihan Sambal",
   "🔥 Level Pedas",
@@ -60,6 +61,11 @@ const CATEGORY_PRESETS = [
 ];
 
 const SAMBAL_AND_DRINK_DEFAULTS = [
+  // Minuman Paket Hemat / Bundling
+  { name: "ES Teh Manis Segar (Paket) 🥤", price: 0, hpp: 500, category: "🍹 Pilihan Minuman Paket" },
+  { name: "ES Jeruk Peras Segar (Paket) 🍊", price: 0, hpp: 1000, category: "🍹 Pilihan Minuman Paket" },
+  { name: "Air Mineral Dingin (Paket) 💧", price: 0, hpp: 1000, category: "🍹 Pilihan Minuman Paket" },
+
   // Pilihan Nasi / Karbo
   { name: "Nasi Putih Matang 🍚", price: 0, hpp: 1500, category: "🍚 Pilihan Nasi" },
   { name: "Nasi Daun Jeruk Nyamleng 🍃", price: 2000, hpp: 2000, category: "🍚 Pilihan Nasi" },
@@ -107,7 +113,7 @@ export default function AddOnManagementModal({
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | "">(0);
   const [hpp, setHpp] = useState<number | "">(0);
-  const [category, setCategory] = useState("🍚 Pilihan Nasi");
+  const [category, setCategory] = useState("🍹 Pilihan Minuman Paket");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryInput, setCustomCategoryInput] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -139,7 +145,7 @@ export default function AddOnManagementModal({
     setName("");
     setPrice(0);
     setHpp(0);
-    setCategory("🍚 Pilihan Nasi");
+    setCategory("🍹 Pilihan Minuman Paket");
     setIsCustomCategory(false);
     setCustomCategoryInput("");
     setIsActive(true);
@@ -233,6 +239,15 @@ export default function AddOnManagementModal({
     const cat = (a.category || "Semua").toLowerCase();
     const nameLower = a.name.toLowerCase();
 
+    if (selectedFilterCategory === "🍹 Pilihan Minuman Paket") {
+      return (
+        cat.includes("paket") ||
+        nameLower.includes("paket") ||
+        (nameLower.includes("es") && nameLower.includes("teh")) ||
+        (nameLower.includes("es") && nameLower.includes("jeruk"))
+      );
+    }
+
     if (selectedFilterCategory === "🍚 Pilihan Nasi") {
       return (
         cat.includes("nasi") ||
@@ -305,7 +320,7 @@ export default function AddOnManagementModal({
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                Kelola Add-On &amp; Varian (Nasi, Sambal, Pedas, Topping &amp; Minuman)
+                Kelola Add-On &amp; Varian (Minuman Paket, Nasi, Sambal, Pedas, Topping)
               </DialogTitle>
               <p className="text-xs text-amber-100 font-medium">
                 Tambah, edit, hapus, &amp; kontrol stok aktif/habis opsi makanan &amp; minuman realtime 0ms.
@@ -328,6 +343,7 @@ export default function AddOnManagementModal({
             <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">Filter Grup:</span>
             {[
               "Semua",
+              "🍹 Pilihan Minuman Paket",
               "🍚 Pilihan Nasi",
               "🌶️ Pilihan Sambal",
               "🔥 Level Pedas",
@@ -406,7 +422,7 @@ export default function AddOnManagementModal({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Nasi Daun Jeruk Nyamleng 🍃"
+                    placeholder="Contoh: ES Jeruk Peras Segar (Paket) 🍊"
                     className="h-10 text-xs sm:text-sm font-bold bg-background rounded-xl w-full"
                   />
                 </div>
@@ -418,7 +434,7 @@ export default function AddOnManagementModal({
                     min={0}
                     value={price}
                     onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="0 (Gratis) / Rp 2.000"
+                    placeholder="0 (Gratis) / Rp 1.000"
                     className="h-10 text-xs sm:text-sm font-mono font-bold bg-background rounded-xl w-full"
                   />
                 </div>

@@ -43,11 +43,28 @@ export default function AddOnPickerModal({
     !menuItem.category.toLowerCase().includes("minuman") &&
     !menuItem.category.toLowerCase().includes("drink");
 
-  // Smart Section Categorization for Food vs Drink Items
+  const isPaketItem =
+    menuItem.category.toLowerCase().includes("paket") ||
+    menuItem.category.toLowerCase().includes("bundling") ||
+    menuItem.name.toLowerCase().includes("paket") ||
+    menuItem.name.toLowerCase().includes("bundling");
+
+  // Smart Section Categorization for Food, Paket, vs Drink Items
   const activeAddOns = availableAddOns.filter((a) => a.isActive);
 
-  // 1. Ice / Suhu Add-Ons
+  // 1. Paket Drink Add-Ons
+  const paketDrinkAddOns = activeAddOns.filter((a) => {
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat.includes("paket") ||
+      (name.includes("paket") && (name.includes("teh") || name.includes("jeruk") || name.includes("es") || name.includes("minuman")))
+    );
+  });
+
+  // 2. Ice / Suhu Add-Ons
   const iceAddOns = activeAddOns.filter((a) => {
+    if (paketDrinkAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -61,9 +78,9 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 2. Sugar / Manis Add-Ons
+  // 3. Sugar / Manis Add-Ons
   const sugarAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a)) return false;
+    if (paketDrinkAddOns.includes(a) || iceAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -75,9 +92,9 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 3. Nasi / Karbo Add-Ons
+  // 4. Nasi / Karbo Add-Ons
   const nasiAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a) || sugarAddOns.includes(a)) return false;
+    if (paketDrinkAddOns.includes(a) || iceAddOns.includes(a) || sugarAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -89,9 +106,9 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 4. Sambal Add-Ons
+  // 5. Sambal Add-Ons
   const sambalAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a)) return false;
+    if (paketDrinkAddOns.includes(a) || iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -104,9 +121,9 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 5. Pedas Add-Ons
+  // 6. Pedas Add-Ons
   const pedasAddOns = activeAddOns.filter((a) => {
-    if (iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a) || sambalAddOns.includes(a)) return false;
+    if (paketDrinkAddOns.includes(a) || iceAddOns.includes(a) || sugarAddOns.includes(a) || nasiAddOns.includes(a) || sambalAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -118,9 +135,10 @@ export default function AddOnPickerModal({
     );
   });
 
-  // 6. Topping & Ala Carte Add-Ons (Universal Fallback for Food)
+  // 7. Topping & Ala Carte Add-Ons (Universal Fallback for Food)
   const toppingAddOns = activeAddOns.filter(
     (a) =>
+      !paketDrinkAddOns.includes(a) &&
       !iceAddOns.includes(a) &&
       !sugarAddOns.includes(a) &&
       !nasiAddOns.includes(a) &&
@@ -128,12 +146,12 @@ export default function AddOnPickerModal({
       !pedasAddOns.includes(a)
   );
 
-  // 7. Drink Extra Toppings (Universal Fallback for Drinks)
+  // 8. Drink Extra Toppings (Universal Fallback for Drinks)
   const drinkToppingAddOns = activeAddOns.filter(
-    (a) => !iceAddOns.includes(a) && !sugarAddOns.includes(a)
+    (a) => !paketDrinkAddOns.includes(a) && !iceAddOns.includes(a) && !sugarAddOns.includes(a)
   );
 
-  // Single-Select (Radio) for Nasi, Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
+  // Single-Select (Radio) for PaketDrink, Nasi, Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
   const handleToggleAddOn = (
     addon: AddOn,
     isSingleSelect: boolean,
@@ -223,6 +241,7 @@ export default function AddOnPickerModal({
   };
 
   const hasAnyFoodAddOn =
+    paketDrinkAddOns.length > 0 ||
     nasiAddOns.length > 0 ||
     sambalAddOns.length > 0 ||
     pedasAddOns.length > 0 ||
@@ -238,7 +257,7 @@ export default function AddOnPickerModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-white/20 text-white font-bold text-lg">
-                {menuItem.icon || (isFoodItem ? "🍗" : "🥤")}
+                {menuItem.icon || (isFoodItem ? "📦" : "🥤")}
               </div>
               <div>
                 <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
@@ -250,7 +269,7 @@ export default function AddOnPickerModal({
               </div>
             </div>
             <Badge className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-0.5">
-              {isFoodItem ? "Opsi Nasi, Sambal & Topping" : "Opsi Es & Gula"}
+              {isPaketItem ? "Paket Hemat Bundling" : isFoodItem ? "Opsi Nasi, Sambal & Topping" : "Opsi Es & Gula"}
             </Badge>
           </div>
         </DialogHeader>
@@ -260,8 +279,17 @@ export default function AddOnPickerModal({
           {isFoodItem ? (
             hasAnyFoodAddOn ? (
               <>
+                {isPaketItem &&
+                  renderAddOnGroup(
+                    "Langkah 1: 🍹 Pilihan Minuman Paket",
+                    "(Pilih 1 minuman paket)",
+                    "🍹",
+                    paketDrinkAddOns,
+                    true // Single Select Radio
+                  )}
+
                 {renderAddOnGroup(
-                  "Langkah 1: 🍚 Pilih Jenis Nasi / Karbo",
+                  isPaketItem ? "Langkah 2: 🍚 Pilih Jenis Nasi / Karbo" : "Langkah 1: 🍚 Pilih Jenis Nasi / Karbo",
                   "(Pilih 1 opsi nasi)",
                   "🍚",
                   nasiAddOns,
@@ -269,7 +297,7 @@ export default function AddOnPickerModal({
                 )}
 
                 {renderAddOnGroup(
-                  "Langkah 2: 🌶️ Pilih Jenis Sambal",
+                  isPaketItem ? "Langkah 3: 🌶️ Pilih Jenis Sambal" : "Langkah 2: 🌶️ Pilih Jenis Sambal",
                   "(Pilih 1 jenis sambal)",
                   "🌶️",
                   sambalAddOns,
@@ -277,7 +305,7 @@ export default function AddOnPickerModal({
                 )}
 
                 {renderAddOnGroup(
-                  "Langkah 3: 🔥 Pilih Level Kepedasan",
+                  isPaketItem ? "Langkah 4: 🔥 Pilih Level Kepedasan" : "Langkah 3: 🔥 Pilih Level Kepedasan",
                   "(Pilih 1 level pedas)",
                   "🔥",
                   pedasAddOns,
@@ -285,7 +313,7 @@ export default function AddOnPickerModal({
                 )}
 
                 {renderAddOnGroup(
-                  "Langkah 4: 🍳 Ekstra Topping & Ala Carte",
+                  isPaketItem ? "Langkah 5: 🍳 Ekstra Topping & Ala Carte" : "Langkah 4: 🍳 Ekstra Topping & Ala Carte",
                   "(Bisa pilih banyak)",
                   "🍳",
                   toppingAddOns,
