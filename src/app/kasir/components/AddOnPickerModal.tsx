@@ -64,27 +64,78 @@ export default function AddOnPickerModal({
     return defaultCheck;
   };
 
-  // 1. Paket Drink Add-Ons
-  const rawPaketDrinkAddOns = activeAddOns.filter((a) => {
+  // 1. Nasi / Karbo Add-Ons (First Priority: Any item with Nasi / Karbo)
+  const rawNasiAddOns = activeAddOns.filter((a) => {
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
-      cat.includes("paket") ||
-      cat.includes("minuman paket") ||
-      name.includes("paket") ||
+      cat === "🍚 pilihan nasi" ||
+      cat.includes("nasi") ||
+      cat.includes("karbo") ||
+      name.includes("nasi") ||
+      name.includes("karbo")
+    );
+  });
+  const nasiAddOns = isGroupAllowed("🍚 Pilihan Nasi", isFoodItem) ? rawNasiAddOns : [];
+
+  // 2. Sambal Add-Ons
+  const rawSambalAddOns = activeAddOns.filter((a) => {
+    if (rawNasiAddOns.includes(a)) return false;
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat === "🌶️ pilihan sambal" ||
+      cat.includes("sambal") ||
+      name.includes("sambal") ||
+      name.includes("bawang") ||
+      name.includes("hijau") ||
+      name.includes("matah") ||
+      name.includes("terasi")
+    );
+  });
+  const sambalAddOns = isGroupAllowed("🌶️ Pilihan Sambal", isFoodItem) ? rawSambalAddOns : [];
+
+  // 3. Pedas Add-Ons
+  const rawPedasAddOns = activeAddOns.filter((a) => {
+    if (rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a)) return false;
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    return (
+      cat === "🔥 level pedas" ||
+      cat.includes("pedas") ||
+      name.includes("pedas") ||
+      name.includes("level") ||
+      name.includes("sedang") ||
+      name.includes("super")
+    );
+  });
+  const pedasAddOns = isGroupAllowed("🔥 Level Pedas", isFoodItem) ? rawPedasAddOns : [];
+
+  // 4. Paket Drink Add-Ons (Strictly for Drinks, Never Nasi or Food)
+  const rawPaketDrinkAddOns = activeAddOns.filter((a) => {
+    if (rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a) || rawPedasAddOns.includes(a)) return false;
+    const cat = (a.category || "").toLowerCase();
+    const name = a.name.toLowerCase();
+    const isDrinkCategory = cat === "🍹 pilihan minuman paket" || cat.includes("minuman paket") || cat.includes("minum");
+    const isDrinkName =
       (name.includes("es") && name.includes("teh")) ||
       (name.includes("es") && name.includes("jeruk")) ||
-      name.includes("mineral")
-    );
+      name.includes("mineral") ||
+      name.includes("kopi") ||
+      name.includes("teh") ||
+      name.includes("jeruk");
+
+    return isDrinkCategory || isDrinkName;
   });
   const paketDrinkAddOns = isGroupAllowed("🍹 Pilihan Minuman Paket", isPaketItem) ? rawPaketDrinkAddOns : [];
 
-  // 2. Ice / Suhu Add-Ons
+  // 5. Ice / Suhu Add-Ons
   const rawIceAddOns = activeAddOns.filter((a) => {
-    if (rawPaketDrinkAddOns.includes(a)) return false;
+    if (rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a) || rawPedasAddOns.includes(a) || rawPaketDrinkAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
+      cat === "🥤 pilihan es & gula" ||
       cat.includes("es") ||
       cat.includes("suhu") ||
       name.includes("es") ||
@@ -96,9 +147,9 @@ export default function AddOnPickerModal({
   });
   const iceAddOns = isGroupAllowed("🥤 Pilihan Es & Gula", !isFoodItem) ? rawIceAddOns : [];
 
-  // 3. Sugar / Manis Add-Ons
+  // 6. Sugar / Manis Add-Ons
   const rawSugarAddOns = activeAddOns.filter((a) => {
-    if (rawPaketDrinkAddOns.includes(a) || rawIceAddOns.includes(a)) return false;
+    if (rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a) || rawPedasAddOns.includes(a) || rawPaketDrinkAddOns.includes(a) || rawIceAddOns.includes(a)) return false;
     const cat = (a.category || "").toLowerCase();
     const name = a.name.toLowerCase();
     return (
@@ -111,61 +162,15 @@ export default function AddOnPickerModal({
   });
   const sugarAddOns = isGroupAllowed("🥤 Pilihan Es & Gula", !isFoodItem) ? rawSugarAddOns : [];
 
-  // 4. Nasi / Karbo Add-Ons
-  const rawNasiAddOns = activeAddOns.filter((a) => {
-    if (rawPaketDrinkAddOns.includes(a) || rawIceAddOns.includes(a) || rawSugarAddOns.includes(a)) return false;
-    const cat = (a.category || "").toLowerCase();
-    const name = a.name.toLowerCase();
-    return (
-      cat.includes("nasi") ||
-      cat.includes("karbo") ||
-      name.includes("nasi") ||
-      name.includes("karbo") ||
-      name.includes("jeruk")
-    );
-  });
-  const nasiAddOns = isGroupAllowed("🍚 Pilihan Nasi", isFoodItem) ? rawNasiAddOns : [];
-
-  // 5. Sambal Add-Ons
-  const rawSambalAddOns = activeAddOns.filter((a) => {
-    if (rawPaketDrinkAddOns.includes(a) || rawIceAddOns.includes(a) || rawSugarAddOns.includes(a) || rawNasiAddOns.includes(a)) return false;
-    const cat = (a.category || "").toLowerCase();
-    const name = a.name.toLowerCase();
-    return (
-      cat.includes("sambal") ||
-      name.includes("sambal") ||
-      name.includes("bawang") ||
-      name.includes("hijau") ||
-      name.includes("matah") ||
-      name.includes("terasi")
-    );
-  });
-  const sambalAddOns = isGroupAllowed("🌶️ Pilihan Sambal", isFoodItem) ? rawSambalAddOns : [];
-
-  // 6. Pedas Add-Ons
-  const rawPedasAddOns = activeAddOns.filter((a) => {
-    if (rawPaketDrinkAddOns.includes(a) || rawIceAddOns.includes(a) || rawSugarAddOns.includes(a) || rawNasiAddOns.includes(a) || rawSambalAddOns.includes(a)) return false;
-    const cat = (a.category || "").toLowerCase();
-    const name = a.name.toLowerCase();
-    return (
-      cat.includes("pedas") ||
-      name.includes("pedas") ||
-      name.includes("level") ||
-      name.includes("sedang") ||
-      name.includes("super")
-    );
-  });
-  const pedasAddOns = isGroupAllowed("🔥 Level Pedas", isFoodItem) ? rawPedasAddOns : [];
-
-  // 7. Topping & Ala Carte Add-Ons
+  // 7. Topping & Ala Carte Add-Ons (Fallback for Food)
   const rawToppingAddOns = activeAddOns.filter(
     (a) =>
-      !rawPaketDrinkAddOns.includes(a) &&
-      !rawIceAddOns.includes(a) &&
-      !rawSugarAddOns.includes(a) &&
       !rawNasiAddOns.includes(a) &&
       !rawSambalAddOns.includes(a) &&
-      !rawPedasAddOns.includes(a)
+      !rawPedasAddOns.includes(a) &&
+      !rawPaketDrinkAddOns.includes(a) &&
+      !rawIceAddOns.includes(a) &&
+      !rawSugarAddOns.includes(a)
   );
   const toppingAddOns = isGroupAllowed("🍳 Ekstra Topping / Lauk", isFoodItem) ? rawToppingAddOns : [];
 
@@ -299,16 +304,6 @@ export default function AddOnPickerModal({
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 max-h-[60vh]">
           {hasAnyActiveAddOn ? (
             <>
-              {paketDrinkAddOns.length > 0 &&
-                renderAddOnGroup(
-                  stepCounter++,
-                  "Pilihan Minuman Paket",
-                  "(Pilih 1 minuman paket)",
-                  "🍹",
-                  paketDrinkAddOns,
-                  true // Single Select Radio
-                )}
-
               {nasiAddOns.length > 0 &&
                 renderAddOnGroup(
                   stepCounter++,
@@ -336,6 +331,16 @@ export default function AddOnPickerModal({
                   "(Pilih 1 level pedas)",
                   "🔥",
                   pedasAddOns,
+                  true // Single Select Radio
+                )}
+
+              {paketDrinkAddOns.length > 0 &&
+                renderAddOnGroup(
+                  stepCounter++,
+                  "Pilihan Minuman Paket",
+                  "(Pilih 1 minuman paket)",
+                  "🍹",
+                  paketDrinkAddOns,
                   true // Single Select Radio
                 )}
 
