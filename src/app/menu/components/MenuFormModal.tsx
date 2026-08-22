@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X, AlignLeft } from "lucide-react";
+import { Save, Upload, ImageIcon, Sparkles, Tag, Plus, Check, Percent, Calculator, X, AlignLeft, AlertCircle } from "lucide-react";
 import { getStoredCategories, addNewCategoryOptimistic } from "@/lib/data-service";
 
 interface MenuFormModalProps {
@@ -49,15 +49,21 @@ export default function MenuFormModal({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Target Margin Percentage State
   const [targetMargin, setTargetMargin] = useState<number>(45);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const cats = getStoredCategories();
     setAvailableCategories(cats);
+    setErrorMessage(null);
+    setIsSaving(false);
 
     if (itemToEdit) {
       setName(itemToEdit.name);
@@ -162,35 +168,53 @@ export default function MenuFormModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
     if (!name.trim()) {
-      alert("Nama menu tidak boleh kosong");
+      setErrorMessage("⚠️ Nama Menu Produk wajib diisi!");
+      if (formRef.current) formRef.current.scrollTop = 0;
+      if (nameInputRef.current) nameInputRef.current.focus();
       return;
     }
 
-    const finalCategory = isCustomCategory
-      ? (customCategoryInput.trim() || "Menu Alacarte")
-      : category;
-
-    if (isCustomCategory && customCategoryInput.trim()) {
-      addNewCategoryOptimistic(customCategoryInput.trim());
+    if (numPrice <= 0) {
+      setErrorMessage("⚠️ Harga Jual harus lebih dari Rp 0!");
+      return;
     }
 
-    const newItem: MenuItem = {
-      id: itemToEdit ? itemToEdit.id : `menu-${Date.now()}`,
-      name: name.trim(),
-      description: description.trim() || null,
-      category: finalCategory,
-      price: numPrice,
-      hpp: numHpp,
-      taxPercent: Number(taxPercent),
-      imageUrl: imageUrl || null,
-      icon: null,
-      isActive,
-    };
+    setIsSaving(true);
 
-    onSave(newItem);
+    try {
+      const finalCategory = isCustomCategory
+        ? (customCategoryInput.trim() || "Menu Alacarte")
+        : category;
+
+      if (isCustomCategory && customCategoryInput.trim()) {
+        addNewCategoryOptimistic(customCategoryInput.trim());
+      }
+
+      const newItem: MenuItem = {
+        id: itemToEdit ? itemToEdit.id : `menu-${Date.now()}`,
+        name: name.trim(),
+        description: description.trim() || null,
+        category: finalCategory,
+        price: numPrice,
+        hpp: numHpp,
+        taxPercent: Number(taxPercent),
+        imageUrl: imageUrl || null,
+        icon: null,
+        isActive,
+      };
+
+      await onSave(newItem);
+    } catch (err: any) {
+      console.error("Save menu error:", err);
+      setErrorMessage(`Gagal menyimpan menu: ${err.message || "Terjadi kesalahan"}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const marginPercent = numPrice > 0 ? Math.round(((numPrice - numHpp) / numPrice) * 100) : 0;
@@ -228,8 +252,16 @@ export default function MenuFormModal({
           </button>
         </div>
 
+        {/* Error Alert Notice */}
+        {errorMessage && (
+          <div className="mx-4 mt-4 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-2.5 text-rose-600 dark:text-rose-400 text-xs font-extrabold animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {/* Form Body - Scrollable Container */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+        <form ref={formRef} onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {/* Image Upload Area */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -297,11 +329,14 @@ export default function MenuFormModal({
                 Nama Menu Produk <span className="text-destructive">*</span>
               </label>
               <Input
+                ref={nameInputRef}
                 type="text"
                 placeholder="Contoh: Ayam Bakar Bumbu Madu Nyamleng"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-11 text-sm font-bold bg-background rounded-xl w-full"
+                className={`h-11 text-sm font-bold bg-background rounded-xl w-full ${
+                  !name.trim() && errorMessage ? "border-rose-500 ring-2 ring-rose-500/20" : ""
+                }`}
                 required
               />
             </div>
@@ -560,6 +595,7 @@ export default function MenuFormModal({
               type="button"
               variant="outline"
               onClick={onClose}
+              disabled={isSaving}
               className="h-11 px-6 text-xs sm:text-sm font-bold rounded-xl cursor-pointer"
             >
               Batal
@@ -567,10 +603,11 @@ export default function MenuFormModal({
 
             <Button
               type="submit"
-              className="h-11 px-8 text-xs sm:text-sm font-extrabold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer"
+              disabled={isSaving}
+              className="h-11 px-8 text-xs sm:text-sm font-extrabold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4 stroke-[2.5]" />
-              <span>Simpan Menu ✨</span>
+              <span>{isSaving ? "Menyimpan..." : "Simpan Menu ✨"}</span>
             </Button>
           </div>
         </form>
