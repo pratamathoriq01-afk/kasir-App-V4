@@ -335,7 +335,43 @@ export function getStoredAddOns(): AddOn[] {
     const raw = localStorage.getItem(ADDONS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((a: AddOn) => {
+      const nameLower = (a.name || "").toLowerCase();
+      let correctCat = a.category;
+      if (nameLower.includes("nasi") || nameLower.includes("karbo")) {
+        correctCat = "🍚 Pilihan Nasi";
+      } else if (
+        nameLower.includes("sambal") ||
+        nameLower.includes("bawang") ||
+        nameLower.includes("hijau") ||
+        nameLower.includes("matah") ||
+        nameLower.includes("terasi")
+      ) {
+        correctCat = "🌶️ Pilihan Sambal";
+      } else if (
+        nameLower.includes("pedas") ||
+        nameLower.includes("level") ||
+        nameLower.includes("sedang") ||
+        nameLower.includes("super")
+      ) {
+        correctCat = "🔥 Level Pedas";
+      } else if (
+        (nameLower.includes("es") && nameLower.includes("teh")) ||
+        (nameLower.includes("es") && nameLower.includes("jeruk")) ||
+        nameLower.includes("mineral")
+      ) {
+        correctCat = "🍹 Pilihan Minuman Paket";
+      } else if (
+        nameLower.includes("gula") ||
+        nameLower.includes("ice") ||
+        nameLower.includes("sugar")
+      ) {
+        correctCat = "🥤 Pilihan Es & Gula";
+      }
+      return { ...a, category: correctCat };
+    });
   } catch {
     return [];
   }

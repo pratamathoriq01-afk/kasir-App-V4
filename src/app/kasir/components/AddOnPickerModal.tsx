@@ -193,16 +193,22 @@ export default function AddOnPickerModal({
   });
   const sugarAddOns = isGroupAllowed("🥤 Pilihan Es & Gula", !isFoodItem) ? rawSugarAddOns : [];
 
-  // 7. Topping & Ala Carte Add-Ons (Fallback for Food)
-  const rawToppingAddOns = activeAddOns.filter(
-    (a) =>
+  // 7. Topping & Ala Carte Add-Ons (Strict Fallback for Food: Tahu, Tempe, Terong, Telur, etc.)
+  const rawToppingAddOns = activeAddOns.filter((a) => {
+    const nameLower = (a.name || "").toLowerCase();
+    if (nameLower.includes("nasi") || nameLower.includes("karbo")) return false;
+    if (nameLower.includes("sambal") || nameLower.includes("bawang") || nameLower.includes("hijau") || nameLower.includes("matah") || nameLower.includes("terasi")) return false;
+    if (nameLower.includes("pedas") || nameLower.includes("level") || nameLower.includes("sedang") || nameLower.includes("super")) return false;
+
+    return (
       !rawNasiAddOns.includes(a) &&
       !rawSambalAddOns.includes(a) &&
       !rawPedasAddOns.includes(a) &&
       !rawPaketDrinkAddOns.includes(a) &&
       !rawIceAddOns.includes(a) &&
       !rawSugarAddOns.includes(a)
-  );
+    );
+  });
   const toppingAddOns = isGroupAllowed("🍳 Ekstra Topping / Lauk", isFoodItem) ? rawToppingAddOns : [];
 
   // Single-Select (Radio) for PaketDrink, Nasi, Sambal, Pedas, Es, Gula, Multi-Select (Checkbox) for Topping
