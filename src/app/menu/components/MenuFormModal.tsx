@@ -31,12 +31,12 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const ADDON_TOGGLE_GROUPS = [
-  { id: "🍹 Pilihan Minuman Paket", label: "🍹 Pilihan Minuman Paket", desc: "Es Teh, Es Jeruk, Air Mineral" },
+  { id: "🍹 Pilihan Minuman Paket", label: "🍹 Pilihan Minuman (Es Teh / Es Jeruk / Air Mineral)", desc: "Aktifkan jika menu ini gratis/bebas pilih minuman" },
+  { id: "🥤 Pilihan Es & Gula", label: "🥤 Pilihan Suhu, Es & Gula Minuman", desc: "Es Normal, Less Ice, Gula Normal, Less Sugar" },
   { id: "🍚 Pilihan Nasi", label: "🍚 Pilihan Nasi / Karbo", desc: "Nasi Putih, Nasi Daun Jeruk, Tanpa Nasi" },
   { id: "🌶️ Pilihan Sambal", label: "🌶️ Pilihan Jenis Sambal", desc: "Sambal Bawang, Terasi, Hijau, Matah" },
   { id: "🔥 Level Pedas", label: "🔥 Level Kepedasan", desc: "Level 1, Level 2, Level 3" },
   { id: "🍳 Ekstra Topping / Lauk", label: "🍳 Ekstra Topping & Ala Carte", desc: "Tahu, Tempe, Terong, Telur" },
-  { id: "🥤 Pilihan Es & Gula", label: "🥤 Pilihan Es & Gula", desc: "Es Normal, Less Ice, Gula Normal" },
 ];
 
 export default function MenuFormModal({

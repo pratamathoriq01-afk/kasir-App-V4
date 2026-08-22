@@ -70,7 +70,11 @@ export default function AddOnPickerModal({
     const name = a.name.toLowerCase();
     return (
       cat.includes("paket") ||
-      (name.includes("paket") && (name.includes("teh") || name.includes("jeruk") || name.includes("es") || name.includes("minuman")))
+      cat.includes("minuman paket") ||
+      name.includes("paket") ||
+      (name.includes("es") && name.includes("teh")) ||
+      (name.includes("es") && name.includes("jeruk")) ||
+      name.includes("mineral")
     );
   });
   const paketDrinkAddOns = isGroupAllowed("🍹 Pilihan Minuman Paket", isPaketItem) ? rawPaketDrinkAddOns : [];
